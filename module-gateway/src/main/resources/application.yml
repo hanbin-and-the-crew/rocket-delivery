@@ -50,6 +50,10 @@ spring:
           uri: lb://USER-SERVICE
           predicates:
             - Path=/user/**, /users/**
+        - id: jpa-service
+          uri: lb://JPA-SERVICE
+          predicates:
+            - Path=/jpa/**
 
 
 logging:
