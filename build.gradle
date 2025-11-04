@@ -1,0 +1,64 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.6'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+bootJar.enabled = false // 루트 프로젝트의 bootJar 비활성화
+
+subprojects {
+    group = 'org.sparta'
+    version = '0.0.1-SNAPSHOT'
+    description = 'Rocket Delivery Service'
+
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    bootJar.enabled = true // 하위 프로젝트들의 bootJar 활성화
+    jar.enabled = false
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
+    repositories {
+        mavenCentral()
+    }
+
+    ext { // Spring Cloud용 설정
+        springCloudVersion = '2025.0.0'
+    }
+
+    dependencies {
+        // Spring starter
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.springframework.boot:spring-boot-starter-validation'
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+
+        // Test
+        testImplementation platform('org.junit:junit-bom:5.10.0')
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+        }
+    }
+
+    tasks.named('bootRun') {
+        systemProperty "spring.profiles.active", System.getProperty("spring.profiles.active") ?: "local"
+    }
+}

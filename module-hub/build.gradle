@@ -1,0 +1,7 @@
+dependencies {
+    implementation project(':module-common')
+
+    // spring cloud
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+}
