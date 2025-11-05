@@ -26,35 +26,68 @@ spring:
           uri: lb://COMPANY-SERVICE
           predicates:
             - Path=/company/**, /companies/**
+          filters:
+            - RewritePath=/company/(?<segment>.*), /$\{segment}
         - id: delivery-service
           uri: lb://DELIVERY-SERVICE
           predicates:
             - Path=/delivery/**, /deliveries/**
+          filters:
+            - RewritePath=/delivery/(?<segment>.*), /$\{segment}
         - id: hub-service
           uri: lb://HUB-SERVICE
           predicates:
             - Path=/hub/**, /hubs/**
+          filters:
+            - RewritePath=/hub/(?<segment>.*), /$\{segment}
         - id: order-service
           uri: lb://ORDER-SERVICE
           predicates:
             - Path=/order/**, /orders/**
+          filters:
+            - RewritePath=/order/(?<segment>.*), /$\{segment}
         - id: product-service
           uri: lb://PRODUCT-SERVICE
           predicates:
             - Path=/product/**, /products/**
+          filters:
+            - RewritePath=/product/(?<segment>.*), /$\{segment}
         - id: slack-service
           uri: lb://SLACK-SERVICE
           predicates:
             - Path=/slack/**, /slacks/**
+          filters:
+            - RewritePath=/slack/(?<segment>.*), /$\{segment}
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
             - Path=/user/**, /users/**
+          filters:
+            - RewritePath=/user/(?<segment>.*), /$\{segment}
         - id: jpa-service
           uri: lb://JPA-SERVICE
           predicates:
             - Path=/jpa/**
 
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Product Service
+        url: /product/api-docs
+      - name: User Service
+        url: /user/api-docs
+      - name: Order Service
+        url: /order/api-docs
+      - name: Hub Service
+        url: /hub/api-docs
+      - name: Company Service
+        url: /company/api-docs
+      - name: Delivery Service
+        url: /delivery/api-docs
+      - name: Slack Service
+        url: /slack/api-docs
 
 logging:
   level:
