@@ -1,0 +1,27 @@
+name: 'CI'
+
+on:
+  push:
+    branches: [ dev, add/*, update/*, bugfix/*, refactor/*, fix/*, move/*, del/*, test/*, style/*, gitfix/*, script/*, tdd/* ]
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 코드
+        uses: actions/checkout@v4
+
+
+      - name: Java Setup
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Run Unit Test
+        run: |
+          ./gradlew clean test
