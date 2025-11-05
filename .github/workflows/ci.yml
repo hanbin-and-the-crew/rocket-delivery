@@ -2,7 +2,7 @@ name: 'CI'
 
 on:
   push:
-    branches: [ dev, add/*, update/*, bugfix/*, refactor/*, fix/*, move/*, del/*, test/*, style/*, gitfix/*, script/*, tdd/* ]
+    branches: [ dev, common/*, company/*, order/*, hub/*, product/*, user/*, slack/*, delivery/*, gateway/*, server/*, jpa/*, auth/*, tdd/* ]
   pull_request:
     branches:
       - dev
