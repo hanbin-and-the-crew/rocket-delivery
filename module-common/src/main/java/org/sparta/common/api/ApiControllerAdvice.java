@@ -29,7 +29,7 @@ import static java.util.stream.Collectors.joining;
 
 /**
  * Spring 애플리케이션에서 발생하는 모든 예외를 한 곳에서 잡아서 통일된 JSON 응답으로 변환하는 전역 예외 처리기입니다.
- *
+ * ---------
  * 처리하는 예외 종류
  * BusinessException, @Valid 검증 실패, 타입 불일치, 헤더 누락, JSON 파싱 실패, 404 에러, 기타 모든 예외
  */
@@ -160,8 +160,6 @@ public class ApiControllerAdvice {
         log.error("Exception : {}", e.getMessage(), e);
         return failureResponse(CommonErrorType.INTERNAL_ERROR, null);
     }
-
-    // -------------------------------------------------------------------------------------------------
 
     private String extractMissingParameter(String message) {
         Matcher matcher = PARAMETER_PATTERN.matcher(message);
