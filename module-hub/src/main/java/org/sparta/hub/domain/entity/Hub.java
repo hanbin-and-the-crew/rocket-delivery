@@ -5,15 +5,15 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.sparta.hub.domain.model.HubStatus;
-import org.sparta.common.entity.BaseEntity;
+//import org.sparta.common.entity.BaseEntity;
 
 import java.util.UUID;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Hub extends BaseEntity {
-
+public class Hub  {
+//extends BaseEntity
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID hubId;
