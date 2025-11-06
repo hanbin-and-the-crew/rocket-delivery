@@ -1,18 +1,19 @@
 package org.sparta.hub.presentation;
 
 import lombok.RequiredArgsConstructor;
+import org.sparta.common.api.ApiResponse;
 import org.sparta.hub.application.HubService;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
 import org.sparta.hub.presentation.dto.response.HubCreateResponse;
-import org.sparta.hub.presentation.dto.response.HubResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.UUID;
-
+/**
+ * 허브 관련 HTTP 요청을 처리하는 Controller
+ * 모든 응답은 ApiResponse<T> 형식으로 통일
+ */
 @RestController
 @RequestMapping("/api/hubs")
 @RequiredArgsConstructor
@@ -20,27 +21,17 @@ public class HubController {
 
     private final HubService hubService;
 
+    /**
+     * 허브 생성 API
+     * POST /api/hubs
+     */
     @PostMapping
-    public ResponseEntity<HubCreateResponse> createHub(
+    public ResponseEntity<ApiResponse<HubCreateResponse>> createHub(
             @Validated @RequestBody HubCreateRequest request
     ) {
-        HubCreateResponse response = hubService.createHub(request.toCommand());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        HubCreateResponse response = hubService.createHub(request);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response));
     }
-
-
-    @GetMapping
-    public ResponseEntity<List<HubResponse>> getAllHubs() {
-        return ResponseEntity.ok(hubService.findAllHubs());
-    }
-
-    @GetMapping("/{hubId}")
-    public ResponseEntity<HubResponse> getHubById(@PathVariable UUID hubId) {
-        return ResponseEntity.ok(hubService.findHubById(hubId));
-    }
-
-
-
-
-
 }

@@ -5,17 +5,20 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.sparta.hub.domain.model.HubStatus;
-//import org.sparta.common.entity.BaseEntity;
 
 import java.util.UUID;
 
+/**
+ * 허브 엔티티
+ * 고유 식별자는 UUID 기반으로 생성
+ */
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Hub  {
-//extends BaseEntity
+public class Hub {
+
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID hubId;
 
     private String name;
