@@ -5,10 +5,6 @@ import org.sparta.hub.domain.entity.Hub;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * 허브 생성 응답 DTO
- * Controller → Client 응답 전용
- */
 public record HubCreateResponse(
         UUID hubId,
         String name,
@@ -27,7 +23,7 @@ public record HubCreateResponse(
                 hub.getLatitude(),
                 hub.getLongitude(),
                 hub.getStatus().name(),
-                null,
+                null, // BaseEntity 추가 후 createdAt, createdBy 매핑
                 null
         );
     }

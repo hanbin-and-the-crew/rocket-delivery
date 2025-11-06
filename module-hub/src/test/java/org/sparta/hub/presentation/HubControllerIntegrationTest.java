@@ -53,8 +53,9 @@ class HubControllerIntegrationTest {
         mockMvc.perform(get("/api/hubs")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("서울 허브"))
-                .andExpect(jsonPath("$[0].address").value("서울특별시 강남구 테헤란로 123"));
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data[0].name").value("서울 허브"))
+                .andExpect(jsonPath("$.data[0].address").value("서울특별시 강남구 테헤란로 123"));
     }
 
     @Test
@@ -63,8 +64,9 @@ class HubControllerIntegrationTest {
         mockMvc.perform(get("/api/hubs/{hubId}", savedHub.getHubId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("서울 허브"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.name").value("서울 허브"))
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
     }
 
     @Test
@@ -73,6 +75,8 @@ class HubControllerIntegrationTest {
         mockMvc.perform(get("/api/hubs/{hubId}", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Hub not found"));
+                .andExpect(jsonPath("$.meta.result").value("FAIL"))
+                .andExpect(jsonPath("$.meta.errorCode").value("C404"))
+                .andExpect(jsonPath("$.meta.message").value("Hub not found"));
     }
 }

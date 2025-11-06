@@ -1,6 +1,7 @@
 package org.sparta.hub.presentation.dto.response;
 
 import org.sparta.hub.domain.entity.Hub;
+
 import java.util.UUID;
 
 public record HubResponse(

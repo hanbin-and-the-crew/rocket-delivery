@@ -30,7 +30,7 @@ class HubControllerTest {
     private HubRepository hubRepository;
 
     @Test
-    @DisplayName("허브 생성 요청이 성공하면 201 상태코드와 응답 데이터를 반환한다")
+    @DisplayName("허브 생성 요청이 성공하면 201 상태코드와 ApiResponse.success 구조로 응답한다")
     void createHub_success() throws Exception {
         HubCreateRequest request = new HubCreateRequest(
                 "테스트 허브",
@@ -43,12 +43,13 @@ class HubControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("테스트 허브"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.name").value("테스트 허브"))
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
     }
 
     @Test
-    @DisplayName("허브 이름이 중복될 경우 409 상태코드와 오류 메시지를 반환한다")
+    @DisplayName("허브 이름이 중복될 경우 409 상태코드와 ApiResponse.fail 구조로 반환한다")
     void createHub_duplicate_fail() throws Exception {
         hubRepository.save(org.sparta.hub.domain.entity.Hub.create(
                 "중복 허브", "서울시", 37.55, 127.01
@@ -62,11 +63,13 @@ class HubControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("Duplicate hub name"));
+                .andExpect(jsonPath("$.meta.result").value("FAIL"))
+                .andExpect(jsonPath("$.meta.errorCode").value("C409"))
+                .andExpect(jsonPath("$.meta.message").value("이미 존재하는 허브명입니다: 중복 허브"));
     }
 
     @Test
-    @DisplayName("허브 이름이 비어있으면 400 상태코드를 반환한다")
+    @DisplayName("허브 이름이 비어있으면 400 상태코드와 ApiResponse.fail 구조로 반환한다")
     void createHub_validation_fail() throws Exception {
         HubCreateRequest request = new HubCreateRequest(
                 "", // invalid name
@@ -79,6 +82,8 @@ class HubControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Validation failed"));
+                .andExpect(jsonPath("$.meta.result").value("FAIL"))
+                .andExpect(jsonPath("$.meta.errorCode").value("C400"))
+                .andExpect(jsonPath("$.meta.message").exists());
     }
 }
