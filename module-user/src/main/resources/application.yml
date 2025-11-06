@@ -34,10 +34,6 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
-  config:
-    import:
-      - optional:classpath:application-secret.yml
-
 # 보안 관련(BCrypt)
 security:
   bcrypt:
@@ -59,3 +55,17 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+
+# JWT
+jwt:
+  access:
+    secret:
+      key: ${JWT_ACCESS_SECRET_KEY}
+    token:
+      expire: ${JWT_ACCESS_TOKEN_EXPIRE}   # 30분 (ms)
+  refresh:
+    secret:
+      key: ${JWT_REFRESH_SECRET_KEY}
+    token:
+      expire: ${JWT_REFRESH_TOKEN_EXPIRE} # 2주 (ms)
+
