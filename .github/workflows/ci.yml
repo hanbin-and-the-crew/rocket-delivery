@@ -24,4 +24,5 @@ jobs:
 
       - name: Run Unit Test
         run: |
+          chmod +x gradlew
           ./gradlew clean test
