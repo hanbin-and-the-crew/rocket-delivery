@@ -43,4 +43,19 @@ public class HubExceptionHandler {
         body.put("message", ex.getBindingResult().getAllErrors().get(0).getDefaultMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
+
+
+
+    @ExceptionHandler(HubNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleHubNotFound(HubNotFoundException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.NOT_FOUND.value());
+        body.put("error", "Hub not found");
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+
+
 }
