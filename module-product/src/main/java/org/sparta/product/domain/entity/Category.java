@@ -12,6 +12,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.sparta.jpa.entity.BaseEntity;
 
+import java.util.UUID;
+
 /**
  * 상품 카테고리 엔티티
  * 예: 건어물, 냉동식품, 신선식품
@@ -23,8 +25,8 @@ import org.sparta.jpa.entity.BaseEntity;
 public class Category extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(nullable = false, length = 100)
     private String categoryName;

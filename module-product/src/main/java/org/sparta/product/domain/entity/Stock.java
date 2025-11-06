@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.sparta.jpa.entity.BaseEntity;
 
+import java.util.UUID;
+
 /**
  * 재고 엔티티
  * - Product와 생명주기 공유 (@MapsId)
@@ -25,7 +27,7 @@ public class Stock extends BaseEntity {
      * @MapsId로 Product의 ID를 PK로 사용
      */
     @Id
-    private Long id;
+    private UUID id;
 
     /**
      * Product와의 1:1 관계
@@ -37,10 +39,10 @@ public class Stock extends BaseEntity {
     private Product product;
 
     @Column(nullable = false)
-    private Long companyId;
+    private UUID companyId;
 
     @Column(nullable = false)
-    private Long hubId;
+    private UUID hubId;
 
     /**
      * 실물(창고 기준) 총 재고량
@@ -62,7 +64,7 @@ public class Stock extends BaseEntity {
     private Integer version;
 
     @Builder
-    private Stock(Product product, Long companyId, Long hubId,
+    private Stock(Product product, UUID companyId, UUID hubId,
                  Integer quantity, Integer reservedQuantity) {
         this.product = product;
         this.companyId = companyId;
