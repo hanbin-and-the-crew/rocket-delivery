@@ -16,15 +16,11 @@ public class HubController {
 
     private final HubService hubService;
 
-    /**
-     * 허브 생성 API
-     * POST /api/hubs
-     */
     @PostMapping
     public ResponseEntity<HubCreateResponse> createHub(
             @Validated @RequestBody HubCreateRequest request
     ) {
-        HubCreateResponse response = hubService.createHub(request);
+        HubCreateResponse response = hubService.createHub(request.toCommand());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
