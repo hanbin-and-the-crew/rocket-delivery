@@ -47,4 +47,5 @@ bin/
 .env
 .env.*
 application-local.yml
+
 *.log

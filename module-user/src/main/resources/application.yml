@@ -21,7 +21,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -55,3 +55,17 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+
+# JWT
+jwt:
+  access:
+    secret:
+      key: ${JWT_ACCESS_SECRET_KEY}
+    token:
+      expire: ${JWT_ACCESS_TOKEN_EXPIRE}   # 30분 (ms)
+  refresh:
+    secret:
+      key: ${JWT_REFRESH_SECRET_KEY}
+    token:
+      expire: ${JWT_REFRESH_TOKEN_EXPIRE} # 2주 (ms)
+
