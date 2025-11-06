@@ -2,10 +2,11 @@ package org.sparta.product.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
 import org.sparta.jpa.entity.BaseEntity;
+import org.sparta.product.domain.error.ProductErrorType;
 
 import java.util.UUID;
 
@@ -17,22 +18,14 @@ import java.util.UUID;
  * - 낙관적 락으로 동시성 제어
  */
 @Entity
-@Table(name = "p_stocks")
 @Getter
+@Table(name = "p_stocks")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Stock extends BaseEntity {
 
-    /**
-     * Product와 같은 ID 공유
-     * @MapsId로 Product의 ID를 PK로 사용
-     */
     @Id
     private UUID id;
 
-    /**
-     * Product와의 1:1 관계
-     * @MapsId: 이 관계의 ID를 Stock의 PK로 사용
-     */
     @MapsId
     @OneToOne
     @JoinColumn(name = "product_id")
@@ -56,21 +49,57 @@ public class Stock extends BaseEntity {
     @Column(nullable = false)
     private Integer reservedQuantity;
 
-    /**
-     * 낙관적 락을 위한 버전
-     * - 동시 재고 수정 시 충돌 감지
-     */
     @Version
     private Integer version;
 
-    @Builder
     private Stock(Product product, UUID companyId, UUID hubId,
-                 Integer quantity, Integer reservedQuantity) {
+                 Integer quantity) {
         this.product = product;
         this.companyId = companyId;
         this.hubId = hubId;
-        this.quantity = quantity != null ? quantity : 0;
-        this.reservedQuantity = reservedQuantity != null ? reservedQuantity : 0;
+        this.quantity = quantity;
+        this.reservedQuantity =  0;
+    }
+    /**
+     * Stock 생성 팩토리 메서드
+     * - Product와 생명주기를 공유하므로 Product 필수
+     */
+    public static Stock create(
+            Product product,
+            UUID companyId,
+            UUID hubId,
+            Integer initialQuantity
+    ) {
+        validateProduct(product);
+        validateCompanyId(companyId);
+        validateHubId(hubId);
+        validateInitialQuantity(initialQuantity);
+
+        return new Stock(product, companyId, hubId, initialQuantity);
+    }
+
+    private static void validateProduct(Product product) {
+        if (product == null) {
+            throw new BusinessException(ProductErrorType.PRODUCT_REQUIRED);
+        }
+    }
+
+    private static void validateCompanyId(UUID companyId) {
+        if (companyId == null) {
+            throw new BusinessException(ProductErrorType.COMPANY_ID_REQUIRED);
+        }
+    }
+
+    private static void validateHubId(UUID hubId) {
+        if (hubId == null) {
+            throw new BusinessException(ProductErrorType.HUB_ID_REQUIRED);
+        }
+    }
+
+    private static void validateInitialQuantity(Integer initialQuantity) {
+        if (initialQuantity == null || initialQuantity < 0) {
+            throw new BusinessException(ProductErrorType.INITIAL_QUANTITY_INVALID);
+        }
     }
 
     /**

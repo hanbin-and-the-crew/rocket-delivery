@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.sparta.common.error.BusinessException;
 import org.sparta.product.domain.vo.Money;
 import org.sparta.product.support.fixtures.ProductFixture;
 
@@ -98,7 +99,7 @@ class ProductTest {
                 TEST_HUB_ID,
                 100
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("상품명은 필수입니다");
     }
 
@@ -117,7 +118,7 @@ class ProductTest {
                 TEST_HUB_ID,
                 100
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("가격은 필수입니다");
     }
 
@@ -145,7 +146,7 @@ class ProductTest {
                 TEST_HUB_ID,
                 100
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("카테고리 ID는 필수입니다");
     }
 
@@ -164,7 +165,7 @@ class ProductTest {
                 TEST_HUB_ID,
                 100
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("업체 ID는 필수입니다");
     }
 
@@ -183,7 +184,7 @@ class ProductTest {
                 nullHubId,
                 100
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("허브 ID는 필수입니다");
     }
 
@@ -203,7 +204,7 @@ class ProductTest {
                 TEST_HUB_ID,
                 negativeQuantity
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("재고량은 0 이상이어야 합니다");
     }
 
@@ -222,7 +223,7 @@ class ProductTest {
                 TEST_HUB_ID,
                 nullQuantity
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("재고량은 0 이상이어야 합니다");
     }
 

@@ -11,7 +11,9 @@ import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
 import org.sparta.jpa.entity.BaseEntity;
+import org.sparta.product.domain.error.ProductErrorType;
 import org.sparta.product.domain.vo.Money;
 
 import java.util.UUID;
@@ -23,8 +25,8 @@ import java.util.UUID;
  * - Stock의 @MapsId로 ID 공유
  */
 @Entity
-@Table(name = "p_products")
 @Getter
+@Table(name = "p_products")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends BaseEntity {
 
@@ -88,37 +90,13 @@ public class Product extends BaseEntity {
             UUID hubId,
             Integer initialQuantity
     ) {
-        // 1. 상품명 검증
-        if (productName == null || productName.isBlank()) {
-            throw new IllegalArgumentException("상품명은 필수입니다");
-        }
+        validateProductName(productName);
+        validatePrice(price);
+        validateCategoryId(categoryId);
+        validateCompanyId(companyId);
+        validateHubId(hubId);
+        validateInitialQuantity(initialQuantity);
 
-        // 2. 가격 검증 (Money VO에서 이미 검증됨)
-        if (price == null) {
-            throw new IllegalArgumentException("가격은 필수입니다");
-        }
-
-        // 3. 카테고리 검증
-        if (categoryId == null) {
-            throw new IllegalArgumentException("카테고리 ID는 필수입니다");
-        }
-
-        // 4. 상품 업체 존재 검증
-        if (companyId == null) {
-            throw new IllegalArgumentException("업체 ID는 필수입니다");
-        }
-
-        // 5. 상품 관리 허브 ID 검증
-        if (hubId == null) {
-            throw new IllegalArgumentException("허브 ID는 필수입니다");
-        }
-
-        // 6. 초기 재고량 검증 (0 이상)
-        if (initialQuantity == null || initialQuantity < 0) {
-            throw new IllegalArgumentException("재고량은 0 이상이어야 합니다");
-        }
-
-        // 7. Product 생성
         Product product = new Product(
                 productName,
                 price,
@@ -128,18 +106,52 @@ public class Product extends BaseEntity {
                 true
         );
 
-        // 8. Stock 생성 및 연결
-        Stock stock = Stock.builder()
-                .product(product)
-                .companyId(companyId)
-                .hubId(hubId)
-                .quantity(initialQuantity)
-                .reservedQuantity(0)
-                .build();
+        Stock stock = Stock.create(
+                product,
+                companyId,
+                hubId,
+                initialQuantity
+        );
 
         product.stock = stock;
 
         return product;
+    }
+
+    private static void validateProductName(String productName) {
+        if (productName == null || productName.isBlank()) {
+            throw new BusinessException(ProductErrorType.PRODUCT_NAME_REQUIRED);
+        }
+    }
+
+    private static void validatePrice(Money price) {
+        if (price == null) {
+            throw new BusinessException(ProductErrorType.PRICE_REQUIRED);
+        }
+    }
+
+    private static void validateCategoryId(UUID categoryId) {
+        if (categoryId == null) {
+            throw new BusinessException(ProductErrorType.CATEGORY_ID_REQUIRED);
+        }
+    }
+
+    private static void validateCompanyId(UUID companyId) {
+        if (companyId == null) {
+            throw new BusinessException(ProductErrorType.COMPANY_ID_REQUIRED);
+        }
+    }
+
+    private static void validateHubId(UUID hubId) {
+        if (hubId == null) {
+            throw new BusinessException(ProductErrorType.HUB_ID_REQUIRED);
+        }
+    }
+
+    private static void validateInitialQuantity(Integer initialQuantity) {
+        if (initialQuantity == null || initialQuantity < 0) {
+            throw new BusinessException(ProductErrorType.INITIAL_QUANTITY_INVALID);
+        }
     }
 
 }

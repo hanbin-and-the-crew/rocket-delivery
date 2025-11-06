@@ -19,8 +19,8 @@ import java.util.UUID;
  * 예: 건어물, 냉동식품, 신선식품
  */
 @Entity
-@Table(name = "p_categories")
 @Getter
+@Table(name = "p_categories")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Category extends BaseEntity {
 
