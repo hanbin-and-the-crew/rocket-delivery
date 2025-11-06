@@ -1,7 +1,11 @@
 dependencies {
     implementation project(':module-common')
+    implementation project(':module-jpa')
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // test
+    testImplementation 'com.h2database:h2'
 }
