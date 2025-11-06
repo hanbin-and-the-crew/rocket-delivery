@@ -1,9 +1,12 @@
 package org.sparta.hub.exception;
 
+import org.sparta.common.error.BusinessException;
+import org.sparta.common.error.CommonErrorType;
+
 import java.util.UUID;
 
-public class HubNotFoundException extends RuntimeException {
+public class HubNotFoundException extends BusinessException {
     public HubNotFoundException(UUID hubId) {
-        super("해당 허브를 찾을 수 없습니다. hubId=" + hubId);
+        super(CommonErrorType.NOT_FOUND, "Hub not found: " + hubId);
     }
 }

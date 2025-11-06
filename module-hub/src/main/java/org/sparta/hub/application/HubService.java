@@ -6,6 +6,8 @@ import org.sparta.common.error.CommonErrorType;
 import org.sparta.hub.domain.entity.Hub;
 import org.sparta.hub.domain.model.HubStatus;
 import org.sparta.hub.domain.repository.HubRepository;
+import org.sparta.hub.exception.DuplicateHubNameException;
+import org.sparta.hub.exception.HubNotFoundException;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
 import org.sparta.hub.presentation.dto.response.HubCreateResponse;
 import org.sparta.hub.presentation.dto.response.HubResponse;
@@ -36,7 +38,7 @@ public class HubService {
     public HubCreateResponse createHub(HubCreateRequest request) {
         // 중복 검증
         if (hubRepository.existsByName(request.name())) {
-            throw new BusinessException(CommonErrorType.CONFLICT, "이미 존재하는 허브명입니다: " + request.name());
+            throw new DuplicateHubNameException(request.name());
         }
 
         // 허브 생성
@@ -68,7 +70,8 @@ public class HubService {
      */
     public HubResponse getHubById(UUID hubId) {
         Hub hub = hubRepository.findById(hubId)
-                .orElseThrow(() -> new BusinessException(CommonErrorType.NOT_FOUND, "Hub not found"));
+                .orElseThrow(() -> new HubNotFoundException(hubId));
+
         return HubResponse.from(hub);
     }
 }
