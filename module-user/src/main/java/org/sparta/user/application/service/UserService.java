@@ -1,15 +1,17 @@
 package org.sparta.user.application.service;
 
-import org.sparta.common.error.BusinessException;
 import org.sparta.user.domain.entity.User;
 import org.sparta.user.domain.enums.UserRoleEnum;
+import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.domain.repository.UserRepository;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
-import org.sparta.user.presentation.dto.request.SignUpUserRequestDto;
-import org.sparta.user.presentation.dto.response.SignUpUserResponseDto;
+import org.sparta.user.presentation.UserRequest;
+import org.sparta.user.presentation.UserResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
+
+import java.util.UUID;
 
 @Service
 public class UserService {
@@ -32,13 +34,17 @@ public class UserService {
     }
 
     @Transactional
-    public SignUpUserResponseDto signup(SignUpUserRequestDto requestDto) {
+    public UserResponse.SignUpUser signup(UserRequest.SignUpUser request) {
         // Extract fields
-        String userId = requestDto.getUserId();      // 로그인용 ID
-        String userName = requestDto.getUserName();  // 사용자 이름
-        String userPhone = requestDto.getUserPhone();// 휴대폰 번호
-        String email = requestDto.getEmail();
-        String password = passwordEncoder.encode(requestDto.getPassword());
+        String userName = request.userName();
+        String realName = request.realName();
+        String userPhoneNumber = request.userPhone();
+        String email = request.email();
+        String password = passwordEncoder.encode(request.password());
+        String slackId = request.slackId();
+        UUID hubId = request.hubId();
+        UserRoleEnum role = request.role();
+
         /*
         // 중복 체크: userId, email
         userRepository.findById(userId).ifPresent(u -> {
@@ -57,14 +63,17 @@ public class UserService {
             role = requestDto.getRole();
         }*/
 
-        UserRoleEnum role = UserRoleEnum.DELIVERY_PERSON;
+        UserStatusEnum status = UserStatusEnum.PENDING;
 
         // 사용자 생성 및 저장
-        User user = new User(userName, password, email, userPhone, role);
+        User user = User.create(
+                userName, password, slackId, realName,
+                userPhoneNumber, email, status, role, hubId);
+
         user = userRepository.save(user);
         return toResponse(user);
     }
-    private SignUpUserResponseDto toResponse(User e) {
-        return new SignUpUserResponseDto(e.getId().toString(), e.getUserName());
+    private UserResponse.SignUpUser toResponse(User e) {
+        return new UserResponse.SignUpUser(e.getUserName());
     }
 }

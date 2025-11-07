@@ -3,14 +3,13 @@ package org.sparta.user.infrastructure.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.ServletException;
-import org.sparta.user.domain.enums.UserRoleEnum;
-import org.sparta.user.presentation.dto.request.LoginRequestDto;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
+import org.sparta.user.presentation.AuthRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -38,14 +37,14 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         log.info("로그인 시도");
         // JSON을 LoginRequestDto 객체로 변환
         try{
-            LoginRequestDto requestDto = objectMapper.readValue(request.getInputStream(), LoginRequestDto.class);
+            AuthRequest.Login requestDto = objectMapper.readValue(request.getInputStream(), AuthRequest.Login.class);
 
             // 아이디, 패스워드, 권한으로 인증용 Authentication 객체 생성
             // 로그인이라 권한은 없기 때문에 마지막은 null
             return getAuthenticationManager().authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            requestDto.getUserId(),
-                            requestDto.getPassword(),
+                            requestDto.userName(),
+                            requestDto.password(),
                             null
                     )
             );

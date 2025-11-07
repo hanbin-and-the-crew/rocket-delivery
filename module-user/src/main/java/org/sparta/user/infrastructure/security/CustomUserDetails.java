@@ -20,7 +20,7 @@ public record CustomUserDetails(User user) implements UserDetails {
     }
 
     public UUID getId() {
-        return user.getId();
+        return user.getUserId();
     }
 
     @Override

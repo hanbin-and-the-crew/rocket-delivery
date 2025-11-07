@@ -1,20 +1,19 @@
-package org.sparta.user.presentation.controller;
+package org.sparta.user.presentation;
 
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.user.application.service.UserService;
-import org.sparta.user.presentation.dto.request.SignUpUserRequestDto;
-import org.sparta.user.presentation.dto.response.SignUpUserResponseDto;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
-public class UserController {
+public class UserController implements UserApiSpec{
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -30,19 +29,19 @@ public class UserController {
         return "Hello from Company Service!";
     }
 
-    @Operation(summary = "User 회원 가입")
+    @Override
     @PostMapping("/signup")
-    public ApiResponse<Object> signup(@Valid @RequestBody SignUpUserRequestDto requestDto, BindingResult bindingResult) {
+    public ApiResponse<UserResponse.SignUpUser> signup(@Valid @RequestBody UserRequest.SignUpUser requestDto, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             // 여러 validation 메시지를 모아서 전달
             String errorMessage = bindingResult.getFieldErrors().stream()
                     .map(error -> error.getField() + ": " + error.getDefaultMessage())
                     .collect(Collectors.joining(", "));
 
-            return ApiResponse.fail("VALIDATION_FAILED", errorMessage);
+            return (ApiResponse<UserResponse.SignUpUser>) (ApiResponse<?>) ApiResponse.fail("VALIDATION_FAILED", errorMessage);
         }
 
-        SignUpUserResponseDto responseDto = userService.signup(requestDto);
+        UserResponse.SignUpUser responseDto = userService.signup(requestDto);
         return ApiResponse.success(responseDto);
 
     }
