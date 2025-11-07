@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 public class HubService {
 
     private final HubRepository hubRepository;
+    private static final String DEFAULT_DELETER = "system";
 
     /**
      * 허브 생성 기능 - creatHub
@@ -88,12 +89,12 @@ public class HubService {
                 .orElseThrow(() -> new HubNotFoundException(hubId));
 
         // 이미 삭제된 허브인 경우
-        if (hub.getStatus() == HubStatus.INACTIVE) {
+        if (hub.isDeleted()) {
             throw new AlreadyDeletedHubException();
         }
 
         // 허브 비활성화 처리 (Soft Delete)
-        hub.markDeleted("system"); // 삭제자 임시 설정 (추후 인증 사용자로 대체 가능)
+        hub.markDeleted(DEFAULT_DELETER);
     }
 
 
