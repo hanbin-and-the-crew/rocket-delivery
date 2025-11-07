@@ -17,7 +17,7 @@ import java.util.UUID;
 
 /**
  * 허브 관련 REST 컨트롤러
- * - 생성, 전체 조회, 단건 조회, 수정
+ * - 생성, 전체 조회, 단건 조회, 수정, 삭제(논리 삭제)
  */
 @RestController
 @RequestMapping("/api/hubs")
@@ -55,6 +55,12 @@ public class HubController {
     ) {
         HubResponse updated = hubService.updateHub(hubId, request);
         return ResponseEntity.ok(ApiResponse.success(updated));
+    }
+
+    @DeleteMapping("/{hubId}")
+    public ResponseEntity<ApiResponse<Object>> deleteHub(@PathVariable UUID hubId) {
+        hubService.deleteHub(hubId);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
 }
