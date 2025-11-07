@@ -11,6 +11,7 @@ import org.sparta.hub.presentation.dto.request.HubCreateRequest;
 
 import org.sparta.hub.presentation.dto.request.HubUpdateRequest;
 import org.sparta.hub.presentation.dto.response.HubCreateResponse;
+import org.sparta.hub.presentation.dto.response.HubResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -83,37 +84,34 @@ class HubServiceTest {
 
 
     @Test
-    @DisplayName("허브 정보를 수정하면 DB에 변경이 반영된다")
+    @DisplayName("허브 수정 성공 - 주소, 위도, 경도 변경")
     void updateHub_success() {
         // given
         HubCreateRequest createRequest = new HubCreateRequest(
                 "서울 허브",
-                "서울시 강남구 테헤란로 100",
+                "서울시 강남구 테헤란로 123",
                 37.55,
                 127.03
         );
         HubCreateResponse created = hubService.createHub(createRequest);
 
         HubUpdateRequest updateRequest = new HubUpdateRequest(
-                created.hubId(),
                 "서울 허브",
-                "서울시 송파구 수정로 77",
+                "서울시 송파구 중대로 77",
                 37.51,
                 127.10,
                 HubStatus.ACTIVE
         );
 
         // when
-        hubService.updateHub(updateRequest);
+        HubResponse updated = hubService.updateHub(created.hubId(), updateRequest);
 
         // then
-        Hub updated = hubRepository.findById(created.hubId())
-                .orElseThrow(() -> new IllegalStateException("허브가 존재하지 않음"));
-
-        assertThat(updated.getAddress()).isEqualTo("서울시 송파구 수정로 77");
-        assertThat(updated.getLatitude()).isEqualTo(37.51);
-        assertThat(updated.getLongitude()).isEqualTo(127.10);
-        assertThat(updated.getStatus()).isEqualTo(HubStatus.ACTIVE);
+        assertThat(updated).isNotNull();
+        assertThat(updated.address()).isEqualTo("서울시 송파구 중대로 77");
+        assertThat(updated.latitude()).isEqualTo(37.51);
+        assertThat(updated.longitude()).isEqualTo(127.10);
     }
+
 
 }

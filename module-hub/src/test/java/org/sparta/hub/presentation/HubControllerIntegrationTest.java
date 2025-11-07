@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
@@ -71,4 +72,36 @@ class HubControllerIntegrationTest {
                 .andExpect(jsonPath("$.meta.errorCode").value("common:not_found"))
                 .andExpect(jsonPath("$.meta.message").value("Hub not found"));
     }
+
+    @Test
+    @DisplayName("허브 수정 요청이 성공하면 200과 변경된 허브 정보를 반환한다")
+    void updateHub_success() throws Exception {
+        // given
+        Hub saved = hubRepository.save(Hub.create(
+                "서울 허브", "서울시 강남구 테헤란로 123", 37.55, 127.03
+        ));
+
+        String requestBody = """
+        {
+            "hubId": "%s",
+            "name": "서울 허브",
+            "address": "서울시 송파구 중대로 77",
+            "latitude": 37.51,
+            "longitude": 127.10,
+            "status": "ACTIVE"
+        }
+        """.formatted(saved.getHubId());
+
+        // when & then
+        mockMvc.perform(put("/api/hubs/{hubId}", saved.getHubId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.hubId").value(saved.getHubId().toString()))
+                .andExpect(jsonPath("$.data.address").value("서울시 송파구 중대로 77"))
+                .andExpect(jsonPath("$.data.latitude").value(37.51))
+                .andExpect(jsonPath("$.data.longitude").value(127.10));
+    }
+
 }

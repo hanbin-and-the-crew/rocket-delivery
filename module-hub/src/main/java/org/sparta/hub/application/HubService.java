@@ -56,14 +56,14 @@ public class HubService {
         return HubResponse.from(hub);
     }
 
-
     @Transactional
-    public void updateHub(HubUpdateRequest request) {
-        Hub hub = hubRepository.findById(request.hubId())
-                .orElseThrow(() -> new HubNotFoundException(request.hubId()));
+    public HubResponse updateHub(UUID hubId, HubUpdateRequest request) {
+        Hub hub = hubRepository.findById(hubId)
+                .orElseThrow(() -> new HubNotFoundException(hubId));
 
         hub.update(request.address(), request.latitude(), request.longitude(), request.status());
-        // Dirty Checking + Optimistic Lock 자동 반영
+        return HubResponse.from(hub);
     }
+
 
 }

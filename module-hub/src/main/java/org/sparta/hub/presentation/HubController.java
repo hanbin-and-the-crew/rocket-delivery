@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.hub.application.HubService;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
+import org.sparta.hub.presentation.dto.request.HubUpdateRequest;
 import org.sparta.hub.presentation.dto.response.HubCreateResponse;
 import org.sparta.hub.presentation.dto.response.HubResponse;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,7 @@ import java.util.UUID;
 
 /**
  * 허브 관련 REST 컨트롤러
- * - 생성, 전체 조회, 단건 조회
+ * - 생성, 전체 조회, 단건 조회, 수정
  */
 @RestController
 @RequestMapping("/api/hubs")
@@ -46,4 +47,14 @@ public class HubController {
         HubResponse hub = hubService.getHubById(hubId);
         return ResponseEntity.ok(ApiResponse.success(hub));
     }
+
+    @PutMapping("/{hubId}")
+    public ResponseEntity<ApiResponse<HubResponse>> updateHub(
+            @PathVariable UUID hubId,
+            @Valid @RequestBody HubUpdateRequest request
+    ) {
+        HubResponse updated = hubService.updateHub(hubId, request);
+        return ResponseEntity.ok(ApiResponse.success(updated));
+    }
+
 }
