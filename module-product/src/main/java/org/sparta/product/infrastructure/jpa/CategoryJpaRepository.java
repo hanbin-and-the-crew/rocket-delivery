@@ -7,4 +7,6 @@ import java.util.UUID;
 
 
 public interface CategoryJpaRepository extends JpaRepository<Category, UUID> {
+
+    boolean existsById(UUID id);
 }

@@ -3,6 +3,7 @@ package org.sparta.product.presentation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
+import org.sparta.product.application.service.ProductService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ProductController implements ProductApiSpec{
 
+    private final ProductService productService;
+
     @Override
     @PostMapping("/")
     public ApiResponse<ProductResponse.Create> createProduct(
@@ -20,13 +23,7 @@ public class ProductController implements ProductApiSpec{
             ProductRequest.Create request
     ) {
         // TODO: 실제 서비스 로직 구현 필요 테스트 용으로 임시로 생성
-        ProductResponse.Create response = new ProductResponse.Create(
-                1L,
-                request.name(),
-                request.description(),
-                request.price(),
-                request.stock()
-        );
+        ProductResponse.Create response = productService.createProduct(request);
         return ApiResponse.success(response);
     }
 

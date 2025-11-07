@@ -37,7 +37,6 @@ public class Category extends BaseEntity {
     @Column(nullable = false)
     private Boolean isActive;
 
-    @Builder
     private Category(String categoryName, String description, Boolean isActive) {
         this.categoryName = categoryName;
         this.description = description;

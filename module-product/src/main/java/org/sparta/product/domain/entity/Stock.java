@@ -109,4 +109,47 @@ public class Stock extends BaseEntity {
     public Integer getAvailableQuantity() {
         return quantity - reservedQuantity;
     }
+
+    /**
+     * 재고 충분 여부 확인
+     */
+    public boolean hasAvailableStock(int requestedQuantity) {
+        return getAvailableQuantity() >= requestedQuantity;
+    }
+
+    /**
+     * 재고 차감
+     * - 가용 재고에서 차감
+     * - 재고가 부족하면 예외 발생
+     */
+    public void decrease(int quantity) {
+        validateDecreaseQuantity(quantity);
+
+        if (!hasAvailableStock(quantity)) {
+            throw new BusinessException(ProductErrorType.INSUFFICIENT_STOCK);
+        }
+
+        this.quantity -= quantity;
+    }
+
+    /**
+     * 재고 복원
+     * - 차감된 재고를 다시 증가
+     */
+    public void increase(int quantity) {
+        validateIncreaseQuantity(quantity);
+        this.quantity += quantity;
+    }
+
+    private void validateDecreaseQuantity(int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException(ProductErrorType.DECREASE_QUANTITY_INVALID);
+        }
+    }
+
+    private void validateIncreaseQuantity(int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException(ProductErrorType.INCREASE_QUANTITY_INVALID);
+        }
+    }
 }
