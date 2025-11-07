@@ -20,7 +20,7 @@ public class Hub {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID hubId;
-
+    
     private String name;
     private String address;
     private Double latitude;
