@@ -1,7 +1,56 @@
+plugins {
+    id 'jacoco'
+}
+
 dependencies {
     implementation project(':module-common')
+    implementation project(':module-jpa')
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // test
+    testImplementation project(':module-common')
+    testImplementation project(':module-jpa')
+    testImplementation 'com.h2database:h2'
+}
+
+// Jacoco
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/config/**',
+                    '**/dto/**',
+                    '**/Application.class'
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.70  // 70% 커버리지 요구
+            }
+        }
+    }
+}
+
+test {
+    finalizedBy jacocoTestReport
 }
