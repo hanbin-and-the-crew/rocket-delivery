@@ -41,41 +41,67 @@ class HubControllerIntegrationTest {
         savedHub = hubRepository.save(hub);
     }
 
+    @Test
+    @DisplayName("운영자 목록 조회 - 기본 ALL, status 파라미터로 필터링")
+    void admin_list_all_and_filtering() throws Exception {
+        hubRepository.deleteAll();
+        var a1 = hubRepository.save(Hub.create("A1","addr",1.0,1.0));
+        var i1 = Hub.create("I1","addr",2.0,2.0); i1.markDeleted("tester");
+        hubRepository.save(i1);
+
+        // ALL
+        mockMvc.perform(get("/api/admin/hubs").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.length()").value(2));
+
+        // ACTIVE
+        mockMvc.perform(get("/api/admin/hubs").param("status","ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("A1"));
+
+        // INACTIVE
+        mockMvc.perform(get("/api/admin/hubs").param("status","INACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("I1"));
+    }
+
+    @Test
+    @DisplayName("운영자 단건 조회 - INACTIVE도 200 반환")
+    void admin_get_inactive_ok() throws Exception {
+        var i1 = Hub.create("I2","addr",2.0,2.0); i1.markDeleted("tester");
+        Hub saved = hubRepository.save(i1);
+
+        mockMvc.perform(get("/api/admin/hubs/{hubId}", saved.getHubId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.name").value("I2"));
+    }
+
     /**
      * 허브 조회
-     * - 전체 조회
-     * - 단건 조회
-     * - 미존재 허브 조회 예외
-     */
+     * */
     @Test
-    @DisplayName("전체 허브 조회 성공")
-    void getAllHubs_success() throws Exception {
-        mockMvc.perform(get("/api/hubs")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data[0].name").value("서울 허브"));
-    }
+    @DisplayName("운영자 삭제(Soft) 후 - 사용자에겐 404, 운영자 목록 INACTIVE에 반영")
+    void admin_delete_soft_then_userCantSee() throws Exception {
+        var hub = hubRepository.save(Hub.create("DEL","addr",3.0,3.0));
 
-    @Test
-    @DisplayName("단건 허브 조회 성공")
-    void getHubById_success() throws Exception {
-        mockMvc.perform(get("/api/hubs/{hubId}", savedHub.getHubId())
-                        .contentType(MediaType.APPLICATION_JSON))
+        // delete
+        mockMvc.perform(delete("/api/admin/hubs/{hubId}", hub.getHubId()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.name").value("서울 허브"));
-    }
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"));
 
-    @Test
-    @DisplayName("존재하지 않는 허브 조회 시 404 반환")
-    void getHubById_notFound() throws Exception {
-        mockMvc.perform(get("/api/hubs/{hubId}", UUID.randomUUID())
-                        .contentType(MediaType.APPLICATION_JSON))
+        // 사용자 단건 조회는 404
+        mockMvc.perform(get("/api/hubs/{hubId}", hub.getHubId()))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.meta.result").value("FAIL"))
-                .andExpect(jsonPath("$.meta.errorCode").value("common:not_found"))
-                .andExpect(jsonPath("$.meta.message").value("Hub not found"));
+                .andExpect(jsonPath("$.meta.errorCode").value("common:not_found"));
+
+        // 운영자 INACTIVE 목록에 포함
+        mockMvc.perform(get("/api/admin/hubs").param("status","INACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[*].name").value(org.hamcrest.Matchers.hasItem("DEL")));
     }
 
     /**
@@ -112,6 +138,7 @@ class HubControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.longitude").value(127.10));
     }
 
+    /* 허브 삭제 */
     @Test
     @DisplayName("허브 삭제 성공 시 200과 ApiResponse.success 반환")
     void deleteHub_success() throws Exception {

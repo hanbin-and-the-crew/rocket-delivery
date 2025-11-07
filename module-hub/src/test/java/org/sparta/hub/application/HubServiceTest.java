@@ -180,4 +180,55 @@ class HubServiceTest {
                 .isInstanceOf(HubNotFoundException.class)
                 .hasMessageContaining("Hub not found");
     }
+
+
+    /**
+     * 허브 조회 테스트
+     *
+     */
+    @Test
+    @DisplayName("사용자 조회 - ACTIVE만 반환")
+    void getActiveHubsForUser_onlyActiveReturned() {
+        hubRepository.save(Hub.create("A1","addr",1.0,1.0)); // 기본 ACTIVE
+        Hub inactive = Hub.create("I1","addr",2.0,2.0);
+        inactive.markDeleted("tester"); // INACTIVE 처리
+        hubRepository.save(inactive);
+
+        var list = new HubService(hubRepository).getActiveHubsForUser();
+
+        assertThat(list).extracting(HubResponse::name).contains("A1");
+        assertThat(list).extracting(HubResponse::name).doesNotContain("I1");
+    }
+
+    @Test
+    @DisplayName("사용자 단건 조회 - INACTIVE는 404")
+    void getActiveHubByIdForUser_inactiveReturnsNotFound() {
+        Hub inactive = Hub.create("I2","addr",2.0,2.0);
+        inactive.markDeleted("tester");
+        Hub saved = hubRepository.save(inactive);
+
+        assertThatThrownBy(() ->
+                new HubService(hubRepository).getActiveHubByIdForUser(saved.getHubId())
+        ).isInstanceOf(HubNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("운영자 조회 - ALL/ACTIVE/INACTIVE 필터")
+    void getHubsForAdmin_allAndFiltered() {
+        Hub a1 = hubRepository.save(Hub.create("A1","addr",1.0,1.0));
+        Hub i1 = Hub.create("I1","addr",2.0,2.0);
+        i1.markDeleted("tester");
+        hubRepository.save(i1);
+
+        HubService svc = new HubService(hubRepository);
+
+        var all = svc.getHubsForAdmin("ALL");
+        var act = svc.getHubsForAdmin("ACTIVE");
+        var inact = svc.getHubsForAdmin("INACTIVE");
+
+        assertThat(all).hasSize(2);
+        assertThat(act).extracting(HubResponse::name).containsExactly("A1");
+        assertThat(inact).extracting(HubResponse::name).containsExactly("I1");
+    }
+
 }

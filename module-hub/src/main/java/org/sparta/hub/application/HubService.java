@@ -15,8 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
-import java.util.stream.Collectors;
+
 
 /**
  * 허브 도메인의 핵심 비즈니스 로직 서비스 계층
@@ -50,19 +51,47 @@ public class HubService {
     }
 
     /**
-     * 허브 전체 조회 - getAllHubs
+     * 허브 전체 조회 - 사용자용
+     *  ACTIVE 상태 허브만 조회되게 허용
      */
-    public List<HubResponse> getAllHubs() {
-        return hubRepository.findAll()
-                .stream()
+    public List<HubResponse> getActiveHubsForUser() {
+        return hubRepository.findAllByStatus(HubStatus.ACTIVE).stream()
                 .map(HubResponse::from)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
-     * 허브 단건 조회 - getHubById
+     * 허브 단건 조회 - 사용자용
+     *  ACTIVE 상태 허브만 조회되게 허용
      */
-    public HubResponse getHubById(UUID hubId) {
+    public HubResponse getActiveHubByIdForUser(UUID hubId) {
+        Hub hub = hubRepository.findById(hubId)
+                .orElseThrow(() -> new HubNotFoundException(hubId));
+        if (hub.isDeleted()) {
+            // INACTIVE(=소프트 삭제)면 사용자에겐 404 처리
+            throw new HubNotFoundException(hubId);
+        }
+        return HubResponse.from(hub);
+    }
+
+    /**
+     * 허브 전체 조회 - 운영자용
+     *  모든 상태의 허브 조회
+     */
+    public List<HubResponse> getHubsForAdmin(String statusParam) {
+        String normalized = statusParam == null ? "ALL" : statusParam.toUpperCase(Locale.ROOT);
+        if ("ALL".equals(normalized)) {
+            return hubRepository.findAll().stream().map(HubResponse::from).toList();
+        }
+        HubStatus status = HubStatus.valueOf(normalized);
+        return hubRepository.findAllByStatus(status).stream().map(HubResponse::from).toList();
+    }
+
+    /**
+     * 허브 단건 조회 - 운영자용
+     *  모든 상태의 허브 조회
+     */
+    public HubResponse getHubByIdForAdmin(UUID hubId) {
         Hub hub = hubRepository.findById(hubId)
                 .orElseThrow(() -> new HubNotFoundException(hubId));
         return HubResponse.from(hub);
