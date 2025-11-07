@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
@@ -42,29 +42,144 @@ class HubControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("전체 허브 조회 성공")
-    void getAllHubs_success() throws Exception {
-        mockMvc.perform(get("/api/hubs")
-                        .contentType(MediaType.APPLICATION_JSON))
+    @DisplayName("운영자 목록 조회 - 기본 ALL, status 파라미터로 필터링")
+    void admin_list_all_and_filtering() throws Exception {
+        hubRepository.deleteAll();
+        var a1 = hubRepository.save(Hub.create("A1","addr",1.0,1.0));
+        var i1 = Hub.create("I1","addr",2.0,2.0); i1.markDeleted("tester");
+        hubRepository.save(i1);
+
+        // ALL
+        mockMvc.perform(get("/api/admin/hubs").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data[0].name").value("서울 허브"));
+                .andExpect(jsonPath("$.data.length()").value(2));
+
+        // ACTIVE
+        mockMvc.perform(get("/api/admin/hubs").param("status","ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("A1"));
+
+        // INACTIVE
+        mockMvc.perform(get("/api/admin/hubs").param("status","INACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].name").value("I1"));
     }
 
     @Test
-    @DisplayName("단건 허브 조회 성공")
-    void getHubById_success() throws Exception {
-        mockMvc.perform(get("/api/hubs/{hubId}", savedHub.getHubId())
+    @DisplayName("운영자 단건 조회 - INACTIVE도 200 반환")
+    void admin_get_inactive_ok() throws Exception {
+        var i1 = Hub.create("I2","addr",2.0,2.0); i1.markDeleted("tester");
+        Hub saved = hubRepository.save(i1);
+
+        mockMvc.perform(get("/api/admin/hubs/{hubId}", saved.getHubId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.name").value("I2"));
+    }
+
+    /**
+     * 허브 조회
+     * */
+    @Test
+    @DisplayName("운영자 삭제(Soft) 후 - 사용자에겐 404, 운영자 목록 INACTIVE에 반영")
+    void admin_delete_soft_then_userCantSee() throws Exception {
+        var hub = hubRepository.save(Hub.create("DEL","addr",3.0,3.0));
+
+        // delete
+        mockMvc.perform(delete("/api/admin/hubs/{hubId}", hub.getHubId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"));
+
+        // 사용자 단건 조회는 404
+        mockMvc.perform(get("/api/hubs/{hubId}", hub.getHubId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.meta.errorCode").value("common:not_found"));
+
+        // 운영자 INACTIVE 목록에 포함
+        mockMvc.perform(get("/api/admin/hubs").param("status","INACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[*].name").value(org.hamcrest.Matchers.hasItem("DEL")));
+    }
+
+    /**
+     * 허브 수정
+     */
+    @Test
+    @DisplayName("허브 수정 요청이 성공하면 200과 변경된 허브 정보를 반환한다")
+    void updateHub_success() throws Exception {
+        // given
+        Hub saved = hubRepository.save(Hub.create(
+                "서울 허브", "서울시 강남구 테헤란로 123", 37.55, 127.03
+        ));
+
+        String requestBody = """
+        {
+            "hubId": "%s",
+            "name": "서울 허브",
+            "address": "서울시 송파구 중대로 77",
+            "latitude": 37.51,
+            "longitude": 127.10,
+            "status": "ACTIVE"
+        }
+        """.formatted(saved.getHubId());
+
+        // when & then
+        mockMvc.perform(put("/api/hubs/{hubId}", saved.getHubId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestBody))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.hubId").value(saved.getHubId().toString()))
+                .andExpect(jsonPath("$.data.address").value("서울시 송파구 중대로 77"))
+                .andExpect(jsonPath("$.data.latitude").value(37.51))
+                .andExpect(jsonPath("$.data.longitude").value(127.10));
+    }
+
+    /* 허브 삭제 */
+    @Test
+    @DisplayName("허브 삭제 성공 시 200과 ApiResponse.success 반환")
+    void deleteHub_success() throws Exception {
+        // given
+        Hub hub = hubRepository.save(Hub.create(
+                "삭제 허브", "서울시 마포구 테스트로 1", 37.56, 126.92
+        ));
+
+        // when & then
+        mockMvc.perform(delete("/api/hubs/{hubId}", hub.getHubId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.name").value("서울 허브"));
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
-    @DisplayName("존재하지 않는 허브 조회 시 404 반환")
-    void getHubById_notFound() throws Exception {
-        mockMvc.perform(get("/api/hubs/{hubId}", UUID.randomUUID())
+    @DisplayName("이미 삭제된 허브를 다시 삭제하면 409와 에러 응답 반환")
+    void deleteHub_alreadyDeleted_conflict() throws Exception {
+        // given
+        Hub hub = hubRepository.save(Hub.create(
+                "중복 삭제 대상", "서울시 성동구 왕십리로 2", 37.56, 127.04
+        ));
+        // 1차 삭제
+        mockMvc.perform(delete("/api/hubs/{hubId}", hub.getHubId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        // 2차 삭제 시도 → 409
+        mockMvc.perform(delete("/api/hubs/{hubId}", hub.getHubId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.meta.result").value("FAIL"))
+                .andExpect(jsonPath("$.meta.errorCode").value("common:conflict"))
+                .andExpect(jsonPath("$.meta.message").value("이미 삭제된 허브입니다"));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 허브 삭제 시 404와 에러 응답 반환")
+    void deleteHub_notFound() throws Exception {
+        mockMvc.perform(delete("/api/hubs/{hubId}", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.meta.result").value("FAIL"))
