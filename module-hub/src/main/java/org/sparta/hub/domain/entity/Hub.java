@@ -29,6 +29,9 @@ public class Hub {
     @Enumerated(EnumType.STRING)
     private HubStatus status = HubStatus.ACTIVE;
 
+    @Version
+    private Long version;
+
     private Hub(String name, String address, Double latitude, Double longitude) {
         this.name = name;
         this.address = address;
@@ -36,7 +39,18 @@ public class Hub {
         this.longitude = longitude;
     }
 
+    //허브 생성
     public static Hub create(String name, String address, Double latitude, Double longitude) {
         return new Hub(name, address, latitude, longitude);
     }
+
+    //허브 수정
+    public void update(String address, Double latitude, Double longitude, HubStatus status) {
+        if(address != null) this.address = address;
+        if (latitude != null) this.latitude = latitude;
+        if (longitude != null) this.longitude = longitude;
+        if (status != null) this.status = status;
+    }
+
+
 }

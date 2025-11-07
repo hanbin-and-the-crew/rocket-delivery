@@ -6,6 +6,7 @@ import org.sparta.hub.domain.repository.HubRepository;
 import org.sparta.hub.exception.DuplicateHubNameException;
 import org.sparta.hub.exception.HubNotFoundException;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
+import org.sparta.hub.presentation.dto.request.HubUpdateRequest;
 import org.sparta.hub.presentation.dto.response.HubCreateResponse;
 import org.sparta.hub.presentation.dto.response.HubResponse;
 import org.springframework.stereotype.Service;
@@ -54,4 +55,15 @@ public class HubService {
                 .orElseThrow(() -> new HubNotFoundException(hubId));
         return HubResponse.from(hub);
     }
+
+
+    @Transactional
+    public void updateHub(HubUpdateRequest request) {
+        Hub hub = hubRepository.findById(request.hubId())
+                .orElseThrow(() -> new HubNotFoundException(request.hubId()));
+
+        hub.update(request.address(), request.latitude(), request.longitude(), request.status());
+        // Dirty Checking + Optimistic Lock 자동 반영
+    }
+
 }

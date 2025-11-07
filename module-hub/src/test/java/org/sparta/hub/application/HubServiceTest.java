@@ -8,6 +8,8 @@ import org.sparta.hub.domain.model.HubStatus;
 import org.sparta.hub.domain.repository.HubRepository;
 import org.sparta.hub.exception.DuplicateHubNameException;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
+
+import org.sparta.hub.presentation.dto.request.HubUpdateRequest;
 import org.sparta.hub.presentation.dto.response.HubCreateResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -77,4 +79,41 @@ class HubServiceTest {
                 .isInstanceOf(DuplicateHubNameException.class)
                 .hasMessageContaining("이미 존재하는 허브명");
     }
+
+
+
+    @Test
+    @DisplayName("허브 정보를 수정하면 DB에 변경이 반영된다")
+    void updateHub_success() {
+        // given
+        HubCreateRequest createRequest = new HubCreateRequest(
+                "서울 허브",
+                "서울시 강남구 테헤란로 100",
+                37.55,
+                127.03
+        );
+        HubCreateResponse created = hubService.createHub(createRequest);
+
+        HubUpdateRequest updateRequest = new HubUpdateRequest(
+                created.hubId(),
+                "서울 허브",
+                "서울시 송파구 수정로 77",
+                37.51,
+                127.10,
+                HubStatus.ACTIVE
+        );
+
+        // when
+        hubService.updateHub(updateRequest);
+
+        // then
+        Hub updated = hubRepository.findById(created.hubId())
+                .orElseThrow(() -> new IllegalStateException("허브가 존재하지 않음"));
+
+        assertThat(updated.getAddress()).isEqualTo("서울시 송파구 수정로 77");
+        assertThat(updated.getLatitude()).isEqualTo(37.51);
+        assertThat(updated.getLongitude()).isEqualTo(127.10);
+        assertThat(updated.getStatus()).isEqualTo(HubStatus.ACTIVE);
+    }
+
 }
