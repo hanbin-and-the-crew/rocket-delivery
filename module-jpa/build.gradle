@@ -1,13 +1,20 @@
+plugins {
+    id 'java-library'
+}
+
+bootJar.enabled = false
+jar.enabled = true
+
 dependencies {
+    api project(':module-common')
 
-    // JPA 쪽은 의존관계를 잘 모르겠어서 일단 공통적으로 가져왔으나
-    // 나중에 수정해야 할듯
+    // JPA
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
 
+    // PostgreSQL
+    runtimeOnly 'org.postgresql:postgresql'
 
-
-    implementation project(':module-common')
-
-    // spring cloud
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 }
