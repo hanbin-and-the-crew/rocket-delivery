@@ -6,7 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.sparta.hub.domain.entity.Hub;
 import org.sparta.hub.domain.model.HubStatus;
 import org.sparta.hub.domain.repository.HubRepository;
+import org.sparta.hub.exception.AlreadyDeletedHubException;
 import org.sparta.hub.exception.DuplicateHubNameException;
+import org.sparta.hub.exception.HubNotFoundException;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
 
 import org.sparta.hub.presentation.dto.request.HubUpdateRequest;
@@ -18,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,6 +40,11 @@ class HubServiceTest {
         hubService = new HubService(hubRepository);
     }
 
+    /**
+     * 허브 생성 테스트
+     * - 성공
+     * - 이름 중복 예외
+     */
     @Test
     @DisplayName("허브를 생성하면 DB에 저장되고, 생성된 허브 정보를 반환한다")
     void createHub_success() {
@@ -81,8 +89,10 @@ class HubServiceTest {
                 .hasMessageContaining("이미 존재하는 허브명");
     }
 
-
-
+    /**
+     * 허브 수정 테스트
+     * - 성공
+     */
     @Test
     @DisplayName("허브 수정 성공 - 주소, 위도, 경도 변경")
     void updateHub_success() {
@@ -113,5 +123,61 @@ class HubServiceTest {
         assertThat(updated.longitude()).isEqualTo(127.10);
     }
 
+    /**
+     * 허브 삭제 테스트
+     * - 성공
+     * - 재삭제 예외
+     * - 미존재 예외
+     */
+    @Test
+    @DisplayName("허브를 삭제하면 status가 INACTIVE로 변경된다")
+    void deleteHub_success() {
+        // given
+        HubCreateRequest request = new HubCreateRequest(
+                "삭제 테스트 허브",
+                "서울특별시 영등포구 여의대로 10",
+                37.52,
+                126.93
+        );
+        HubCreateResponse created = hubService.createHub(request);
 
+        // when
+        hubService.deleteHub(created.hubId());
+
+        // then
+        Hub deletedHub = hubRepository.findById(created.hubId()).orElseThrow();
+        assertThat(deletedHub.getStatus()).isEqualTo(HubStatus.INACTIVE);
+        assertThat(deletedHub.getDeletedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("이미 삭제된 허브를 다시 삭제하면 예외가 발생한다")
+    void deleteHub_alreadyDeleted_fail() {
+        // given
+        HubCreateRequest request = new HubCreateRequest(
+                "중복 삭제 허브",
+                "서울시 강서구 허브로 88",
+                37.56,
+                126.82
+        );
+        HubCreateResponse created = hubService.createHub(request);
+        hubService.deleteHub(created.hubId());
+
+        // when & then
+        assertThatThrownBy(() -> hubService.deleteHub(created.hubId()))
+                .isInstanceOf(AlreadyDeletedHubException.class)
+                .hasMessageContaining("이미 삭제된 허브입니다");
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 허브 삭제 시 HubNotFoundException 발생")
+    void deleteHub_notFound_fail() {
+        // given
+        UUID randomId = UUID.randomUUID();
+
+        // when & then
+        assertThatThrownBy(() -> hubService.deleteHub(randomId))
+                .isInstanceOf(HubNotFoundException.class)
+                .hasMessageContaining("Hub not found");
+    }
 }

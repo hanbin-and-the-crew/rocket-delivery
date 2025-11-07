@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.sparta.hub.domain.model.HubStatus;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -16,7 +17,7 @@ import java.util.UUID;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Hub {
-
+//extends BaseEntity
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID hubId;
@@ -25,6 +26,9 @@ public class Hub {
     private String address;
     private Double latitude;
     private Double longitude;
+
+    private LocalDateTime deletedAt;
+    private String deletedBy;
 
     @Enumerated(EnumType.STRING)
     private HubStatus status = HubStatus.ACTIVE;
@@ -52,5 +56,16 @@ public class Hub {
         if (status != null) this.status = status;
     }
 
+    //허브 삭제
+    public void markDeleted(String deletedBy) {
+        this.status = HubStatus.INACTIVE;
+        this.deletedBy = deletedBy;
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    //허브 삭제 여부
+    public boolean isDeleted() {
+        return this.status == HubStatus.INACTIVE;
+    }
 
 }

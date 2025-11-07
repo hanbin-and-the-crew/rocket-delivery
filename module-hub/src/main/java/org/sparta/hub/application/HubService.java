@@ -2,7 +2,9 @@ package org.sparta.hub.application;
 
 import lombok.RequiredArgsConstructor;
 import org.sparta.hub.domain.entity.Hub;
+import org.sparta.hub.domain.model.HubStatus;
 import org.sparta.hub.domain.repository.HubRepository;
+import org.sparta.hub.exception.AlreadyDeletedHubException;
 import org.sparta.hub.exception.DuplicateHubNameException;
 import org.sparta.hub.exception.HubNotFoundException;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
@@ -26,6 +28,9 @@ public class HubService {
 
     private final HubRepository hubRepository;
 
+    /**
+     * 허브 생성 기능 - creatHub
+     */
     @Transactional
     public HubCreateResponse createHub(HubCreateRequest request) {
         if (hubRepository.existsByName(request.name())) {
@@ -43,6 +48,9 @@ public class HubService {
         return HubCreateResponse.from(saved);
     }
 
+    /**
+     * 허브 전체 조회 - getAllHubs
+     */
     public List<HubResponse> getAllHubs() {
         return hubRepository.findAll()
                 .stream()
@@ -50,12 +58,18 @@ public class HubService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 허브 단건 조회 - getHubById
+     */
     public HubResponse getHubById(UUID hubId) {
         Hub hub = hubRepository.findById(hubId)
                 .orElseThrow(() -> new HubNotFoundException(hubId));
         return HubResponse.from(hub);
     }
 
+    /**
+     * 허브 수정 - updateHub
+     */
     @Transactional
     public HubResponse updateHub(UUID hubId, HubUpdateRequest request) {
         Hub hub = hubRepository.findById(hubId)
@@ -63,6 +77,23 @@ public class HubService {
 
         hub.update(request.address(), request.latitude(), request.longitude(), request.status());
         return HubResponse.from(hub);
+    }
+
+    /**
+     * 허브 삭제(비활성화) - deleteHub
+     */
+    @Transactional
+    public void deleteHub(UUID hubId) {
+        Hub hub = hubRepository.findById(hubId)
+                .orElseThrow(() -> new HubNotFoundException(hubId));
+
+        // 이미 삭제된 허브인 경우
+        if (hub.getStatus() == HubStatus.INACTIVE) {
+            throw new AlreadyDeletedHubException();
+        }
+
+        // 허브 비활성화 처리 (Soft Delete)
+        hub.markDeleted("system"); // 삭제자 임시 설정 (추후 인증 사용자로 대체 가능)
     }
 
 
