@@ -29,7 +29,8 @@ public enum UserErrorType implements ErrorType {
     PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "password는 필수입니다."),
     EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "email은 필수입니다."),
     SLACK_ID_REQUIRED(HttpStatus.BAD_REQUEST, "슬랙 ID는 필수입니다."),
-    HUB_ID_REQUIRED(HttpStatus.BAD_REQUEST, "허브 ID는 필수입니다.");
+    HUB_ID_REQUIRED(HttpStatus.BAD_REQUEST, "허브 ID는 필수입니다."),
+    INVALID_STATUS_CHANGE(HttpStatus.BAD_REQUEST, "대기중인 회원만 상태를 변경할 수 있습니다.");
 
     private final HttpStatus status;
     private final String code;

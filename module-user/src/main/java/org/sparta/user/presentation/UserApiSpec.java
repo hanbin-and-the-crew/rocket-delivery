@@ -11,6 +11,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @Tag(name = "User API",  description = "유저 관리" )
 public interface UserApiSpec {
 
@@ -64,5 +66,61 @@ public interface UserApiSpec {
     ApiResponse<Object> findUserId(
             @Valid @RequestBody UserRequest.FindUserId request,
             BindingResult bindingResult
+    );
+
+    @Operation(
+            summary = "유저 정보 조회",
+            description = "특정 유저 정보를 조회합니다.",
+            security = @SecurityRequirement(name = "BearerAuth"))
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/bos/{userId}")
+    ApiResponse<Object> getSpecificUserInfo(
+            @PathVariable UUID userId
+    );
+
+    @Operation(
+            summary = "특정 User 업데이트",
+            description = "특정 유저 정보를 수정합니다.",
+            security = @SecurityRequirement(name = "BearerAuth"))
+    @PatchMapping("/bos/{userId}")
+    @PreAuthorize("isAuthenticated()")
+    ApiResponse<Object> updateUser(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UserRequest.UpdateUser request,
+            BindingResult bindingResult
+    );
+
+    @Operation(
+            summary = "특정 User 탈퇴",
+            description = "특정 계정을 삭제합니다.",
+            security = @SecurityRequirement(name = "BearerAuth"))
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/bos/{userId}")
+    void deleteUser(
+            @PathVariable UUID userId
+    );
+
+    @Operation(
+            summary = "전체 회원 조회",
+            description = "회원 목록을 리스트로 받습니다.")
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/bos")
+    ApiResponse<Object> getAllUsers(
+    );
+
+    @Operation(
+            summary = "회원가입 유저 승인",
+            description = "회원가입을 넣은 유저를 승인한다.")
+    @PatchMapping("/bos/{userId}/approve")
+    ApiResponse<Object> approveUser(
+            @PathVariable UUID userId
+    );
+
+    @Operation(
+            summary = "회원가입 유저 거절",
+            description = "회원가입을 넣은 유저를 거절한다.")
+    @PatchMapping("/bos/{userId}/reject")
+    ApiResponse<Object> rejectUser(
+            @PathVariable UUID userId
     );
 }

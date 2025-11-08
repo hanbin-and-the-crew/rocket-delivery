@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.common.error.BusinessException;
 import org.sparta.user.application.service.UserService;
+import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,6 +12,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -92,5 +95,64 @@ public class UserController implements UserApiSpec {
         UserResponse.FindUserId response = userService.findUserId(request);
         return ApiResponse.success(response);
     }
-    
+
+    /**
+     * BOS 관점
+     */
+    @Override
+    @GetMapping("/bos/{userId}")
+    public ApiResponse<Object> getSpecificUserInfo(
+            @PathVariable UUID userId
+    ) {
+        UserResponse.GetUser response = userService.getSpecificUserInfo(userId);
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @PatchMapping("/bos/{userId}")
+    public ApiResponse<Object> updateUser(
+            @PathVariable UUID userId,
+            @Valid @RequestBody UserRequest.UpdateUser request,
+            BindingResult bindingResult
+    ) {
+        if (bindingResult.hasErrors()) {
+            return ApiResponse.fail("VALIDATION_FAILED", "회원 수정 실패");
+        }
+        /* 운영자는 현재 비밀번호를 알 필요 없으니
+        if (!passwordEncoder.matches(request.oldPassword(), userDetailsInfo.getPassword())) {
+            throw new BusinessException(UserErrorType.UNAUTHORIZED, "현재 비밀번호를 확인해주세요.");
+        }*/
+        // TODO: 서비스 호출 후 결과 리턴
+        UserResponse.UpdateUser response = userService.updateUser(userId, request);
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @DeleteMapping("/bos/{userId}")
+    public void deleteUser(
+            @PathVariable UUID userId
+    ) {
+        userService.deleteUser(userId);
+    }
+
+    @Override
+    @GetMapping("/bos")
+    public ApiResponse<Object> getAllUsers() {
+        List<UserResponse.GetUser> response = userService.getAllUsers();
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @PatchMapping("/bos/{userId}/approve")
+    public ApiResponse<Object> approveUser(@PathVariable UUID userId) {
+        userService.updateUserStatus(userId, UserStatusEnum.APPROVE);
+        return ApiResponse.success("회원가입이 승인되었습니다.");
+    }
+
+    @Override
+    @PatchMapping("/bos/{userId}/reject")
+    public ApiResponse<Object> rejectUser(@PathVariable UUID userId) {
+        userService.updateUserStatus(userId, UserStatusEnum.REJECTED);
+        return ApiResponse.success("회원가입이 거절되었습니다.");
+    }
 }
