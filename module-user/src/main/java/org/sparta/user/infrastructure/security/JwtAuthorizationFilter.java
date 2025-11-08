@@ -44,8 +44,11 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
             // 클레임 정보를 가져오기
             Claims info = jwtUtil.getAccessTokenUserInfo(accessToken);
+            log.info("JWT sub: {}", info.getSubject());
             try {
+                log.info("SecurityContext before: {}", SecurityContextHolder.getContext().getAuthentication());
                 setAuthentication(info.getSubject());
+                log.info("SecurityContext after: {}", SecurityContextHolder.getContext().getAuthentication());
             } catch (Exception e){
                 log.error(e.getMessage());
                 return;

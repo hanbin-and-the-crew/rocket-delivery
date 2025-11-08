@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,11 +19,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
        update User u
-          set u.deletedAt = :deleteAt 
+          set u.deletedAt = :deletedAt
         where u.userId = :userId
           and u.deletedAt is null
        """)
     int softDeleteByUserId(@Param("userId") UUID userId,
-                           @Param("deletedAt") Instant deletedAt);
+                           @Param("deletedAt") LocalDateTime deletedAt);
 
 }

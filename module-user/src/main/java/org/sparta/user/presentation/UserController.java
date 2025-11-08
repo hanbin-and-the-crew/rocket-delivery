@@ -1,22 +1,16 @@
 package org.sparta.user.presentation;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
-import org.apache.tomcat.util.http.ResponseUtil;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.common.error.BusinessException;
 import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -82,7 +76,6 @@ public class UserController implements UserApiSpec {
         userService.deleteSelf(userDetailsInfo);
     }
 
-
     @Override
     @PostMapping("/id-find")
     public ApiResponse<Object> findUserId(
@@ -99,4 +92,5 @@ public class UserController implements UserApiSpec {
         UserResponse.FindUserId response = userService.findUserId(request);
         return ApiResponse.success(response);
     }
+    
 }

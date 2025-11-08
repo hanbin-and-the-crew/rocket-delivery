@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 import jakarta.transaction.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @Service
@@ -88,7 +90,7 @@ public class UserService {
         User userInfo = userRepository.findById(user.getId()).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
         );
-        if (userInfo.getDeletedAt() == null) {
+        if (userInfo.getDeletedAt() != null) {
             throw new BusinessException(UserErrorType.UNAUTHORIZED," 탈퇴한 회원입니다.");
         }
         String newPassword = passwordEncoder.encode(request.newPassword().trim());
@@ -144,7 +146,8 @@ public class UserService {
      */
     @Transactional
     public void deleteSelf(CustomUserDetails user) {
-        int updated = userRepository.softDeleteByUserId(user.getId(), Instant.now());
+        LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
+        int updated = userRepository.softDeleteByUserId(user.getId(), now);
         if (updated == 0) {
             // 이미 탈퇴했거나 존재하지 않는 경우
             throw new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다.");
