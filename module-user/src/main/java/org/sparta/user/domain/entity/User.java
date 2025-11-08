@@ -2,9 +2,11 @@ package org.sparta.user.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.sparta.common.error.BusinessException;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.jpa.entity.BaseEntity;
+import org.sparta.user.domain.error.UserErrorType;
 
 import java.util.UUID;
 
@@ -49,51 +51,65 @@ public class User extends BaseEntity {
     private UUID hubId; // 허브 UUID (회원가입 시 소속 허브 필요)
 
     /**
-     * 생성자
-     */
-    public User(String userName, String password, String slackId, String realName,
-                String userPhoneNumber, String email, UserStatusEnum status,
-                UserRoleEnum role, UUID hubId) {
-        this.userName = userName;
-        this.password = password;
-        this.slackId = slackId;
-        this.realName = realName;
-        this.userPhoneNumber = userPhoneNumber;
-        this.email = email;
-        this.status = status;
-        this.role = role;
-        this.hubId = hubId;
-    }
-
-    /**
      * 주문 생성 팩토리 메서드
      * 모든 비즈니스 규칙을 여기서 검증
      */
     public static User create(
             String userName, String password, String slackId, String realName,
-            String userPhoneNumber, String email, UserStatusEnum status,
-            UserRoleEnum role, UUID hubId) {
+            String userPhoneNumber, String email, UserRoleEnum role, UUID hubId) {
 
         // 비즈니스 규칙 검증
+        validateUserName(userName);
         validateHubId(hubId);
+        validatePassword(password);
+        validateSlackId(slackId);
+        validateEmail(email);
 
+        // User 엔티티 생성
         User user = new User();
         user.userName = userName;
         user.password = password;
         user.slackId = slackId;
-        user.status = status;
         user.realName = realName;
         user.userPhoneNumber = userPhoneNumber;
         user.email = email;
+        user.status = UserStatusEnum.PENDING;
         user.role = role;
         user.hubId = hubId;
 
         return user;
     }
 
+    /**
+     * 유효성 검증
+     */
+    private static void validateUserName(String userName) {
+        if (userName == null || userName.isBlank()) {
+            throw new BusinessException(UserErrorType.USERNAME_REQUIRED);
+        }
+    }
+
+    private static void validatePassword(String password) {
+        if (password == null || password.isBlank()) {
+            throw new BusinessException(UserErrorType.PASSWORD_REQUIRED);
+        }
+    }
+
+    private static void validateEmail(String email) {
+        if (email == null || email.isBlank()) {
+            throw new BusinessException(UserErrorType.EMAIL_REQUIRED);
+        }
+    }
+
+    private static void validateSlackId(String slackId) {
+        if (slackId == null || slackId.isBlank()) {
+            throw new BusinessException(UserErrorType.SLACK_ID_REQUIRED);
+        }
+    }
+
     private static void validateHubId(UUID hubId) {
         if (hubId == null) {
-            throw new IllegalArgumentException("hubId는 공백이면 안됩니다.");
+            throw new BusinessException(UserErrorType.HUB_ID_REQUIRED);
         }
     }
 

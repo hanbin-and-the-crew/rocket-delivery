@@ -63,12 +63,10 @@ public class UserService {
             role = requestDto.getRole();
         }*/
 
-        UserStatusEnum status = UserStatusEnum.PENDING;
-
         // 사용자 생성 및 저장
         User user = User.create(
                 userName, password, slackId, realName,
-                userPhoneNumber, email, status, role, hubId);
+                userPhoneNumber, email, role, hubId);
 
         user = userRepository.save(user);
         return toResponse(user);
