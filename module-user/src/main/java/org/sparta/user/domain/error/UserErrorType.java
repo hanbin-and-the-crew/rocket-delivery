@@ -11,6 +11,18 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public enum UserErrorType implements ErrorType {
 
+    // 기본 에러
+    // 4xx
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, "Invalid request"),
+    VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "Validation failed"),
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "Unauthorized"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "Forbidden"),
+    NOT_FOUND(HttpStatus.NOT_FOUND, "Resource not found"),
+
+    // 5xx
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error"),
+    EXTERNAL_SYSTEM_ERROR(HttpStatus.BAD_GATEWAY, "External system error"),
+
     // User 검증 에러
     USERNAME_REQUIRED(HttpStatus.BAD_REQUEST, "username은 필수입니다."),
     PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "password는 필수입니다."),
