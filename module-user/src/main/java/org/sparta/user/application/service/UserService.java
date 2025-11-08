@@ -72,6 +72,15 @@ public class UserService {
     }
 
     /**
+     * GET /users/me
+     */
+    public UserResponse.GetUser getUserInfo(CustomUserDetails userDetailsInfo) {
+        User user = userRepository.findById(userDetailsInfo.getId())
+                .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND, "회원이 존재하지 않습니다."));
+        return UserResponse.GetUser.from(user);
+    }
+
+    /**
      * PATCH /users/me
      */
     @Transactional
@@ -142,4 +151,18 @@ public class UserService {
         }
     }
 
+    /**
+     * POST /User/id-find
+     */
+    @Transactional
+    public UserResponse.FindUserId findUserId(UserRequest.FindUserId request) {
+        String email = request.email();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new BusinessException(UserErrorType.USER_NOT_FOUND, "해당 이메일로 가입된 사용자가 없습니다.")
+                );
+
+        return UserResponse.FindUserId.from(user);
+    }
 }

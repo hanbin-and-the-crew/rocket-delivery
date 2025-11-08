@@ -1,10 +1,7 @@
 package org.sparta.user.presentation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import org.sparta.user.domain.enums.UserRoleEnum;
 
 import java.util.UUID;
@@ -13,7 +10,7 @@ public class UserRequest {
 
     @Schema(description = "회원가입 요청")
     public record SignUpUser(
-            @Schema(description = "로그인 ID", example = "user1107")
+            @Schema(description = "사용자 ID", example = "user1107")
             @NotBlank
             String userName,
 
@@ -39,18 +36,18 @@ public class UserRequest {
             String email,
 
             @Schema(description = "권한", example = "DELIVERY_MANAGER")
-            @NotBlank
+            @NotNull
             UserRoleEnum role,
 
             @Schema(description = "허브 ID", example = "123412431234")
-            @NotBlank
+            @NotNull
             UUID hubId
     ) {
     }
 
     @Schema(description = "회원 정보 수정 요청")
     public record UpdateUser(
-            @Schema(description = "유저 아이디", example = "testId")
+            @Schema(description = "사용자 Id", example = "testId")
             @Size(min = 1, max = 50, message = "아이디는 n 자 입니다.")
             @NotBlank
             String userName,
@@ -84,14 +81,20 @@ public class UserRequest {
             String newPassword,
 
             @Schema(description = "권한", example = "DELIVERY_MANAGER")
-            @NotBlank
+            @NotNull
             UserRoleEnum role,
 
             @Schema(description = "허브 ID", example = "123412431234")
-            @NotBlank
+            @NotNull
             UUID hubId
     ) {
     }
 
-
+    @Schema(description = "회원 ID 찾기 요청")
+    public record FindUserId(
+            @Schema(description = "이메일", example = "asdf1234@example.com")
+            @NotBlank
+            String email
+    ) {
+    }
 }

@@ -24,6 +24,7 @@ public enum UserErrorType implements ErrorType {
     EXTERNAL_SYSTEM_ERROR(HttpStatus.BAD_GATEWAY, "External system error"),
 
     // User 검증 에러
+    USER_NOT_FOUND(HttpStatus.BAD_REQUEST, "회원이 존재하지 않습니다."),
     USERNAME_REQUIRED(HttpStatus.BAD_REQUEST, "username은 필수입니다."),
     PASSWORD_REQUIRED(HttpStatus.BAD_REQUEST, "password는 필수입니다."),
     EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "email은 필수입니다."),

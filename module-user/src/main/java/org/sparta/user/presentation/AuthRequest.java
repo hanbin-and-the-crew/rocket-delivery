@@ -2,6 +2,7 @@ package org.sparta.user.presentation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.sparta.user.domain.enums.UserRoleEnum;
 
 public class AuthRequest {
@@ -17,11 +18,11 @@ public class AuthRequest {
             String password,
 
             @Schema(description = "권한", example = "DELIVERY_MANAGER")
-            @NotBlank
+            @NotNull
             UserRoleEnum role,
 
             @Schema(description = "authVersion", example = "1")
-            @NotBlank
+            @NotNull
             Integer authVersion
     ) {
     }

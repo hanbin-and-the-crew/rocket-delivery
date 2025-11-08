@@ -21,5 +21,11 @@ public interface AuthApiSpec {
             HttpServletResponse LoginResponse
     );
 
+    @Operation(
+            summary = "로그아웃",
+            description = "JWT 토큰을 무효화합니다."
+    )
+    @PostMapping("/logout")
+    void logout(HttpServletResponse response);
 
 }

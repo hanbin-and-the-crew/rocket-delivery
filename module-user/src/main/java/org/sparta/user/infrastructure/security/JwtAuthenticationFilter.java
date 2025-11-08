@@ -29,7 +29,7 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         // 기본 로그인 URL을 POST /api/user/login으로 설정
         // 여기서도 context-path는 톰캣에서 먼저 로드하기 때문에 /api는 제외
         // 따로 지정 안하면 POST /login
-        setFilterProcessesUrl("/user/login");
+        setFilterProcessesUrl("/auth/login");
     }
 
     @Override

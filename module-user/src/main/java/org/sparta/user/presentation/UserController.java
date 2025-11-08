@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
-public class UserController implements UserApiSpec{
+public class UserController implements UserApiSpec {
 
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
@@ -33,7 +33,7 @@ public class UserController implements UserApiSpec{
 
     @Override
     @PostMapping("/signup")
-    public ApiResponse<Object> signup(@Valid @RequestBody UserRequest.SignUpUser requestDto, BindingResult bindingResult) {
+    public ApiResponse<Object> signup(@Valid @RequestBody UserRequest.SignUpUser request, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             // 여러 validation 메시지를 모아서 전달
             String errorMessage = bindingResult.getFieldErrors().stream()
@@ -43,12 +43,22 @@ public class UserController implements UserApiSpec{
             return ApiResponse.fail("VALIDATION_FAILED", errorMessage);
         }
 
-        UserResponse.SignUpUser responseDto = userService.signup(requestDto);
-        return ApiResponse.success(responseDto);
+        UserResponse.SignUpUser response = userService.signup(request);
+        return ApiResponse.success(response);
     }
 
+    @Override
+    @GetMapping("/me")
+    public ApiResponse<Object> getUserInfo(
+            @AuthenticationPrincipal CustomUserDetails userDetailsInfo
+    ) {
+        UserResponse.GetUser response = userService.getUserInfo(userDetailsInfo);
+        return ApiResponse.success(response);
+    }
+
+    @Override
     @PatchMapping("/me")
-    public ApiResponse<Object> updateMe(
+    public ApiResponse<Object> updateSelf(
             @AuthenticationPrincipal CustomUserDetails userDetailsInfo, // Swagger 문서엔 숨기고 싶다면 @Parameter(hidden = true)
             @Valid @RequestBody UserRequest.UpdateUser request,
             BindingResult bindingResult
@@ -64,10 +74,29 @@ public class UserController implements UserApiSpec{
         return ApiResponse.success(response);
     }
 
+    @Override
     @DeleteMapping("/me")
     public void deleteMe(
             @AuthenticationPrincipal CustomUserDetails userDetailsInfo
     ) {
         userService.deleteSelf(userDetailsInfo);
+    }
+
+
+    @Override
+    @PostMapping("/id-find")
+    public ApiResponse<Object> findUserId(
+            @Valid @RequestBody UserRequest.FindUserId request,
+            BindingResult bindingResult
+    ) {
+        if (bindingResult.hasErrors()) {
+            String errorMessage = bindingResult.getFieldErrors().stream()
+                    .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                    .collect(Collectors.joining(", "));
+            return ApiResponse.fail("VALIDATION_FAILED", errorMessage);
+        }
+
+        UserResponse.FindUserId response = userService.findUserId(request);
+        return ApiResponse.success(response);
     }
 }
