@@ -16,7 +16,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class UserService {
 
     private final UserRepository userRepository;
@@ -110,7 +111,7 @@ public class UserService {
             userInfo.updateEmail(request.email().trim());
         }
         //전화번호
-        if (request.userName() != null && !request.userName().isBlank()) {
+        if (request.userPhone() != null && !request.userPhone().isBlank()) {
             userInfo.updatePhoneNumber(request.userPhone().trim());
         }
 
@@ -206,7 +207,7 @@ public class UserService {
             userInfo.updateEmail(request.email().trim());
         }
         //전화번호
-        if (request.userName() != null && !request.userName().isBlank()) {
+        if (request.userPhone() != null && !request.userPhone().isBlank()) {
             userInfo.updatePhoneNumber(request.userPhone().trim());
         }
 

@@ -5,8 +5,10 @@ import org.sparta.user.infrastructure.security.JwtUtil;
 import org.sparta.user.presentation.AuthRequest;
 import org.sparta.user.presentation.AuthResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional(readOnly = true)
 public class AuthService {
     private final JwtUtil jwtUtil;
 
@@ -17,6 +19,7 @@ public class AuthService {
     /**
      * /auth/login
      */
+    @Transactional
     public AuthResponse.Login login(AuthRequest.Login request, HttpServletResponse response) {
         // 토큰 생성
         String accessToken = jwtUtil.createAccessToken(request.userName(), request.role().name());
@@ -33,6 +36,7 @@ public class AuthService {
     /**
      * /auth/logout
      */
+    @Transactional
     public void logout(HttpServletResponse response) {
         // 토큰 무효화를 위해 헤더 비우기 (클라이언트에서도 삭제하도록 유도)
         response.setHeader(JwtUtil.ACCESS_TOKEN_HEADER, "");

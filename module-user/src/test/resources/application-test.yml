@@ -38,3 +38,17 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
     org.sparta.product: debug
+
+# JWT
+jwt:
+  access:
+    secret:
+      key: ${JWT_ACCESS_SECRET_KEY}
+    token:
+      expire: ${JWT_ACCESS_TOKEN_EXPIRE}
+  refresh:
+    secret:
+      key: ${JWT_REFRESH_SECRET_KEY}
+    token:
+      expire: ${JWT_REFRESH_TOKEN_EXPIRE}
+

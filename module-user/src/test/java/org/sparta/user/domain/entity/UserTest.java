@@ -3,9 +3,12 @@ package org.sparta.user.domain.entity;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.sparta.common.error.BusinessException;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
+import org.sparta.user.support.fixtures.UserFixture;
 
 import java.util.UUID;
 
@@ -39,18 +42,17 @@ public class UserTest {
         UserRoleEnum role = UserRoleEnum.MASTER;
 
         // when
-        User user = User.create(
-                userName, password, slackId, realName,
-                userPhoneNumber, email, role, hubId);
+        User user = UserFixture.createPendingUser();
 
         // then
         assertThat(user).isNotNull();
         assertThat(user.getUserName()).isEqualTo(userName);
         assertThat(user.getUserPhoneNumber()).isEqualTo(userPhoneNumber);
         assertThat(user.getSlackId()).isEqualTo(slackId);
+        assertThat(user.getRealName()).isEqualTo(realName);
         assertThat(user.getEmail()).isEqualTo(email);
         assertThat(user.getPassword()).isEqualTo(password);
-        assertThat(user.getRole()).isEqualTo(UserRoleEnum.MASTER);
+        assertThat(user.getRole()).isEqualTo(role);
     }
 
     @Test
@@ -64,7 +66,6 @@ public class UserTest {
         String slackId = "testId";
         String realName = "John";
         String userPhoneNumber = "01012341234";
-        UserStatusEnum status = UserStatusEnum.PENDING;
         UserRoleEnum role = UserRoleEnum.MASTER;
         UUID hubId = UUID.randomUUID();
 
@@ -198,5 +199,37 @@ public class UserTest {
         assertThatThrownBy(() -> user.updateStatus(UserStatusEnum.REJECTED))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("대기중인 회원만 상태를 변경할 수 있습니다.");
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "PENDING, APPROVE, false",
+            "PENDING, REJECTED, false",
+            "APPROVE, REJECTED, true",
+            "REJECTED, APPROVE, true"
+    })
+    @DisplayName("회원 상태 전환 경계 테스트")
+    void updateStatus_BoundaryTest(String currentStatus, String nextStatus, boolean expectException) {
+
+        UserStatusEnum current = UserStatusEnum.valueOf(currentStatus);
+        UserStatusEnum next = UserStatusEnum.valueOf(nextStatus);
+
+        // given
+        User user = UserFixture.createPendingUser();
+
+        // 현재 상태 세팅
+        if (current != UserStatusEnum.PENDING) {
+            user.updateStatus(current);
+        }
+
+        // when & then
+        if (expectException) {
+            assertThatThrownBy(() -> user.updateStatus(next))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("대기중인 회원만 상태를 변경할 수 있습니다.");
+        } else {
+            user.updateStatus(next);
+            assertThat(user.getStatus()).isEqualTo(next);
+        }
     }
 }
