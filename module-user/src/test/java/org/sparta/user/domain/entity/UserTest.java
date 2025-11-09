@@ -13,8 +13,9 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 /**
+ * TDD Step1 Case
  * User 도메인 단위 테스트
- * 생성 시점에 반드시 수행해야하는 점
+ * 생성 시점에 반드시 수행해야하는 점(크게 5가지만)
  * - 유효한 입력을 넣으면 유저가 생성되는가
  * - username이 빈 문자열로 들어오면 어떻게 되는가
  * - email이 빈 문자열로 들어오면 어떻게 되는가
@@ -142,5 +143,60 @@ public class UserTest {
 
         // then
         assertThat(user.getStatus()).isEqualTo(UserStatusEnum.PENDING);
+    }
+
+    @Test
+    @DisplayName("updatePassword, updateEmail, updatePhoneNumber가 정상적으로 작동한다")
+    void updateFields_ShouldUpdateProperly() {
+
+        // given
+        String userName = "testuser";
+        String email = "test@example.com";
+        String password = "securePass123!";
+        String slackId = "testId";
+        String realName = "John";
+        String userPhoneNumber = "01012341234";
+        UserRoleEnum role = UserRoleEnum.MASTER;
+        UUID hubId = UUID.randomUUID();
+
+        User user = User.create(
+                userName, password, slackId, realName,
+                userPhoneNumber, email, role, hubId);
+
+        // when
+        user.updatePassword("newPw123!");
+        user.updateEmail("new@example.com");
+        user.updatePhoneNumber("01099998888");
+
+        // then
+        assertThat(user.getPassword()).isEqualTo("newPw123!");
+        assertThat(user.getEmail()).isEqualTo("new@example.com");
+        assertThat(user.getUserPhoneNumber()).isEqualTo("01099998888");
+    }
+
+    @Test
+    @DisplayName("PENDING 상태가 아닌 유저는 승인/거절 시 예외가 발생한다")
+    void updateStatus_WhenNotPending_ShouldThrowException() {
+
+        // given
+        String userName = "testuser";
+        String email = "test@example.com";
+        String password = "securePass123!";
+        String slackId = "testId";
+        String realName = "John";
+        String userPhoneNumber = "01012341234";
+        UserRoleEnum role = UserRoleEnum.MASTER;
+        UUID hubId = UUID.randomUUID();
+
+        User user = User.create(
+                userName, password, slackId, realName,
+                userPhoneNumber, email, role, hubId);
+
+        user.updateStatus(UserStatusEnum.APPROVE);
+
+        // when & then
+        assertThatThrownBy(() -> user.updateStatus(UserStatusEnum.REJECTED))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("대기중인 회원만 상태를 변경할 수 있습니다.");
     }
 }

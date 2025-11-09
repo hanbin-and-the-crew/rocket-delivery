@@ -118,9 +118,13 @@ public class User extends BaseEntity {
     public void updateRealName(String realName) {this.realName = realName;}
     public void updatePhoneNumber(String userPhoneNumber) {this.userPhoneNumber = userPhoneNumber;}
     public void updateEmail(String newEmail) {this.email = newEmail;}
-    public void updateStatus(UserStatusEnum newStatus) {this.status = newStatus;}
+    public void updateStatus(UserStatusEnum newStatus) {
+        if (this.status != UserStatusEnum.PENDING) {
+            throw new BusinessException(UserErrorType.INVALID_STATUS_CHANGE);
+        }
+        this.status = newStatus;
+    }
     public void updateRole(UserRoleEnum newRole) {this.role = newRole;}
-
     public void updateSlack(String slackId) {this.slackId = slackId;}
     public void updateHub(UUID hubId) {this.hubId = hubId;}
 }

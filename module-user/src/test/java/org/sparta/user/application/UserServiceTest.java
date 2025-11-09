@@ -1,286 +1,188 @@
 package org.sparta.user.application;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
 import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.entity.User;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
-import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.domain.repository.UserRepository;
+import org.sparta.user.infrastructure.security.CustomUserDetails;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
+import org.sparta.user.presentation.UserRequest;
+import org.sparta.user.presentation.UserResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.BDDMockito.given;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.BDDMockito.*;
 
-@DataJpaTest
-@Import(UserService.class)
+/**
+ * TDD Step2 Case
+ * User 서버스 래이어 테스트 및 Mock 활용
+ * 도메인 단위 테스트(엔티티 검증)에서 확장하여
+ * UserService의 비즈니스 로직과 외부 의존성(Mock Repository, PasswordEncoder 등)을 검증
+ * 주요 테스트 시나리오
+ * - 유효한 입력으로 회원가입 시 UserRepository.save()가 호출되고 회원이 정상 등록되는가
+ * - 중복된 username으로 회원가입 시 예외가 발생하는가
+ * - 로그인된 사용자의 정보 조회 시 올바른 데이터를 반환하는가
+ * - 본인 탈퇴 요청 시 softDeleteByUserId()가 호출되는가
+ * - 존재하지 않거나 이미 탈퇴한 회원 탈퇴 시 예외가 발생하는가
+ * - 회원 상태가 PENDING일 때 승인 또는 거절 처리가 정상적으로 수행되는가
+ * - 이미 승인된 회원은 상태 변경 시 예외가 발생하는가
+ */
 @ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
 
-    private static final UUID hubId = UUID.fromString("10000000-0000-0000-0000-000000000001");
+    private static final UUID userId = UUID.fromString("10000000-0000-0000-0000-000000000001");
+    private static final UUID hubId = UUID.fromString("20000000-0000-0000-0000-000000000002");
 
-    @Autowired
+    @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private CustomUserDetailsService customUserDetailsService;
 
     @InjectMocks
     private UserService userService;
-    private PasswordEncoder passwordEncoder;
-    private CustomUserDetailsService customUserDetailsService;
-
-    @BeforeEach
-    void setUp() {
-        userService = new UserService(
-                userRepository, passwordEncoder, customUserDetailsService
-        );
-    }
-    /*
-
-    @Test
-    @DisplayName("허브를 생성하면 DB에 저장되고, 생성된 허브 정보를 반환한다")
-    void createHub_success() {
-        // given
-        UserCreateRequest request = new HubCreateRequest(
-                "경기 북부 허브",
-                "경기도 고양시 덕양구 무슨로 123",
-                37.6532,
-                126.8321
-        );
-
-        // when
-        HubCreateResponse response = hubService.createHub(request);
-
-        // then
-        assertThat(response).isNotNull();
-        assertThat(response.name()).isEqualTo("경기 북부 허브");
-        assertThat(response.status()).isEqualTo("ACTIVE");
-
-        // DB 검증
-        Optional<Hub> found = hubRepository.findById(response.hubId());
-        assertThat(found).isPresent();
-        assertThat(found.get().getName()).isEqualTo("경기 북부 허브");
-        assertThat(found.get().getStatus()).isEqualTo(HubStatus.ACTIVE);
-    }
 
 
     @Test
-    @DisplayName("존재하지 않는 유저 조회 시 예외 발생")
-    void getUser_WithInvalidId_ShouldThrowException() {
-        // given
-        UUID userId = UUID.randomUUID();
-        given(userRepository.findById(userId)).willReturn(Optional.empty());
+    @DisplayName("정상 입력으로 회원가입 성공 시 UserRepository.save()가 호출된다")
+    void signup_WithValidInput_ShouldSucceed() {
 
-        // when & then
-        assertThatThrownBy(() -> userService.getUserInfo(userId))
-                .isInstanceOf(BusinessException.class)
-                .hasMessageContaining(UserErrorType.USER_NOT_FOUND.getMessage());
-    }
-
-    @Test
-    @DisplayName("유저 비활성화 시 상태가 INACTIVE로 변경된다")
-    void deactivateUser_ShouldChangeStatus() {
         // given
-        UUID userId = UUID.randomUUID();
-        User user = User.create(
-                "testuser",
-                "securePass123!",
-                "slackId",
-                "John",
-                "01012341234",
-                "test@example.com",
-                UserRoleEnum.USER,
-                hubId
+        UserRequest.SignUpUser request = new UserRequest.SignUpUser(
+                "newUser", "password123", "slackId", "홍길동",
+                "01012341234", "new@ex.com", UserRoleEnum.MASTER, hubId
         );
 
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(userRepository.findByUserName("newUser")).willReturn(Optional.empty());
+        given(userRepository.findByEmail("new@ex.com")).willReturn(Optional.empty());
+        given(passwordEncoder.encode(anyString())).willReturn("encodedPw");
         given(userRepository.save(any(User.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        userService.deactivateUser(userId);
+        UserResponse.SignUpUser response = userService.signup(request);
 
         // then
-        assertThat(user.getStatus()).isEqualTo(UserStatusEnum.INACTIVE);
-        verify(userRepository).save(user);
+        assertThat(response).isNotNull();
+        assertThat(response.userName()).isEqualTo("newUser");
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
-    @DisplayName("중복된 userName으로 회원가입 시 예외 발생")
-    void createUser_WithDuplicateUserName_ShouldThrowException() {
+    @DisplayName("중복된 username으로 회원가입 시 예외 발생")
+    void signup_WithDuplicateUsername_ShouldThrowException() {
+
         // given
-        given(userRepository.existsByUserName("testuser")).willReturn(true);
+        UserRequest.SignUpUser request = new UserRequest.SignUpUser(
+                "dupUser", "pw", "slackId", "홍길동",
+                "01012345678", "dup@ex.com", UserRoleEnum.DELIVERY_MANAGER, hubId
+        );
+        given(userRepository.findByUserName("dupUser")).willReturn(Optional.of(mock(User.class)));
 
         // when & then
-        assertThatThrownBy(() -> userService.createUser(
-                "testuser",
-                "securePass123!",
-                "slackId",
-                "John",
-                "01012341234",
-                "test@example.com",
-                UserRoleEnum.USER,
-                hubId
-        ))
+        assertThatThrownBy(() -> userService.signup(request))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining(UserErrorType.USERNAME_DUPLICATED.getMessage());
+                .hasMessageContaining("중복된 사용자 ID가 존재합니다.");
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    @DisplayName("허브 이름이 중복될 경우 예외를 발생시킨다")
-    void createHub_duplicateName_fail() {
+    @DisplayName("로그인된 사용자의 정보가 존재하면 반환한다")
+    void getUserInfo_WhenUserExists_ShouldReturnUser() {
+
         // given
-        HubCreateRequest request = new HubCreateRequest(
-                "서울 허브",
-                "서울특별시 강남구 무슨로 45",
-                37.55,
-                127.01
-        );
-        hubService.createHub(request);
+        User user = mock(User.class);
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
 
-        // when & then
-        assertThatThrownBy(() -> hubService.createHub(request))
-                .isInstanceOf(DuplicateHubNameException.class)
-                .hasMessageContaining("이미 존재하는 허브명");
-    }
-
-    @Test
-    @DisplayName("허브 수정 성공 - 주소, 위도, 경도 변경")
-    void updateHub_success() {
-        // given
-        HubCreateRequest createRequest = new HubCreateRequest(
-                "서울 허브",
-                "서울시 강남구 테헤란로 123",
-                37.55,
-                127.03
-        );
-        HubCreateResponse created = hubService.createHub(createRequest);
-
-        HubUpdateRequest updateRequest = new HubUpdateRequest(
-                "서울 허브",
-                "서울시 송파구 중대로 77",
-                37.51,
-                127.10,
-                HubStatus.ACTIVE
-        );
+        given(userDetails.getId()).willReturn(userId);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(user.getUserName()).willReturn("testUser");
 
         // when
-        HubResponse updated = hubService.updateHub(created.hubId(), updateRequest);
+        UserResponse.GetUser response = userService.getUserInfo(userDetails);
 
         // then
-        assertThat(updated).isNotNull();
-        assertThat(updated.address()).isEqualTo("서울시 송파구 중대로 77");
-        assertThat(updated.latitude()).isEqualTo(37.51);
-        assertThat(updated.longitude()).isEqualTo(127.10);
+        assertThat(response).isNotNull();
+        verify(userRepository).findById(userId);
     }
 
     @Test
-    @DisplayName("허브를 삭제하면 status가 INACTIVE로 변경된다")
-    void deleteHub_success() {
+    @DisplayName("본인 탈퇴 시 softDeleteByUserId가 호출된다")
+    void deleteSelf_WhenUserExists_ShouldSoftDelete() {
+
         // given
-        HubCreateRequest request = new HubCreateRequest(
-                "삭제 테스트 허브",
-                "서울특별시 영등포구 여의대로 10",
-                37.52,
-                126.93
-        );
-        HubCreateResponse created = hubService.createHub(request);
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getId()).willReturn(userId);
+        given(userRepository.softDeleteByUserId(eq(userId), any(LocalDateTime.class))).willReturn(1);
 
         // when
-        hubService.deleteHub(created.hubId());
+        userService.deleteSelf(userDetails);
 
         // then
-        Hub deletedHub = hubRepository.findById(created.hubId()).orElseThrow();
-        assertThat(deletedHub.getStatus()).isEqualTo(HubStatus.INACTIVE);
-        assertThat(deletedHub.getDeletedAt()).isNotNull();
+        verify(userRepository).softDeleteByUserId(eq(userId), any(LocalDateTime.class));
     }
 
     @Test
-    @DisplayName("이미 삭제된 허브를 다시 삭제하면 예외가 발생한다")
-    void deleteHub_alreadyDeleted_fail() {
+    @DisplayName("이미 탈퇴했거나 존재하지 않는 유저 탈퇴 시 예외 발생")
+    void deleteSelf_WhenUserNotFound_ShouldThrowException() {
+
         // given
-        HubCreateRequest request = new HubCreateRequest(
-                "중복 삭제 허브",
-                "서울시 강서구 허브로 88",
-                37.56,
-                126.82
-        );
-        HubCreateResponse created = hubService.createHub(request);
-        hubService.deleteHub(created.hubId());
+        CustomUserDetails userDetails = mock(CustomUserDetails.class);
+        given(userDetails.getId()).willReturn(userId);
+        given(userRepository.softDeleteByUserId(eq(userId), any(LocalDateTime.class))).willReturn(0);
 
         // when & then
-        assertThatThrownBy(() -> hubService.deleteHub(created.hubId()))
-                .isInstanceOf(AlreadyDeletedHubException.class)
-                .hasMessageContaining("이미 삭제된 허브입니다");
+        assertThatThrownBy(() -> userService.deleteSelf(userDetails))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("이미 탈퇴했거나 존재하지 않는 회원입니다.");
     }
 
     @Test
-    @DisplayName("존재하지 않는 허브 삭제 시 HubNotFoundException 발생")
-    void deleteHub_notFound_fail() {
+    @DisplayName("회원 상태가 PENDING일 때 승인 처리 시 상태가 변경된다")
+    void updateUserStatus_WhenPending_ShouldChangeStatus() {
+
         // given
-        UUID randomId = UUID.randomUUID();
+        User user = mock(User.class);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(user.getStatus()).willReturn(UserStatusEnum.PENDING);
+
+        // when
+        userService.updateUserStatus(userId, UserStatusEnum.APPROVE);
+
+        // then
+        verify(user).updateStatus(UserStatusEnum.APPROVE);
+    }
+
+    @Test
+    @DisplayName("이미 승인된 회원은 상태를 변경할 수 없다")
+    void updateUserStatus_WhenNotPending_ShouldThrowException() {
+
+        // given
+        User user = mock(User.class);
+        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(user.getStatus()).willReturn(UserStatusEnum.APPROVE);
 
         // when & then
-        assertThatThrownBy(() -> hubService.deleteHub(randomId))
-                .isInstanceOf(HubNotFoundException.class)
-                .hasMessageContaining("Hub not found");
+        assertThatThrownBy(() -> userService.updateUserStatus(userId, UserStatusEnum.REJECTED))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("대기중인 회원만 상태를 변경할 수 있습니다.");
+        verify(user, never()).updateStatus(any());
     }
-
-
-
-    @Test
-    @DisplayName("사용자 조회 - ACTIVE만 반환")
-    void getActiveHubsForUser_onlyActiveReturned() {
-        hubRepository.save(Hub.create("A1","addr",1.0,1.0)); // 기본 ACTIVE
-        Hub inactive = Hub.create("I1","addr",2.0,2.0);
-        inactive.markDeleted("tester"); // INACTIVE 처리
-        hubRepository.save(inactive);
-
-        var list = new HubService(hubRepository).getActiveHubsForUser();
-
-        assertThat(list).extracting(HubResponse::name).contains("A1");
-        assertThat(list).extracting(HubResponse::name).doesNotContain("I1");
-    }
-
-    @Test
-    @DisplayName("사용자 단건 조회 - INACTIVE는 404")
-    void getActiveHubByIdForUser_inactiveReturnsNotFound() {
-        Hub inactive = Hub.create("I2","addr",2.0,2.0);
-        inactive.markDeleted("tester");
-        Hub saved = hubRepository.save(inactive);
-
-        assertThatThrownBy(() ->
-                new HubService(hubRepository).getActiveHubByIdForUser(saved.getHubId())
-        ).isInstanceOf(HubNotFoundException.class);
-    }
-
-    @Test
-    @DisplayName("운영자 조회 - ALL/ACTIVE/INACTIVE 필터")
-    void getHubsForAdmin_allAndFiltered() {
-        Hub a1 = hubRepository.save(Hub.create("A1","addr",1.0,1.0));
-        Hub i1 = Hub.create("I1","addr",2.0,2.0);
-        i1.markDeleted("tester");
-        hubRepository.save(i1);
-
-        HubService svc = new HubService(hubRepository);
-
-        var all = svc.getHubsForAdmin("ALL");
-        var act = svc.getHubsForAdmin("ACTIVE");
-        var inact = svc.getHubsForAdmin("INACTIVE");
-
-        assertThat(all).hasSize(2);
-        assertThat(act).extracting(HubResponse::name).containsExactly("A1");
-        assertThat(inact).extracting(HubResponse::name).containsExactly("I1");
-    }
-    */
 }
