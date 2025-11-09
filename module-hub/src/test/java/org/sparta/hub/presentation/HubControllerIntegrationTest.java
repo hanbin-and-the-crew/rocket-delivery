@@ -140,44 +140,17 @@ class HubControllerIntegrationTest {
 
     /* 허브 삭제 */
     @Test
-    @DisplayName("허브 삭제 성공 시 200과 ApiResponse.success 반환")
+    @DisplayName("허브 삭제 성공 - INACTIVE로 변경")
     void deleteHub_success() throws Exception {
-        // given
-        Hub hub = hubRepository.save(Hub.create(
-                "삭제 허브", "서울시 마포구 테스트로 1", 37.56, 126.92
-        ));
-
-        // when & then
-        mockMvc.perform(delete("/api/hubs/{hubId}", hub.getHubId())
+        mockMvc.perform(delete("/api/hubs/{hubId}", savedHub.getHubId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data").doesNotExist());
+                .andExpect(jsonPath("$.data.status").value("INACTIVE"));
     }
 
     @Test
-    @DisplayName("이미 삭제된 허브를 다시 삭제하면 409와 에러 응답 반환")
-    void deleteHub_alreadyDeleted_conflict() throws Exception {
-        // given
-        Hub hub = hubRepository.save(Hub.create(
-                "중복 삭제 대상", "서울시 성동구 왕십리로 2", 37.56, 127.04
-        ));
-        // 1차 삭제
-        mockMvc.perform(delete("/api/hubs/{hubId}", hub.getHubId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
-
-        // 2차 삭제 시도 → 409
-        mockMvc.perform(delete("/api/hubs/{hubId}", hub.getHubId())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.meta.result").value("FAIL"))
-                .andExpect(jsonPath("$.meta.errorCode").value("common:conflict"))
-                .andExpect(jsonPath("$.meta.message").value("이미 삭제된 허브입니다"));
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 허브 삭제 시 404와 에러 응답 반환")
+    @DisplayName("존재하지 않는 허브 삭제 시 404 반환")
     void deleteHub_notFound() throws Exception {
         mockMvc.perform(delete("/api/hubs/{hubId}", UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -185,5 +158,19 @@ class HubControllerIntegrationTest {
                 .andExpect(jsonPath("$.meta.result").value("FAIL"))
                 .andExpect(jsonPath("$.meta.errorCode").value("common:not_found"))
                 .andExpect(jsonPath("$.meta.message").value("Hub not found"));
+    }
+
+    @Test
+    @DisplayName("이미 삭제된 허브 삭제 시 409 반환")
+    void deleteHub_alreadyDeleted() throws Exception {
+        savedHub.markDeleted("tester");
+        hubRepository.save(savedHub);
+
+        mockMvc.perform(delete("/api/hubs/{hubId}", savedHub.getHubId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.meta.result").value("FAIL"))
+                .andExpect(jsonPath("$.meta.errorCode").value("common:conflict"))
+                .andExpect(jsonPath("$.meta.message").value("이미 삭제된 허브입니다"));
     }
 }
