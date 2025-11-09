@@ -55,9 +55,39 @@ public class ProductService {
     /**
      * 상품 조회
      */
-    public Product getProduct(UUID productId) {
-        return productRepository.findById(productId)
+    public ProductResponse.Detail getProduct(UUID productId) {
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ProductErrorType.PRODUCT_NOT_FOUND));
+        return ProductResponse.Detail.of(product);
+    }
+
+    /**
+     * 상품 수정
+     * - 상품명과 가격을 수정할 수 있음
+     */
+    @Transactional
+    public ProductResponse.Update updateProduct(UUID productId, ProductRequest.Update request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ProductErrorType.PRODUCT_NOT_FOUND));
+
+        Money price = request.price() != null ? Money.of(request.price()) : null;
+        product.update(request.name(), price);
+
+        Product updatedProduct = productRepository.save(product);
+        return ProductResponse.Update.of(updatedProduct);
+    }
+
+    /**
+     * 상품 삭제
+     * - 논리적 삭제 (isActive = false)
+     */
+    @Transactional
+    public void deleteProduct(UUID productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ProductErrorType.PRODUCT_NOT_FOUND));
+
+        product.delete();
+        productRepository.save(product);
     }
 
     private void validateCategoryExists(UUID categoryId) {

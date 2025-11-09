@@ -105,11 +105,13 @@ class ProductServiceTest {
                 .willReturn(Optional.of(product));
 
         // when: 상품 조회
-        Product foundProduct = productService.getProduct(productId);
+        ProductResponse.Detail response = productService.getProduct(productId);
 
-        // then: 상품이 반환됨
-        assertThat(foundProduct).isNotNull();
-        assertThat(foundProduct.getId()).isEqualTo(productId);
+        // then: 상품 정보가 반환됨
+        assertThat(response).isNotNull();
+        assertThat(response.productId()).isEqualTo(productId);
+        assertThat(response.name()).isEqualTo(product.getProductName());
+        assertThat(response.price()).isEqualTo(product.getPrice().getAmount());
     }
 
     @Test

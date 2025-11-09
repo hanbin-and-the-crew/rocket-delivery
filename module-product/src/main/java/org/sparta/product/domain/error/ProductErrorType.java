@@ -27,6 +27,11 @@ public enum ProductErrorType implements ErrorType {
     DECREASE_QUANTITY_INVALID(HttpStatus.BAD_REQUEST, "차감 수량은 1 이상이어야 합니다"),
     INCREASE_QUANTITY_INVALID(HttpStatus.BAD_REQUEST, "증가 수량은 1 이상이어야 합니다"),
 
+    // Stock 예약 비즈니스 에러
+    RESERVE_QUANTITY_INVALID(HttpStatus.BAD_REQUEST, "예약 수량은 1 이상이어야 합니다"),
+    INVALID_RESERVATION_CONFIRM(HttpStatus.BAD_REQUEST, "예약된 재고보다 많은 수량을 확정할 수 없습니다"),
+    INVALID_RESERVATION_CANCEL(HttpStatus.BAD_REQUEST, "예약된 재고보다 많은 수량을 취소할 수 없습니다"),
+
     // Product 조회 에러
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다"),
     STOCK_NOT_FOUND(HttpStatus.NOT_FOUND, "재고 정보를 찾을 수 없습니다");

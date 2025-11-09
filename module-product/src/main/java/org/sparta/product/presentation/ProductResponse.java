@@ -28,4 +28,48 @@ public class ProductResponse {
             );
         }
     }
+
+    @Schema(description = "상품 상세 조회 응답")
+    public record Detail(
+            @Schema(description = "상품 ID")
+            UUID productId,
+
+            @Schema(description = "상품명")
+            String name,
+
+            @Schema(description = "가격")
+            Long price,
+
+            @Schema(description = "재고 수량")
+            Integer quantity
+    ) {
+        public static Detail of(Product product) {
+            return new Detail(
+                    product.getId(),
+                    product.getProductName(),
+                    product.getPrice().getAmount(),
+                    product.getStock().getQuantity()
+            );
+        }
+    }
+
+    @Schema(description = "상품 수정 응답")
+    public record Update(
+            @Schema(description = "상품 ID")
+            UUID productId,
+
+            @Schema(description = "수정된 상품명")
+            String name,
+
+            @Schema(description = "수정된 가격")
+            Long price
+    ) {
+        public static Update of(Product product) {
+            return new Update(
+                    product.getId(),
+                    product.getProductName(),
+                    product.getPrice().getAmount()
+            );
+        }
+    }
 }

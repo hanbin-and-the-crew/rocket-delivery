@@ -38,4 +38,15 @@ public class ProductRequest {
             Integer stock
     ) {
     }
+
+    @Schema(description = "상품 수정 요청")
+    public record Update(
+            @Schema(description = "상품명", example = "수정된 노트북")
+            String name,
+
+            @Schema(description = "가격", example = "2000000")
+            @Positive(message = "가격은 0보다 커야 합니다")
+            Long price
+    ) {
+    }
 }

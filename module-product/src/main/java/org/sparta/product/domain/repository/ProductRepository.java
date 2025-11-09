@@ -19,4 +19,9 @@ public interface ProductRepository {
      * 상품 ID로 조회
      */
     Optional<Product> findById(UUID id);
+
+    /**
+     * 모든 상품 삭제
+     */
+    void deleteAll();
 }

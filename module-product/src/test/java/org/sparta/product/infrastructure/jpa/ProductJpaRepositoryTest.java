@@ -6,10 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.sparta.product.domain.entity.Category;
 import org.sparta.product.domain.entity.Product;
+import org.sparta.product.domain.repository.CategoryRepository;
 import org.sparta.product.domain.vo.Money;
+import org.sparta.product.infrastructure.CategoryRepositoryImpl;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -32,13 +35,14 @@ import static org.assertj.core.api.Assertions.*;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
+@Import(CategoryRepositoryImpl.class)
 class ProductJpaRepositoryTest {
 
     @Autowired
     private ProductJpaRepository productJpaRepository;
 
     @Autowired
-    private CategoryJpaRepository categoryJpaRepository;
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private TestEntityManager entityManager;
@@ -48,7 +52,7 @@ class ProductJpaRepositoryTest {
     void save_ShouldGenerateIdAndSaveStock() {
         // given: 카테고리와 상품 생성
         Category category = Category.create("전자제품", "전자제품 카테고리");
-        categoryJpaRepository.save(category);
+        categoryRepository.save(category);
 
         Product product = Product.create(
                 "노트북",
@@ -75,7 +79,7 @@ class ProductJpaRepositoryTest {
     void findById_ShouldReturnProduct() {
         // given: 저장된 상품
         Category category = Category.create("가전제품", "가전제품 카테고리");
-        categoryJpaRepository.save(category);
+        categoryRepository.save(category);
 
         Product product = Product.create(
                 "냉장고",
@@ -118,7 +122,7 @@ class ProductJpaRepositoryTest {
     void findById_WithDeletedProduct_ShouldReturnProduct() {
         // given: 삭제된 상품
         Category category = Category.create("식품", "식품 카테고리");
-        categoryJpaRepository.save(category);
+        categoryRepository.save(category);
 
         Product product = Product.create(
                 "사과",
