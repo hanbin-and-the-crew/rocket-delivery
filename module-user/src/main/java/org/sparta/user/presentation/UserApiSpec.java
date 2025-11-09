@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
@@ -21,7 +22,7 @@ public interface UserApiSpec {
             description = "필수 정보를 입력받아 유저의 회원가입을 진행합니다."
     )
     @PostMapping("/signup")
-    ApiResponse<Object> signup(
+    ResponseEntity<ApiResponse<Object>> signup(
             @Valid @RequestBody UserRequest.SignUpUser request,
             BindingResult bindingResult
     );

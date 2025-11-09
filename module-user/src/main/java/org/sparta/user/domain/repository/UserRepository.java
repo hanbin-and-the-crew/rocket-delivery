@@ -6,12 +6,12 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
+    Optional<User> findByUserId(UUID userId);
     Optional<User> findByUserName(String userName);
     Optional<User> findByEmail(String email);
     Optional<User> findBySlackId(String slackId);
@@ -25,5 +25,4 @@ public interface UserRepository extends JpaRepository<User, UUID> {
        """)
     int softDeleteByUserId(@Param("userId") UUID userId,
                            @Param("deletedAt") LocalDateTime deletedAt);
-
 }

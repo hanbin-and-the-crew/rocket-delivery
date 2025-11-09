@@ -7,6 +7,7 @@ import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
@@ -30,18 +31,20 @@ public class UserController implements UserApiSpec {
 
     @Override
     @PostMapping("/signup")
-    public ApiResponse<Object> signup(@Valid @RequestBody UserRequest.SignUpUser request, BindingResult bindingResult) {
+    public ResponseEntity<ApiResponse<Object>> signup(@Valid @RequestBody UserRequest.SignUpUser request, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             // 여러 validation 메시지를 모아서 전달
             String errorMessage = bindingResult.getFieldErrors().stream()
                     .map(error -> error.getField() + ": " + error.getDefaultMessage())
                     .collect(Collectors.joining(", "));
 
-            return ApiResponse.fail("VALIDATION_FAILED", errorMessage);
+            return ResponseEntity // 실패 시에는 ResponseEntity로 감싸주지 않으면 200 OK로 나가기 때문에 wrapping 과정 필요
+                    .badRequest()
+                    .body(ApiResponse.fail("VALIDATION_FAILED", errorMessage));
         }
 
         UserResponse.SignUpUser response = userService.signup(request);
-        return ApiResponse.success(response);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @Override

@@ -19,7 +19,7 @@ public class User extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "user_id", updatable = false, nullable = false)
-    private UUID userId; // PK, userName을 PK로 설정하지 않은 이유는 로그인용 ID는 변경될 수 있는 값이기 때문ㅇ
+    private UUID userId; // PK, userName을 PK로 설정하지 않은 이유는 로그인용 ID는 변경될 수 있는 값이기 때문
 
     @Column(name = "user_name", length = 100, nullable = false, unique = true)
     private String userName; // 로그인용 이름, ID (VO)
