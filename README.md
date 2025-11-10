@@ -3,15 +3,210 @@
 
 ---
 
-## 프로젝트 개요
+## 목차
+
+1. [Step 회고](#step-회고)
+   - [Step1](#step1)
+   - [Step2](#step2)
+   - [Step3](#step3)
+   - [Step4](#step4)
+   - [Step5](#step5)
+2. [Jacoco 리포트](#jacoco-리포트)
+3. [아키텍처](#아키텍처)
+   - [모듈 구조](#모듈-구조)
+4. [시작하기](#시작하기)
+   - [사전 요구사항](#사전-요구사항)
+   - [인프라 실행](#인프라-실행)
+   - [서비스 포트](#서비스-포트)
+   - [빌드 & 실행](#빌드--실행)
+
 
 ---
 
-## 기술 스택
+TEST_GUIDE.md = []
 
-### Backend
+---
 
-- 
+## Step 회고 
+1~5까지 각 스텝에서 경험한 내용을 도메인 중심으로 회고하여 기록하였습니다.
+
+### Step1
+
+<details>
+  <summary>User</summary>
+
+
+</details>
+
+<details>
+  <summary>Order</summary>
+
+
+</details>
+
+<details>
+  <summary>Hub</summary>
+
+
+</details>
+
+<details>
+  <summary>Product</summary>
+
+
+</details>
+
+---
+
+### Step2
+
+<details>
+  <summary>User</summary>
+
+
+</details>
+
+<details>
+  <summary>Order</summary>
+
+
+</details>
+
+<details>
+  <summary>Hub</summary>
+
+
+</details>
+
+<details>
+  <summary>Product</summary>
+
+
+</details>
+
+----
+
+### Step3
+
+<details>
+  <summary>User</summary>
+
+
+</details>
+
+<details>
+  <summary>Order</summary>
+
+
+</details>
+
+<details>
+  <summary>Hub</summary>
+
+
+</details>
+
+<details>
+  <summary>Product</summary>
+
+
+</details>
+
+
+----
+
+### Step4
+
+<details>
+  <summary>User</summary>
+
+
+</details>
+
+<details>
+  <summary>Order</summary>
+
+
+</details>
+
+<details>
+  <summary>Hub</summary>
+
+
+</details>
+
+<details>
+  <summary>Product</summary>
+
+
+</details>
+
+
+---
+
+### Step5
+
+<details>
+  <summary>User</summary>
+
+
+</details>
+
+<details>
+  <summary>Order</summary>
+
+
+</details>
+
+<details>
+  <summary>Hub</summary>
+
+
+</details>
+
+<details>
+  <summary>Product</summary>
+
+
+</details>
+
+
+## Jacoco 리포트
+
+### User
+
+```
+라인 커버리지: %
+브랜치 커버리지: %
+```
+
+### Order
+
+```
+라인 커버리지: %
+브랜치 커버리지: %
+```
+
+### Hub
+
+```
+라인 커버리지: %
+브랜치 커버리지: %
+```
+
+### Product
+
+<img width="1180" height="345" alt="Image" src="https://github.com/user-attachments/assets/2a15eca2-8494-4695-967f-7fb2aaf516ec" />
+
+```
+라인 커버리지: %
+브랜치 커버리지: %
+```
+
+
+---
+
+
 
 ## 아키텍처
 
