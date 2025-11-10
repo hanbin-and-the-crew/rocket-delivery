@@ -52,7 +52,7 @@ public class UserService {
 
         String userName = request.userName();
         String realName = request.realName();
-        String userPhoneNumber = request.userPhone();
+        String userPhoneNumber = request.userPhoneNumber();
         String email = request.email();
         String password = passwordEncoder.encode(request.password());
         String slackId = request.slackId();
@@ -111,8 +111,8 @@ public class UserService {
             userInfo.updateEmail(request.email().trim());
         }
         //전화번호
-        if (request.userPhone() != null && !request.userPhone().isBlank()) {
-            userInfo.updatePhoneNumber(request.userPhone().trim());
+        if (request.userPhoneNumber() != null && !request.userPhoneNumber().isBlank()) {
+            userInfo.updatePhoneNumber(request.userPhoneNumber().trim());
         }
 
         User updateUser = userRepository.save(userInfo);
@@ -207,8 +207,8 @@ public class UserService {
             userInfo.updateEmail(request.email().trim());
         }
         //전화번호
-        if (request.userPhone() != null && !request.userPhone().isBlank()) {
-            userInfo.updatePhoneNumber(request.userPhone().trim());
+        if (request.userPhoneNumber() != null && !request.userPhoneNumber().isBlank()) {
+            userInfo.updatePhoneNumber(request.userPhoneNumber().trim());
         }
 
         User updateUser = userRepository.save(userInfo);
