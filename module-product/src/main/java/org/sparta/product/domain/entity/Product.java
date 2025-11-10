@@ -165,13 +165,15 @@ public class Product extends BaseEntity {
     /**
      * 상품 논리적 삭제
      * - isActive를 false로 설정
+     * - 연관된 재고도 판매 불가 상태로 변경
      */
     public void delete() {
         this.isActive = false;
+        if (this.stock != null) {
+            this.stock.markAsUnavailable();
+        }
     }
 
 
-    // 상품 재고가 없을때, 판매 불가 상태일때르 컨트롤하는 이넘도 ??
-    //그리고 추후 오더 서버 msa 에서 관리하기 수ㅂ도록 레디스에서 재고를 관리를 해줘야할까?
 
 }

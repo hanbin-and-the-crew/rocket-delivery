@@ -24,6 +24,7 @@ public enum ProductErrorType implements ErrorType {
 
     // Stock 비즈니스 에러
     INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "재고가 부족합니다"),
+    STOCK_UNAVAILABLE(HttpStatus.BAD_REQUEST, "판매 불가 상태인 상품입니다"),
     DECREASE_QUANTITY_INVALID(HttpStatus.BAD_REQUEST, "차감 수량은 1 이상이어야 합니다"),
     INCREASE_QUANTITY_INVALID(HttpStatus.BAD_REQUEST, "증가 수량은 1 이상이어야 합니다"),
 

@@ -197,4 +197,56 @@ class ProductApiIntegrationTest {
         .then()
                 .statusCode(400);
     }
+
+    @Test
+    @DisplayName("상품 삭제 시 연관된 재고도 UNAVAILABLE 상태로 변경된다")
+    void deleteProduct_ShouldMarkStockAsUnavailable() {
+        // given: 카테고리 및 상품 생성
+        Category savedCategory = transactionTemplate.execute(status -> {
+            Category category = Category.create("가전제품", "가전제품 카테고리");
+            return categoryRepository.save(category);
+        });
+
+        ProductRequest.Create createRequest = new ProductRequest.Create(
+                "냉장고",
+                2000000L,
+                savedCategory.getId(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                50
+        );
+
+        String productId = given()
+                .contentType(ContentType.JSON)
+                .body(createRequest)
+        .when()
+                .post("/api/products")
+        .then()
+                .statusCode(200)
+                .extract()
+                .path("data.id");
+
+        // when: 상품 삭제
+        given()
+        .when()
+                .delete("/api/products/{productId}", productId)
+        .then()
+                .statusCode(200)
+                .body("meta.result", equalTo("SUCCESS"));
+
+        // then: 삭제된 상품의 Stock 상태가 UNAVAILABLE인지 검증
+        transactionTemplate.execute(status -> {
+            var product = productRepository.findById(UUID.fromString(productId)).orElseThrow();
+
+            // Product는 비활성화 상태
+            org.assertj.core.api.Assertions.assertThat(product.getIsActive()).isFalse();
+
+            // Stock은 UNAVAILABLE 상태
+            org.assertj.core.api.Assertions.assertThat(product.getStock()).isNotNull();
+            org.assertj.core.api.Assertions.assertThat(product.getStock().getStatus().name())
+                    .isEqualTo("UNAVAILABLE");
+
+            return null;
+        });
+    }
 }

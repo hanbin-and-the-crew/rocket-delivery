@@ -128,6 +128,7 @@ public class Stock extends BaseEntity {
      * - 재고가 부족하면 예외 발생
      */
     public void decrease(int quantity) {
+        validateNotUnavailable();
         validateDecreaseQuantity(quantity);
 
         if (!hasAvailableStock(quantity)) {
@@ -165,6 +166,7 @@ public class Stock extends BaseEntity {
      * - 상태 자동 갱신
      */
     public void reserve(int quantity) {
+        validateNotUnavailable();
         validateReserveQuantity(quantity);
 
         if (!hasAvailableStock(quantity)) {
@@ -215,6 +217,25 @@ public class Stock extends BaseEntity {
             this.status = StockStatus.RESERVED_ONLY;
         } else {
             this.status = StockStatus.IN_STOCK;
+        }
+    }
+
+    /**
+     * 재고를 판매 불가 상태로 변경
+     * - 상품이 삭제되었을 때 호출
+     * - UNAVAILABLE 상태에서는 예약/차감 불가
+     */
+    public void markAsUnavailable() {
+        this.status = StockStatus.UNAVAILABLE;
+    }
+
+    /**
+     * 판매 불가 상태 검증
+     * - UNAVAILABLE 상태에서는 예약/차감 불가
+     */
+    private void validateNotUnavailable() {
+        if (this.status == StockStatus.UNAVAILABLE) {
+            throw new BusinessException(ProductErrorType.STOCK_UNAVAILABLE);
         }
     }
 

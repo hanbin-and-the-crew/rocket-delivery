@@ -31,7 +31,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - @MockBean: ProductService Mock
  * - @Import: ApiControllerAdvice 로드하여 예외 처리 테스트
  *
- * TDD 방식으로 API 정의 후 구현
  */
 @WebMvcTest(ProductController.class)
 @Import(ApiControllerAdvice.class)

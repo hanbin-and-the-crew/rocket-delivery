@@ -133,7 +133,7 @@ class ProductJpaRepositoryTest {
                 30
         );
         Product savedProduct = productJpaRepository.save(product);
-        savedProduct.markAsDeleted();
+        savedProduct.delete();
         productJpaRepository.save(savedProduct);
 
         UUID productId = savedProduct.getId();
@@ -143,9 +143,45 @@ class ProductJpaRepositoryTest {
         // when: 조회
         Optional<Product> foundProduct = productJpaRepository.findById(productId);
 
-        // then: 삭제된 상품도 조회됨 (deletedAt만 설정되어 있음)
+        // then: 삭제된 상품도 조회됨 (isActive=false)
         assertThat(foundProduct).isPresent();
-        assertThat(foundProduct.get().getDeletedAt()).isNotNull();
+        assertThat(foundProduct.get().getIsActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("상품 삭제 시 연관된 Stock도 UNAVAILABLE 상태가 된다")
+    void delete_ShouldMarkStockAsUnavailable() {
+        // given: 저장된 상품과 재고
+        Category category = Category.create("가구", "가구 카테고리");
+        categoryRepository.save(category);
+
+        Product product = Product.create(
+                "책상",
+                Money.of(300000L),
+                category.getId(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                20
+        );
+        Product savedProduct = productJpaRepository.save(product);
+        UUID productId = savedProduct.getId();
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // when: 상품 삭제
+        Product productToDelete = productJpaRepository.findById(productId).orElseThrow();
+        productToDelete.delete();
+        productJpaRepository.save(productToDelete);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // then: Product는 비활성화되고 Stock은 UNAVAILABLE 상태가 됨
+        Product deletedProduct = productJpaRepository.findById(productId).orElseThrow();
+        assertThat(deletedProduct.getIsActive()).isFalse();
+        assertThat(deletedProduct.getStock()).isNotNull();
+        assertThat(deletedProduct.getStock().getStatus().name()).isEqualTo("UNAVAILABLE");
     }
 
     @Test
