@@ -28,7 +28,7 @@ public class UserRequest {
 
             @Schema(description = "전화 번호", example = "01012341234")
             @NotBlank
-            String userPhone,
+            String userPhoneNumber,
 
             @Schema(description = "userEmail", example = "email@email.com")
             @Email
@@ -64,7 +64,7 @@ public class UserRequest {
             @Schema(description = "휴대폰 번호(숫자만 10~11자리)", example = "01012345678")
             @Pattern(regexp = "^\\d{10,11}$", message = "전화번호는 숫자 10~11자리여야 합니다.")
             @NotBlank
-            String userPhone,
+            String userPhoneNumber,
 
             @Schema(description = "이메일", example = "asdf1234@example.com")
             @Email(message = "올바른 이메일 형식이 아닙니다.")
