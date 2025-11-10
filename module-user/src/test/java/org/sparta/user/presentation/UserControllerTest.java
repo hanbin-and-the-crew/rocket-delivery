@@ -18,6 +18,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,6 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(UserController.class)
 @Import(SecurityDisabledConfig.class)
+@ActiveProfiles("test")
 class UserControllerTest {
 
     private static final UUID userId = UUID.fromString("10000000-0000-0000-0000-000000000001");
@@ -64,7 +66,7 @@ class UserControllerTest {
     void signup_ShouldReturnOk() throws Exception {
 
         // given
-        UserResponse.SignUpUser response = new UserResponse.SignUpUser("testuser");
+        UserResponse.SignUpUser response = new UserResponse.SignUpUser(userId, "testuser");
         given(userService.signup(any(UserRequest.SignUpUser.class))).willReturn(response);
 
         UserRequest.SignUpUser request = new UserRequest.SignUpUser(
@@ -103,7 +105,7 @@ class UserControllerTest {
 
         // given
         UserResponse.GetUser response =
-                new UserResponse.GetUser("tester", "q1w2e3r4", "slackId",
+                new UserResponse.GetUser(userId, "tester", "q1w2e3r4", "slackId",
                         "김철수","01011112222", "test@ex.com", UserRoleEnum.MASTER, hubId);
 
         given(userService.getSpecificUserInfo(userId)).willReturn(response);

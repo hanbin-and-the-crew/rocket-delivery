@@ -10,11 +10,15 @@ public class UserResponse {
 
     @Schema(description = "회원가입 응답")
     public record SignUpUser(
+            @Schema(description = "사용자 PK", example = "123412431234")
+            UUID userId,
+
             @Schema(description = "사용자 Id", example = "user1107")
             String userName
     ) {
         public static SignUpUser from(User user) {
             return new SignUpUser(
+                    user.getUserId(),
                     user.getUserName()
             );
         }
@@ -22,6 +26,9 @@ public class UserResponse {
 
     @Schema(description = "회원 정보 조회 응답")
     public record GetUser(
+            @Schema(description = "사용자 PK", example = "123412431234")
+            UUID userId,
+
             @Schema(description = "사용자 Id", example = "user1107")
             String userName,
 
@@ -35,7 +42,7 @@ public class UserResponse {
             String realName,
 
             @Schema(description = "전화 번호", example = "01012341234")
-            String userPhone,
+            String userPhoneNumber,
 
             @Schema(description = "userEmail", example = "email@email.com")
             String email,
@@ -48,6 +55,7 @@ public class UserResponse {
     ) {
         public static GetUser from(User user) {
             return new GetUser(
+                    user.getUserId(),
                     user.getUserName(),
                     user.getPassword(),
                     user.getSlackId(),
@@ -75,7 +83,7 @@ public class UserResponse {
             String realName,
 
             @Schema(description = "전화 번호", example = "01012341234")
-            String userPhone,
+            String userPhoneNumber,
 
             @Schema(description = "userEmail", example = "email@email.com")
             String email,
