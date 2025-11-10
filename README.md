@@ -44,8 +44,6 @@ Step 1
 
 ## 각 Step별 학습 내용과 느낀점
 
----
-
 - 학습 내용:
   - User 도메인의 핵심 로직(생성, 상태 변경, 필드 수정)을 중심으로 도메인 단위 테스트를 작성했다. 
   - Given-When-Then 구조를 명확히 구분하여 테스트 의도를 표현하고, 예외 상황(BusinessException)을 검증했다. 
@@ -56,7 +54,6 @@ Step 1
 
 ## TDD 학습 과정 정리
 
----
 
 - Red 단계:
   - User 생성 시 유효성 검사를 수행하지 않아 예외가 발생하지 않는 문제를 발견했다.
@@ -69,8 +66,6 @@ Step 1
 
 ## 테스트 전략 설명
 
----
-
 Step1: 단위 테스트(Unit Test)
 - User 엔티티의 생성 및 상태 변경 로직이 명세대로 작동하는지 검증
 - 정상 입력과 예외 입력 케이스 분리 
@@ -81,7 +76,6 @@ Step1: 단위 테스트(Unit Test)
 
 ## 도메인 요구사항
 
----
 
 - 회원 생성 시 필수값 검증
   - username, email, slackId가 비어 있으면 BusinessException 발생
@@ -109,8 +103,6 @@ User Entity 단위 테스트의 jacoco 예시입니다.
 start module-user/build/reports/jacoco/test/html/index.html
 ```
 ## 어려웠던 점 / 개선하고 싶은 부분(회고)
-
----
 
 어떠한 방식으로 테스트 코드와 TDD 방식이 진행되는지는 알겠으나 이를 Jacoco 기준 100 퍼센트 적용하기에는 어렵다고 느껴졌다.
 
@@ -320,15 +312,9 @@ ProductTest (총 17개)
 <details>
   <summary>User</summary>
 
-## STEP
-
----
-
-Step 2
+## STEP2
 
 ## 각 Step별 학습 내용과 느낀 점
-
----
 
 - 학습 내용:
   - User 도메인 테스트(Step1)에서 확장하여 UserService의 비즈니스 로직을 단위 테스트했다. 
@@ -342,7 +328,6 @@ Step 2
 
 ## TDD 학습 과정 정리
 
----
 
 - Red 단계:
   - UserService.signup()에서 중복 사용자 검증 로직이 없어서 테스트 실패 
@@ -356,7 +341,6 @@ Step 2
 
 ## 테스트 전략 설명
 
----
 
 Step2: 단위 테스트 (Unit Test)
 - UserService의 메서드를 독립적으로 테스트하며 외부 의존성을 Mock 처리
@@ -367,7 +351,6 @@ Step2: 단위 테스트 (Unit Test)
 
 ## 도메인 요구사항
 
----
 
 - 회원가입 시 중복 검증
   - 동일한 username 또는 email 존재 시 BusinessException 발생
@@ -400,16 +383,11 @@ start module-user/build/reports/jacoco/test/html/index.html
 ## 어려웠던 점 / 개선하고 싶은 부분(회고)
 
 
----
 
 어떠한 방식으로 테스트 코드와 TDD 방식이 진행되는지는 알겠으나 이를 Jacoco 기준 100 퍼센트 적용하기에는 어렵다고 느껴졌다.
-
 특히 금융이나 결제 쪽 도메인은 테스트 코드가 매우 까다로울텐데 모든 경우의 수를 다 고려해야만겠다는 생각이 들었던 것 같다.
-
 아쉬운 점은 테스트 코드를 적는 시간보다 환경 설정 특히, JWT 쪽 문제로 인하여 온전히 User 테스트 코드 작성에 많은 시간을 사용하지 못하였다.
-
 Bean, env, Config, Jwt 인증/인가 부분이 테스트 코드에서 어떻게 얽혀져 있는지에 대한 개념이 부족함을 느꼈다.
-
 더욱 이론적인 공부가 필요하다고 스스로 느낀다.
 
 
@@ -634,15 +612,10 @@ JaCoCo 결과 브랜치 커버리지 48%로 분기에 대한 검증이 미흡했
 <details>
   <summary>User</summary>
 
-## STEP
-
----
-
-Step 3
+## STEP3
 
 ## 각 Step별 학습 내용과 느낀 점
 
----
 
 - 학습 내용:
   - @DataJpaTest를 활용해 Repository 단위 테스트 환경을 구성했다. 
@@ -660,7 +633,6 @@ Step 3
 
 ## TDD 학습 과정 정리
 
----
 
 - Red 단계:
   - Soft Delete 동작이 Repository 계층에서 반영되지 않아 deletedAt이 null로 남는 문제 발생. 
@@ -672,8 +644,6 @@ Step 3
 
 ## 테스트 전략 설명
 
----
-
 - Step3: Repository 단위 테스트
   - @DataJpaTest를 통해 Repository 계층만 로드하여 DB 쿼리 로직을 검증.
   - H2 기반으로 실제 DB I/O를 수행해 쿼리의 정확성 확인.
@@ -682,7 +652,6 @@ Step 3
 
 ## 도메인 요구사항
 
----
 
 - 유저는 저장 후 findById, findByUserName, findByEmail로 조회 가능해야 한다.
 - Soft Delete 수행 시 deletedAt이 설정되어야 한다.
@@ -941,14 +910,9 @@ Optional<Product> foundProduct = productJpaRepository.findById(savedProduct.getI
 <details>
   <summary>User</summary>
 
-## STEP
-
-
-Step 4
+## STEP 4
 
 ## 각 Step별 학습 내용과 느낀 점
-
----
 
 - 학습 내용:
   - @WebMvcTest를 활용해 Controller 단위 테스트 환경을 구성했다. 
@@ -966,8 +930,6 @@ Step 4
   
 ## TDD 학습 과정 정리
 
----
-
 - Red 단계:
   - Controller 요청 시 DTO의 필드 유효성 검증이 누락되어 200이 반환되는 문제 발생. 
 - Green 단계:
@@ -977,7 +939,6 @@ Step 4
 
 ## 테스트 전략 설명
 
----
 
 - Step4: Controller 단위 테스트 
   - @WebMvcTest로 Controller와 관련된 Bean만 로드하여 테스트 속도 최적화. 
@@ -987,8 +948,6 @@ Step 4
   - E2E 테스트까지 확인 완료
 
 ## 도메인 요구사항
-
----
 
 - 회원가입 시 유효한 입력이면 200 OK와 함께 회원명 반환 
 - 잘못된 입력값 시 400 Bad Request 반환 
@@ -1011,16 +970,11 @@ start module-user/build/reports/jacoco/test/html/index.html
 ```
 ## 어려웠던 점 / 개선하고 싶은 부분(회고)
 
----
 
 어떠한 방식으로 테스트 코드와 TDD 방식이 진행되는지는 알겠으나 이를 Jacoco 기준 100 퍼센트 적용하기에는 어렵다고 느껴졌다.
-
 특히 금융이나 결제 쪽 도메인은 테스트 코드가 매우 까다로울텐데 모든 경우의 수를 다 고려해야만겠다는 생각이 들었던 것 같다.
-
 아쉬운 점은 테스트 코드를 적는 시간보다 환경 설정 특히, JWT 쪽 문제로 인하여 온전히 User 테스트 코드 작성에 많은 시간을 사용하지 못하였다.
-
 Bean, env, Config, Jwt 인증/인가 부분이 테스트 코드에서 어떻게 얽혀져 있는지에 대한 개념이 부족함을 느꼈다.
-
 더욱 이론적인 공부가 필요하다고 스스로 느낀다.
 
 
@@ -1242,15 +1196,10 @@ E2E 통합 테스트
 <details>
   <summary>User</summary>
 
-## STEP
-
----
-
-Step5
+## STEP 5
 
 ## 각 Step별 학습 내용과 느낀 점
 
----
 
 - 학습 내용:
   - 기존 Step 1~4에서 작성한 User 도메인, Repository, Controller 테스트 코드를 전반적으로 리팩토링했다. 
@@ -1264,8 +1213,6 @@ Step5
 
 ## TDD 학습 과정 정리
 
----
-
 - Red 단계:
   - User 상태 전이 테스트에서 REJECTED 상태를 다시 변경할 수 있는 문제 발견. 
 - Green 단계:
@@ -1278,14 +1225,12 @@ Step5
 
 ## 테스트 전략 설명
 
----
 
 - Step5에선 리팩토링 및 Fixture, Jacoco 이용하여 범위 점검 및 보완을 수행하였습니다.
 
 
 ## 도메인 요구사항
 
----
 
 - 회원 상태 전이 제약 강화 
   - PENDING 상태에서만 APPROVE 또는 REJECTED로 변경 가능 
@@ -1313,13 +1258,9 @@ start module-user/build/reports/jacoco/test/html/index.html
 ---
 
 어떠한 방식으로 테스트 코드와 TDD 방식이 진행되는지는 알겠으나 이를 Jacoco 기준 100 퍼센트 적용하기에는 어렵다고 느껴졌다.
-
 특히 금융이나 결제 쪽 도메인은 테스트 코드가 매우 까다로울텐데 모든 경우의 수를 다 고려해야만겠다는 생각이 들었던 것 같다.
-
 아쉬운 점은 테스트 코드를 적는 시간보다 환경 설정 특히, JWT 쪽 문제로 인하여 온전히 User 테스트 코드 작성에 많은 시간을 사용하지 못하였다.
-
 Bean, env, Config, Jwt 인증/인가 부분이 테스트 코드에서 어떻게 얽혀져 있는지에 대한 개념이 부족함을 느꼈다.
-
 더욱 이론적인 공부가 필요하다고 스스로 느낀다.
 
 
