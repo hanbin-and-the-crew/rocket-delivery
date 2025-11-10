@@ -1,7 +1,5 @@
 # Rocket Delivery
 
----
-
 ## 목차
 
 1. [Step 회고](#step-회고)
