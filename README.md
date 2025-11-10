@@ -202,8 +202,8 @@
 <img width="1180" height="345" alt="Image" src="https://github.com/user-attachments/assets/2a15eca2-8494-4695-967f-7fb2aaf516ec" />
 
 ```
-라인 커버리지: %
-브랜치 커버리지: %
+라인 커버리지: 89%
+브랜치 커버리지: 73%
 ```
 
 
