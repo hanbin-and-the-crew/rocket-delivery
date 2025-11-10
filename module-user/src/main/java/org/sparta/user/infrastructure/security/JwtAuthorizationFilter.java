@@ -33,13 +33,22 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         String accessToken = jwtUtil.getAccessTokenFromHeader(request);
         log.info("JwtAuthorizationFilter accessToken:{}", accessToken);
 
+        // 토큰이 존재하지 않으면 다음 필터로 넘김
+        if (accessToken == null || accessToken.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // 엑세스 토큰이 존재한다면
         if(jwtUtil.validateAccessToken(accessToken)) {
 
             // 클레임 정보를 가져오기
             Claims info = jwtUtil.getAccessTokenUserInfo(accessToken);
+            log.info("JWT sub: {}", info.getSubject());
             try {
+                log.info("SecurityContext before: {}", SecurityContextHolder.getContext().getAuthentication());
                 setAuthentication(info.getSubject());
+                log.info("SecurityContext after: {}", SecurityContextHolder.getContext().getAuthentication());
             } catch (Exception e){
                 log.error(e.getMessage());
                 return;
