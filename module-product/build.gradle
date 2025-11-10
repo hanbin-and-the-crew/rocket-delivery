@@ -24,10 +24,11 @@ dependencies {
     testImplementation 'io.rest-assured:rest-assured:5.3.2'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
 
-    // testcontainers (동시성 테스트용 실제 PostgreSQL)
+    // testcontainers
     testImplementation 'org.testcontainers:testcontainers:1.19.3'
     testImplementation 'org.testcontainers:postgresql:1.19.3'
     testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testRuntimeOnly 'org.postgresql:postgresql'
 }
 
 // Jacoco
