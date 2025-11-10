@@ -10,10 +10,25 @@ dependencies {
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 
+    // kafka (임시 - 추후 module-kafka로 분리 예정)
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // retry (낙관적 락 재시도)
+    implementation 'org.springframework.retry:spring-retry'
+    implementation 'org.springframework:spring-aspects'
+
     // test
     testImplementation project(':module-common')
     testImplementation project(':module-jpa')
     testImplementation 'com.h2database:h2'
+    testImplementation 'io.rest-assured:rest-assured:5.3.2'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+
+    // testcontainers
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:postgresql:1.19.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testRuntimeOnly 'org.postgresql:postgresql'
 }
 
 // Jacoco

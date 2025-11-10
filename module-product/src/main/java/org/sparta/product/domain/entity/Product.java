@@ -1,13 +1,6 @@
 package org.sparta.product.domain.entity;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,6 +30,7 @@ public class Product extends BaseEntity {
     @Column(nullable = false, length = 200)
     private String productName;
 
+    @Embedded
     @Column(nullable = false)
     private Money price;
 
@@ -50,7 +44,7 @@ public class Product extends BaseEntity {
     private UUID hubId;
 
     @Column(nullable = false)
-    private Boolean isActive;
+    private Boolean isActive = true;
 
     /**
      * Stock과 1:1 관계
@@ -153,5 +147,33 @@ public class Product extends BaseEntity {
             throw new BusinessException(ProductErrorType.INITIAL_QUANTITY_INVALID);
         }
     }
+
+    /**
+     * 상품 정보 수정
+     * - 상품명과 가격을 수정할 수 있음
+     * - null인 경우 기존 값 유지
+     */
+    public void update(String productName, Money price) {
+        if (productName != null && !productName.isBlank()) {
+            this.productName = productName;
+        }
+        if (price != null) {
+            this.price = price;
+        }
+    }
+
+    /**
+     * 상품 논리적 삭제
+     * - isActive를 false로 설정
+     * - 연관된 재고도 판매 불가 상태로 변경
+     */
+    public void delete() {
+        this.isActive = false;
+        if (this.stock != null) {
+            this.stock.markAsUnavailable();
+        }
+    }
+
+
 
 }

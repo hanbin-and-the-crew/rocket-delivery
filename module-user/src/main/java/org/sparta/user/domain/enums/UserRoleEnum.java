@@ -1,10 +1,10 @@
 package org.sparta.user.domain.enums;
 
 public enum UserRoleEnum {
-    MASTER_ADMIN(Authority.MASTER_ADMIN),  // 사용자 권한
-    HUB_ADMIN(Authority.HUB_ADMIN),  // 관리자 권한
-    DELIVERY_PERSON(Authority.DELIVERY_PERSON),
-    COMPANY_PERSON(Authority.COMPANY_PERSON);
+    MASTER(Authority.MASTER),                       // 마스터 관리자 권한
+    HUB_MANAGER(Authority.HUB_MANAGER),             // 허브 관리자 권한
+    DELIVERY_MANAGER(Authority.DELIVERY_MANAGER),   // 배송 담당자 권한
+    COMPANY_MANAGER(Authority.COMPANY_MANAGER);     // 업체 담당자 권한
 
     private final String authority;
 
@@ -17,9 +17,9 @@ public enum UserRoleEnum {
     }
 
     public static class Authority {
-        public static final String MASTER_ADMIN = "ROLE_MASTER";
-        public static final String HUB_ADMIN = "ROLE_HUB_ADMIN";
-        public static final String DELIVERY_PERSON = "ROLE_DELIVERY_PERSON";
-        public static final String COMPANY_PERSON = "ROLE_COMPANY_PERSON";
+        public static final String MASTER = "ROLE_MASTER";
+        public static final String HUB_MANAGER = "ROLE_HUB_MANAGER";
+        public static final String DELIVERY_MANAGER = "ROLE_DELIVERY_MANAGER";
+        public static final String COMPANY_MANAGER = "ROLE_COMPANY_MANAGER";
     }
 }

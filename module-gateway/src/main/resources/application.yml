@@ -64,6 +64,8 @@ spring:
             - Path=/user/**, /users/**, /auth/**
           filters:
             - RewritePath=/user/(?<segment>.*), /$\{segment}
+            - RewritePath=/users/(?<segment>.*), /$\{segment}
+            - RewritePath=/auth/(?<segment>.*), /$\{segment}
         - id: jpa-service
           uri: lb://JPA-SERVICE
           predicates:

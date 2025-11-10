@@ -7,7 +7,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.sparta.jpa.entity.BaseEntity;
@@ -37,10 +36,13 @@ public class Category extends BaseEntity {
     @Column(nullable = false)
     private Boolean isActive;
 
-    @Builder
     private Category(String categoryName, String description, Boolean isActive) {
         this.categoryName = categoryName;
         this.description = description;
         this.isActive = isActive != null ? isActive : true;
+    }
+
+    public static Category create(String categoryName, String description) {
+        return new Category(categoryName, description, true);
     }
 }
