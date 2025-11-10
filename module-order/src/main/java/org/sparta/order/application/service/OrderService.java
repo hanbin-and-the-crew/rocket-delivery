@@ -259,7 +259,7 @@ public class OrderService {
 
         Order order = findByIdOrThrow(orderId);
         order.delete(deletedBy);
-        orderRepository.update(order);
+        orderRepository.delete(order);
 
         log.info("주문 삭제 완료 - orderId: {}", orderId);
     }
