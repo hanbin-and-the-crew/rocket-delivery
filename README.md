@@ -1122,8 +1122,8 @@ E2E 통합 테스트(@SpringBootTest + RestAssured)는 실제 HTTP 요청을 통
 
 | 단계 | 설명 | 실제 구현 내용 |
 |------|------|----------------|
-|  RED | 실패하는 테스트 작성 | `ProductE2ETest.java` 작성<br>- 상품 삭제 시 Stock 상태가 UNAVAILABLE로 변경되는지 E2E 검증<br>- Product.delete()가 Stock 상태를 변경하지 않음 → **테스트 실패** 🚨 |
-|  GREEN | 최소한의 코드로 테스트 통과 | `Stock.java`와 `Product.java` 수정<br>- `Stock.markAsUnavailable()` 메서드 구현<br>- `Product.delete()`에서 `stock.markAsUnavailable()` 호출 추가<br>- **테스트 통과** ✅ |
+|  RED | 실패하는 테스트 작성 | `ProductE2ETest.java` 작성<br>- 상품 삭제 시 Stock 상태가 UNAVAILABLE로 변경되는지 E2E 검증<br>- Product.delete()가 Stock 상태를 변경하지 않음 → **테스트 실패**  |
+|  GREEN | 최소한의 코드로 테스트 통과 | `Stock.java`와 `Product.java` 수정<br>- `Stock.markAsUnavailable()` 메서드 구현<br>- `Product.delete()`에서 `stock.markAsUnavailable()` 호출 추가<br>- **테스트 통과**  |
 |REFACTOR| 코드 개선 및 검증 강화 | - Controller 단위 테스트 추가 (MockMvc)<br>- E2E 전체 플로우 검증 (생성 → 조회 → 수정 → 삭제)<br>- 예외 케이스 추가 (404, 400 등)<br>- RestAssured로 실제 HTTP 요청 검증 |
 
 ---
