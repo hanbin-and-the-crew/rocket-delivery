@@ -34,6 +34,26 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  # Kafka 설정 (임시 - 추후 module-kafka로 분리 예정)
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: product-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: >
+          OrderCreatedEvent:org.sparta.product.infrastructure.event.OrderCreatedEvent,
+          PaymentCompletedEvent:org.sparta.product.infrastructure.event.PaymentCompletedEvent,
+          OrderCancelledEvent:org.sparta.product.infrastructure.event.OrderCancelledEvent
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+
 # 보안 관련(BCrypt)
 security:
   bcrypt:
