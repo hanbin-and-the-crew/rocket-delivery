@@ -1,5 +1,4 @@
 # Rocket Delivery
----
 
 ---
 
@@ -23,12 +22,15 @@
 
 ---
 
-TEST_GUIDE.md = []
+## TEST_GUIDE 문서
+
+[TEST_GUIDE.md](https://github.com/hanbin-and-the-crew/rocket-delivery/blob/tdd_main/TEST_GUIDE.md)
 
 ---
 
 ## Step 회고 
-1~5까지 각 스텝에서 경험한 내용을 도메인 중심으로 회고하여 기록하였습니다.
+토글을 클릭하면 각 Step(1~5)의 회고 내용을 도메인별로 확인하실 수 있습니다.
+
 
 ### Step1
 
@@ -170,6 +172,7 @@ TEST_GUIDE.md = []
 
 </details>
 
+---
 
 ## Jacoco 리포트
 
