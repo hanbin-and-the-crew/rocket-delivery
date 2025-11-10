@@ -76,9 +76,9 @@ public class HubController {
      * 허브 삭제
      */
     @DeleteMapping("/{hubId}")
-    public ResponseEntity<ApiResponse<Object>> deleteHub(@PathVariable UUID hubId) {
-        hubService.deleteHub(hubId);
-        return ResponseEntity.ok(ApiResponse.success());
+    public ResponseEntity<ApiResponse<HubResponse>> deleteHub(@PathVariable UUID hubId) {
+        HubResponse deleted = hubService.deleteHub(hubId);
+        return ResponseEntity.ok(ApiResponse.success(deleted));
     }
 
 }

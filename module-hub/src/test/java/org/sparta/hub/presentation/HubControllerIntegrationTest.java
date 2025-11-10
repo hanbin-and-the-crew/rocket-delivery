@@ -1,6 +1,7 @@
 package org.sparta.hub.presentation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
@@ -26,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Transactional
 @Import(ApiControllerAdvice.class)
 class HubControllerIntegrationTest {
 
@@ -38,7 +41,11 @@ class HubControllerIntegrationTest {
     void setUp() {
         hubRepository.deleteAll();
         Hub hub = Hub.create("서울 허브", "서울특별시 강남구 테헤란로 123", 37.55, 127.03);
-        savedHub = hubRepository.save(hub);
+        savedHub = hubRepository.saveAndFlush(hub);
+
+        TestTransaction.flagForCommit();
+        TestTransaction.end();
+        TestTransaction.start();
     }
 
     @Test

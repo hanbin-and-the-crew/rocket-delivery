@@ -35,8 +35,8 @@ public class AdminHubController {
     }
 
     @DeleteMapping("/{hubId}")
-    public ResponseEntity<ApiResponse<Object>> delete(@PathVariable UUID hubId) {
-        hubService.deleteHub(hubId);
-        return ResponseEntity.ok(ApiResponse.success());
+    public ResponseEntity<ApiResponse<HubResponse>> delete(@PathVariable UUID hubId) {
+        HubResponse deleted = hubService.deleteHub(hubId);
+        return ResponseEntity.ok(ApiResponse.success(deleted));
     }
 }
