@@ -17,4 +17,9 @@ dependencies {
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
+    // Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache' // 캐시용인 경우
+    implementation 'io.lettuce:lettuce-core' // 기본 클라이언트 (Spring Boot 기본)
 }

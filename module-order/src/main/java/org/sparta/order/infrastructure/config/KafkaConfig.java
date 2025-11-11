@@ -1,4 +1,4 @@
-package org.sparta.product.infrastructure.config;
+package org.sparta.order.infrastructure.config;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -17,21 +17,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Kafka 설정 (임시)
- *
- * 추후 module-kafka로 분리 예정
- *
- * Producer: Product 모듈에서 이벤트 발행
- * Consumer: Order 모듈에서 발행한 이벤트 수신
+ * Kafka 설정
  */
 @EnableKafka
 @Configuration
 public class KafkaConfig {
 
-    @Value("${spring.kafka.bootstrap-servers}")
+    @Value("localhost:9092")
     private String bootstrapServers;
 
-    @Value("${spring.kafka.consumer.group-id}")
+    @Value("$order-service")
     private String groupId;
 
     /**
@@ -45,7 +40,7 @@ public class KafkaConfig {
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         config.put(ProducerConfig.ACKS_CONFIG, "all");
         config.put(ProducerConfig.RETRIES_CONFIG, 3);
-        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);  // 멱등성 보장
+        config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
 
         return new DefaultKafkaProducerFactory<>(config);
     }

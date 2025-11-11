@@ -1,5 +1,6 @@
 dependencies {
     implementation project(':module-common')
+    implementation project(':module-jpa')
 
     // Spring Boot Starter Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
@@ -17,4 +18,8 @@ dependencies {
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // API 문서화 (Swagger/OpenAPI)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
 }

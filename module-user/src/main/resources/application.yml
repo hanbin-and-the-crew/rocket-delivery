@@ -11,6 +11,12 @@ eureka:
 spring:
   application:
     name: user-service
+  cache:
+    type: redis
+  data:
+    redis:
+      host: localhost
+      port: 6378
 
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
@@ -55,6 +61,7 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+    org.springframework.data.redis: DEBUG
 
 # JWT
 jwt:
