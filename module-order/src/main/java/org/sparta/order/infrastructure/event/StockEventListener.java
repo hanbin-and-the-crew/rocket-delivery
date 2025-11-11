@@ -28,7 +28,7 @@ public class StockEventListener {
 
     @KafkaListener(topics = "stock-reserved", groupId = "order-service")
     public void handleStockReserved(StockEventDto.StockReserved event) {
-        orderService.markOrderPlaced(event.orderId());
+        //
     }
 
     @KafkaListener(topics = "stock-reservation-failed", groupId = "order-service")
