@@ -2,7 +2,7 @@ name: 'CI'
 
 on:
   push:
-    branches: [ dev, common/*, company/*, order/*, hub/*, product/*, user/*, slack/*, delivery/*, gateway/*, server/*, jpa/*, auth/*, tdd/* ]
+    branches: [ dev, common/*, company/*, order/*, hub/*, product/*, user/*, slack/*, delivery/*, gateway/*, server/*, jpa/*, auth/*, tdd/*, redis/* ]
   pull_request:
     branches:
       - dev
@@ -10,6 +10,14 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --requirepass foobared
 
     steps:
       - name: Checkout 코드
