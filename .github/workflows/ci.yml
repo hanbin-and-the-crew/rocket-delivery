@@ -16,8 +16,6 @@ jobs:
         image: redis:6.2.11
         ports:
           - 6378:6379
-        options: >-
-          --requirepass ""
 
     steps:
       - name: Checkout 코드
