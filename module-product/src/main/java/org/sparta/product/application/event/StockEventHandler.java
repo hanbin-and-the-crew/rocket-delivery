@@ -3,6 +3,7 @@ package org.sparta.product.application.event;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.product.application.service.StockService;
 import org.sparta.product.domain.entity.ProcessedEvent;
 import org.sparta.product.domain.entity.Stock;
@@ -37,7 +38,7 @@ public class StockEventHandler {
 
     private final StockService stockService;
     private final ProcessedEventRepository processedEventRepository;
-    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final EventPublisher eventPublisher;
 
     /**
      *  재고 예약 처리
@@ -73,7 +74,7 @@ public class StockEventHandler {
                     stock.getAvailableQuantity(),
                     stock.getStatus()
             );
-            kafkaTemplate.send("stock-reserved", event.orderId().toString(), successEvent);
+            eventPublisher.publishExternal(successEvent);
 
             log.info("재고 예약 성공 - orderId: {}, productId: {}, reserved: {}, available: {}",
                     event.orderId(), event.productId(), event.quantity(), stock.getAvailableQuantity());
@@ -86,7 +87,7 @@ public class StockEventHandler {
                     event.quantity(),
                     e.getMessage()
             );
-            kafkaTemplate.send("stock-reservation-failed", event.orderId().toString(), failEvent);
+            eventPublisher.publishExternal(failEvent);
 
             // 멱등성 기록
             processedEventRepository.save(
@@ -131,7 +132,7 @@ public class StockEventHandler {
                     event.quantity(),
                     stock.getQuantity()
             );
-            kafkaTemplate.send("stock-confirmed", event.orderId().toString(), confirmedEvent);
+            eventPublisher.publishExternal(confirmedEvent);
 
             log.info("재고 확정 완료 - orderId: {}, productId: {}, confirmed: {}, remaining: {}",
                     event.orderId(), event.productId(), event.quantity(), stock.getQuantity());
@@ -179,7 +180,7 @@ public class StockEventHandler {
                     event.productId(),
                     event.quantity()
             );
-            kafkaTemplate.send("stock-reservation-cancelled", event.orderId().toString(), cancelledEvent);
+            eventPublisher.publishExternal(cancelledEvent);
 
             log.info("재고 예약 취소 완료 - orderId: {}, productId: {}, cancelled: {}",
                     event.orderId(), event.productId(), event.quantity());

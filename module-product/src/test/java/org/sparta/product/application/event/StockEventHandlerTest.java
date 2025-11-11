@@ -7,6 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.product.application.service.StockService;
 import org.sparta.product.domain.entity.Stock;
 import org.sparta.product.domain.repository.ProcessedEventRepository;
@@ -18,16 +19,13 @@ import org.sparta.product.infrastructure.event.publisher.StockReservationCancell
 import org.sparta.product.infrastructure.event.publisher.StockReservationFailedEvent;
 import org.sparta.product.infrastructure.event.publisher.StockReservedEvent;
 import org.sparta.product.support.fixtures.ProductFixture;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
-//테스트 목적 : 핸들러가 이벤트를 받았을 때 외부 의존에 대해 올바른 행위를 수행하는지 행위 검증을 합니다.
 @ExtendWith(MockitoExtension.class)
 class StockEventHandlerTest {
 
@@ -38,7 +36,7 @@ class StockEventHandlerTest {
     private ProcessedEventRepository processedEventRepository;
 
     @Mock
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private EventPublisher eventPublisher;
 
     @InjectMocks
     private StockEventHandler stockEventHandler;
@@ -61,7 +59,7 @@ class StockEventHandlerTest {
 
         verify(stockService).reserveStock(productId, orderQuantity);
         verify(processedEventRepository).save(any());
-        verify(kafkaTemplate).send(eq("stock-reserved"), eq(orderId.toString()), any(StockReservedEvent.class));
+        verify(eventPublisher).publishExternal(any(StockReservedEvent.class));
     }
 
     @Test
@@ -82,7 +80,7 @@ class StockEventHandlerTest {
 
         stockEventHandler.handleOrderCreated(event);
 
-        verify(kafkaTemplate).send(eq("stock-reservation-failed"), eq(orderId.toString()), any(StockReservationFailedEvent.class));
+        verify(eventPublisher).publishExternal(any(StockReservationFailedEvent.class));
         verify(processedEventRepository).save(any());
     }
 
@@ -106,7 +104,7 @@ class StockEventHandlerTest {
 
         verify(stockService).confirmReservation(productId, confirmedQuantity);
         verify(processedEventRepository).save(any());
-        verify(kafkaTemplate).send(eq("stock-confirmed"), eq(orderId.toString()), any(StockConfirmedEvent.class));
+        verify(eventPublisher).publishExternal(any(StockConfirmedEvent.class));
     }
 
     @Test
@@ -125,6 +123,6 @@ class StockEventHandlerTest {
 
         verify(stockService).cancelReservation(productId, cancelledQuantity);
         verify(processedEventRepository).save(any());
-        verify(kafkaTemplate).send(eq("stock-reservation-cancelled"), eq(orderId.toString()), any(StockReservationCancelledEvent.class));
+        verify(eventPublisher).publishExternal(any(StockReservationCancelledEvent.class));
     }
 }
