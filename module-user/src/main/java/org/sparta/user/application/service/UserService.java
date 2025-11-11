@@ -10,6 +10,9 @@ import org.sparta.user.infrastructure.security.CustomUserDetails;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
 import org.sparta.user.presentation.UserRequest;
 import org.sparta.user.presentation.UserResponse;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -48,6 +51,7 @@ public class UserService {
      * POST users/signup
      */
     @Transactional
+    @CacheEvict(value = "userListCache", allEntries = true)
     public UserResponse.SignUpUser signup(UserRequest.SignUpUser request) {
 
         String userName = request.userName();
@@ -89,6 +93,10 @@ public class UserService {
      * PATCH /users/me
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "userCache", key = "#user.id"),
+            @CacheEvict(value = "userListCache", allEntries = true)
+    })
     public UserResponse.UpdateUser updateSelf(CustomUserDetails user, UserRequest.UpdateUser request) {
         User userInfo = userRepository.findById(user.getId()).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
@@ -148,6 +156,10 @@ public class UserService {
      * DELETE /User/{userId}
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "userCache", key = "#user.Id"),
+            @CacheEvict(value = "userListCache", allEntries = true)
+    })
     public void deleteSelf(CustomUserDetails user) {
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
         int updated = userRepository.softDeleteByUserId(user.getId(), now);
@@ -175,6 +187,7 @@ public class UserService {
     /**
      * GET /users/bos/{userId}
      */
+    @Cacheable(value = "userCache", key = "#userId")
     public UserResponse.GetUser getSpecificUserInfo(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND, "회원이 존재하지 않습니다."));
@@ -185,6 +198,10 @@ public class UserService {
      * PATCH /users/me
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "userCache", key = "#userid"),
+            @CacheEvict(value = "userListCache", allEntries = true)
+    })
     public UserResponse.UpdateUser updateUser(UUID userId, UserRequest.UpdateUser request) {
         User userInfo = userRepository.findById(userId).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
@@ -235,6 +252,10 @@ public class UserService {
      * DELETE /users/bos/{userId}
      */
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "userCache", key = "#userId"),
+            @CacheEvict(value = "userListCache", allEntries = true)
+    })
     public void deleteUser(UUID userId) {
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
         int updated = userRepository.softDeleteByUserId(userId, now);
@@ -247,6 +268,7 @@ public class UserService {
     /**
      * GET /users/bos
      */
+    @Cacheable(value = "userListCache", key = "'allUsers'")
     public List<UserResponse.GetUser> getAllUsers() {
         List<User> users = userRepository.findAll();
         return users.stream()
@@ -259,6 +281,7 @@ public class UserService {
      * POST /users/bos/{userId}/REJECTED
      */
     @Transactional
+    @CacheEvict(value = "userListCache", allEntries = true)
     public void updateUserStatus(UUID userId, UserStatusEnum newStatus) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND, "회원이 존재하지 않습니다."));

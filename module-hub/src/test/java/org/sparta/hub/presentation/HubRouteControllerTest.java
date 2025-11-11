@@ -131,7 +131,7 @@ class HubRouteControllerTest {
         mvc().perform(delete("/api/hub-routes/{id}", UUID.randomUUID()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data").doesNotExist()); 
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
 

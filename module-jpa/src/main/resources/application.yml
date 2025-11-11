@@ -11,6 +11,12 @@ eureka:
 spring:
   application:
     name: jpa-service
+  cache:
+    type: redis
+  data:
+    redis:
+      host: localhost
+      port: 6378
 
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db

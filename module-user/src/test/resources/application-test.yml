@@ -1,4 +1,10 @@
 spring:
+  data:
+    redis:
+      host: localhost
+      port: 6378
+    cache:
+      type: none
   application:
     name: user-service-test
 
