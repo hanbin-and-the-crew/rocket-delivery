@@ -12,6 +12,12 @@ spring:
   application:
     name: slack-service
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: slack-service
+      auto-offset-reset: earliest
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
