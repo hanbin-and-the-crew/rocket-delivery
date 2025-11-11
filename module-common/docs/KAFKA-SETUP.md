@@ -38,7 +38,7 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
-      group-id: user-service  # 모듈명-service로 변경
+      group-id: user-service 
 ```
 
 **group-id 예시:**

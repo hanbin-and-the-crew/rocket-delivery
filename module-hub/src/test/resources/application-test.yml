@@ -45,7 +45,9 @@ server:
     include-binding-errors: always
   port: 0  # 랜덤 포트 (MockMvc나 RestAssured 사용 시 충돌 방지)
 
-
+app:
+  eventpublisher:
+    enabled: false
 
 # H2 콘솔 (로컬 디버깅용 — 필요 시 http://localhost:8080/h2-console)
 h2:

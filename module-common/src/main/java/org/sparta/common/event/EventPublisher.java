@@ -2,6 +2,7 @@ package org.sparta.common.event;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Slf4j
+@ConditionalOnProperty(prefix = "app.eventpublisher", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class EventPublisher {
 
     private final ApplicationEventPublisher applicationEventPublisher;
