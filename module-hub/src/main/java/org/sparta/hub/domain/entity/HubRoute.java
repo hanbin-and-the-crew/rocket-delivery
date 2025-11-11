@@ -2,60 +2,91 @@ package org.sparta.hub.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.sparta.jpa.entity.BaseEntity;
+import org.sparta.hub.domain.model.HubRouteStatus;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "hub_routes")
+@Table(name = "hub_route")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class HubRoute extends BaseEntity {
+public class HubRoute {
 
     @Id
-    @GeneratedValue
-    @Column(name = "route_id", nullable = false, updatable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID routeId;
 
-    @Column(name = "source_hub_id", nullable = false)
+    @Column(nullable = false)
     private UUID sourceHubId;
 
-    @Column(name = "target_hub_id", nullable = false)
+    @Column(nullable = false)
     private UUID targetHubId;
 
     @Column(nullable = false)
-    private Integer duration; // 이동 소요 시간 (분)
+    private int distance; // km 단위
 
     @Column(nullable = false)
-    private Integer distance; // 이동 거리 (km)
+    private int duration; // 분 단위
 
-    // ===== 도메인 규칙 메서드 =====
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private HubRouteStatus status;
 
-    /** 출발지와 도착지가 동일할 수 없음 */
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime deletedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        if (this.status == null) this.status = HubRouteStatus.ACTIVE;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // === 비즈니스 로직 === //
+
     public void validateRoute() {
+        if (distance <= 0 || duration <= 0) {
+            throw new IllegalArgumentException("거리와 소요 시간은 0보다 커야 합니다.");
+        }
         if (sourceHubId.equals(targetHubId)) {
-            throw new IllegalArgumentException("Source and target hubs cannot be the same");
+            throw new IllegalArgumentException("출발 허브와 도착 허브는 같을 수 없습니다.");
         }
     }
 
-    /** 거리와 시간이 0 이하일 수 없음 */
-    public void update(Integer duration, Integer distance) {
-        if (duration == null || distance == null || duration <= 0 || distance <= 0) {
-            throw new IllegalArgumentException("Duration and distance must be positive");
+    public void update(int duration, int distance) {
+        if (distance <= 0 || duration <= 0) {
+            throw new IllegalArgumentException("거리와 소요 시간은 0보다 커야 합니다.");
         }
-        this.duration = duration;
         this.distance = distance;
+        this.duration = duration;
+        this.updatedAt = LocalDateTime.now();
     }
 
-    /** 논리 삭제 처리 */
     public void markAsDeleted() {
-        super.markAsDeleted();
+        this.status = HubRouteStatus.INACTIVE;
+        this.deletedAt = LocalDateTime.now();
     }
 
-    /** 삭제 복구 (Soft Delete 해제) */
-    public void restore() {
-        super.restore();
+    public void closeRoute() {
+        this.status = HubRouteStatus.CLOSED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void reopenRoute() {
+        this.status = HubRouteStatus.ACTIVE;
+        this.updatedAt = LocalDateTime.now();
+        this.deletedAt = null;
+    }
+
+    public boolean isActive() {
+        return this.status == HubRouteStatus.ACTIVE;
     }
 }
