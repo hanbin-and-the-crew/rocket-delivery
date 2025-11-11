@@ -4,6 +4,7 @@ import org.sparta.order.domain.entity.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import java.util.UUID;
 /**
  * Order JPA Repository
  */
+@Repository
 public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 
     /**

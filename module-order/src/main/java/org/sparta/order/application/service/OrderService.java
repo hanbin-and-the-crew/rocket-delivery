@@ -19,6 +19,8 @@ import org.sparta.order.infrastructure.client.*;
 import org.sparta.order.infrastructure.client.dto.request.*;
 import org.sparta.order.infrastructure.client.dto.response.*;
 import org.sparta.order.infrastructure.event.*;
+import org.sparta.order.infrastructure.repository.OrderJpaRepository;
+import org.sparta.order.infrastructure.repository.OrderRepositoryImpl;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -39,7 +41,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class OrderService {
 
-    private final OrderRepository orderRepository;
+    private final OrderJpaRepository orderRepository;
 
     private final ProductClient productClient;
     private final HubClient hubClient;
@@ -161,15 +163,15 @@ public class OrderService {
     /**
      * 주문 목록 조회 (검색)
      */
-    //TODO: 작성자 본인 / 배송 담당자 -> 본인담당 주문건만 / 모든 사용자 가능
-    //TODO: repo 수정
-    public Page<OrderResponse.Summary> searchOrders(
-            OrderSearchCondition condition,
-            Pageable pageable
-    ) {
-        Page<Order> orders = orderRepository.searchOrders(condition, pageable);
-        return orders.map(OrderResponse.Summary::of);
-    }
+//    //TODO: 작성자 본인 / 배송 담당자 -> 본인담당 주문건만 / 모든 사용자 가능
+//    //TODO: repo 수정
+//    public Page<OrderResponse.Summary> searchOrders(
+//            OrderSearchCondition condition,
+//            Pageable pageable
+//    ) {
+//        Page<Order> orders = orderRepository.searchOrders(condition, pageable);
+//        return orders.map(OrderResponse.Summary::of);
+//    }
 
     /**
      * 납품 기한 변경

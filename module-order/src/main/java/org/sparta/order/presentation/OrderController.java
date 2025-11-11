@@ -44,30 +44,30 @@ public class OrderController implements OrderApiSpec {
         return ApiResponse.success(response);
     }
 
-    @Override    // 주문 목록 조회
-    @GetMapping
-    public ApiResponse<Page<OrderResponse.Summary>> searchOrders(
-            @RequestParam(required = false) UUID supplierId,
-            @RequestParam(required = false) UUID receiptCompanyId,
-            @RequestParam(required = false) UUID productId,
-            @RequestParam(required = false) String status,
-            @RequestHeader("X-User-Id") UUID userId,
-            Pageable pageable
-    ) {
-        OrderSearchCondition condition = OrderSearchCondition.of(
-                supplierId,
-                receiptCompanyId,
-                productId,
-                status != null ? OrderStatus.valueOf(status) : null,
-                null,
-                null,
-                null,
-                null
-        );
-
-        Page<OrderResponse.Summary> response = orderService.searchOrders(condition, pageable);
-        return ApiResponse.success(response);
-    }
+//    @Override    // 주문 목록 조회
+//    @GetMapping
+//    public ApiResponse<Page<OrderResponse.Summary>> searchOrders(
+//            @RequestParam(required = false) UUID supplierId,
+//            @RequestParam(required = false) UUID receiptCompanyId,
+//            @RequestParam(required = false) UUID productId,
+//            @RequestParam(required = false) String status,
+//            @RequestHeader("X-User-Id") UUID userId,
+//            Pageable pageable
+//    ) {
+//        OrderSearchCondition condition = OrderSearchCondition.of(
+//                supplierId,
+//                receiptCompanyId,
+//                productId,
+//                status != null ? OrderStatus.valueOf(status) : null,
+//                null,
+//                null,
+//                null,
+//                null
+//        );
+//
+//        Page<OrderResponse.Summary> response = orderService.searchOrders(condition, pageable);
+//        return ApiResponse.success(response);
+//    }
 
     @Override   // 배송 기한 변경
     @PatchMapping("/{orderId}/due-at")

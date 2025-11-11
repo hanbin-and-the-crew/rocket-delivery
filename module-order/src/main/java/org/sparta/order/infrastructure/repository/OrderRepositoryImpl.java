@@ -12,7 +12,7 @@ import java.util.UUID;
  * Order Repository 구현체
  * QueryDSL을 활용한 동적 쿼리 처리
  */
-@Repository
+
 @RequiredArgsConstructor
 public abstract class OrderRepositoryImpl implements OrderRepository {
 
