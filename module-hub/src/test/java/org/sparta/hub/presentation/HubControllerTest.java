@@ -1,6 +1,7 @@
 package org.sparta.hub.presentation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.common.api.ApiControllerAdvice;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.cloud.discovery.enabled=false"
 })
 @AutoConfigureMockMvc
+@Transactional
 @ActiveProfiles("test")
 @Import(ApiControllerAdvice.class)
 class HubControllerTest {

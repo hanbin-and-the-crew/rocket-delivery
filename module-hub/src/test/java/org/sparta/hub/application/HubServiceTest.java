@@ -10,7 +10,6 @@ import org.sparta.hub.exception.AlreadyDeletedHubException;
 import org.sparta.hub.exception.DuplicateHubNameException;
 import org.sparta.hub.exception.HubNotFoundException;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
-
 import org.sparta.hub.presentation.dto.request.HubUpdateRequest;
 import org.sparta.hub.presentation.dto.response.HubCreateResponse;
 import org.sparta.hub.presentation.dto.response.HubResponse;

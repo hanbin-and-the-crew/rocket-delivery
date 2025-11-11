@@ -1,5 +1,6 @@
 dependencies {
     implementation project(':module-common')
+    implementation project(':module-jpa')
 
     // Spring Boot Starter Web
     implementation 'org.springframework.boot:spring-boot-starter-web'
