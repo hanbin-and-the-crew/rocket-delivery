@@ -4,3 +4,6 @@ spring:
     consumer:
       group-id: test-group
       auto-offset-reset: earliest
+app:
+  eventpublisher:
+   enabled: true

@@ -6,11 +6,12 @@ import org.sparta.common.event.EventPublisher;
 import org.sparta.slack.SlackApplication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.stereotype.Component;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.concurrent.CountDownLatch;
@@ -18,23 +19,23 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * EventPublisher Kafka 연동 테스트
- */
 @SpringBootTest(classes = SlackApplication.class)
+@ActiveProfiles("test")
 @EmbeddedKafka(
-    partitions = 1,
-    topics = {"domain-events"},
-    brokerProperties = {
-        "listeners=PLAINTEXT://localhost:9093",
-        "port=9093"
-    }
+        partitions = 1,
+        topics = {"domain-events"},
+        brokerProperties = {
+                "listeners=PLAINTEXT://localhost:9093",
+                "port=9093"
+        }
 )
 @TestPropertySource(properties = {
-    "spring.kafka.bootstrap-servers=localhost:9093",
-    "spring.kafka.consumer.group-id=test-group"
+        "spring.kafka.bootstrap-servers=localhost:9093",
+        "spring.kafka.consumer.group-id=test-group",
+        "app.eventpublisher.enabled=true"
 })
 @DirtiesContext
+@Import(EventPublisherKafkaTest.TestEventListener.class)
 class EventPublisherKafkaTest {
 
     @Autowired
@@ -46,13 +47,9 @@ class EventPublisherKafkaTest {
     @Test
     @DisplayName("로컬 이벤트가 Spring Event Listener로 전달된다")
     void publishLocal_shouldTriggerSpringEventListener() throws InterruptedException {
-        // given
         TestEvent event = new TestEvent("로컬 이벤트 테스트");
-
-        // when
         eventPublisher.publishLocal(event);
 
-        // then
         boolean received = testEventListener.localLatch.await(3, TimeUnit.SECONDS);
         assertThat(received).isTrue();
         assertThat(testEventListener.lastLocalEvent).isNotNull();
@@ -62,13 +59,9 @@ class EventPublisherKafkaTest {
     @Test
     @DisplayName("외부 이벤트가 Kafka로 전송되고 Consumer가 수신한다")
     void publishExternal_shouldSendToKafkaAndReceive() throws InterruptedException {
-        // given
         TestEvent event = new TestEvent("Kafka 이벤트 테스트");
-
-        // when
         eventPublisher.publishExternal(event);
 
-        // then
         boolean received = testEventListener.kafkaLatch.await(5, TimeUnit.SECONDS);
         assertThat(received).isTrue();
         assertThat(testEventListener.lastKafkaEvent).isNotNull();
@@ -78,7 +71,6 @@ class EventPublisherKafkaTest {
     /**
      * 테스트용 이벤트 리스너
      */
-    @Component
     static class TestEventListener {
 
         CountDownLatch localLatch = new CountDownLatch(1);
@@ -99,4 +91,5 @@ class EventPublisherKafkaTest {
             kafkaLatch.countDown();
         }
     }
+
 }
