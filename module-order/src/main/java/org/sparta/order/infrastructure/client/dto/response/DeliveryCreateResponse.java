@@ -1,4 +1,4 @@
-package org.sparta.order.infrastructure.client.dto;
+package org.sparta.order.infrastructure.client.dto.response;
 
 import java.util.UUID;
 

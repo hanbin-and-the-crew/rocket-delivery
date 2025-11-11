@@ -1,5 +1,7 @@
 package org.sparta.order.infrastructure.client.dto;
 
+import org.sparta.order.domain.enumeration.UserRoleEnum;
+
 import java.util.UUID;
 
 /**
@@ -10,6 +12,8 @@ public record UserResponse(
         String userName,
         String realName,
         String email,
-        UUID hubId
+        String userPhoneNumber,
+        UUID hubId,
+        UserRoleEnum role
 ) {
 }

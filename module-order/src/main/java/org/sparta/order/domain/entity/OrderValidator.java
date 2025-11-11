@@ -91,7 +91,7 @@ public final class OrderValidator {
                     OrderErrorType.QUANTITY_REQUIRED.getMessage()
             );
         }
-        // 하한 검증은 Quantity.of/생성자에서 수행(>=1)
+        // 하한 검증은 Quantity.of/생성자에서 수행(<1 이면 예외 발생)
         return q;
     }
 
@@ -99,6 +99,33 @@ public final class OrderValidator {
         if (s == null || s.isBlank()) {
             throw new IllegalArgumentException(
                     OrderErrorType.ADDRESS_SNAPSHOT_REQUIRED.getMessage()
+            );
+        }
+        return s.trim();
+    }
+
+    public static String requireUserName(String s) {
+        if (s == null || s.isBlank()) {
+            throw new IllegalArgumentException(
+                    OrderErrorType.USERNAME_REQUIRED.getMessage()
+            );
+        }
+        return s.trim();
+    }
+
+    public static String requireUserPhoneNumber(String s) {
+        if (s == null || s.isBlank()) {
+            throw new IllegalArgumentException(
+                    OrderErrorType.USER_PHONENUMBER_REQUIRED.getMessage()
+            );
+        }
+        return s.trim();
+    }
+
+    public static String requireSlackId(String s) {
+        if (s == null || s.isBlank()) {
+            throw new IllegalArgumentException(
+                    OrderErrorType.SLACK_ID_REQUIRED.getMessage()
             );
         }
         return s.trim();

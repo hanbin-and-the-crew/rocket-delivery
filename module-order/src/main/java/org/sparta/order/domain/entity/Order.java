@@ -77,6 +77,15 @@ public class Order extends BaseEntity {
     @Column(nullable = false, length = 300)
     private String addressSnapshot;
 
+    @Column(nullable = false)
+    private String userName;
+
+    @Column(nullable = false)
+    private String userPhoneNumber;
+
+    @Column(nullable = false)
+    private String slackId;
+
     private LocalDateTime dispatchedAt;
     private UUID dispatchedBy;
     private UUID canceledBy;
@@ -90,6 +99,9 @@ public class Order extends BaseEntity {
     @Column(nullable = false, length = 500)
     private String canceledReasonMemo;
 
+    @Column
+    private UUID deletedBy;
+
     private Order(
             UUID supplierId,
             UUID supplierCompanyId,
@@ -101,6 +113,9 @@ public class Order extends BaseEntity {
             Money productPriceSnapshot,
             Quantity quantity,
             String addressSnapshot,
+            String userName,
+            String userPhoneNumber,
+            String slackId,
             LocalDateTime dueAt,
             String requestedMemo
     ) {
@@ -114,6 +129,9 @@ public class Order extends BaseEntity {
         this.productPriceSnapshot = requireProductPriceSnapshot(productPriceSnapshot);
         this.quantity = requireQuantity(quantity);
         this.addressSnapshot = requireAddressSnapshot(addressSnapshot);
+        this.userName = requireUserName(userName);
+        this.userPhoneNumber = requireUserPhoneNumber(userPhoneNumber);
+        this.slackId = requireSlackId(slackId);
         this.dueAt = requireDueAt(dueAt);
 
         // 총액 = 단가 × 수량
@@ -144,6 +162,9 @@ public class Order extends BaseEntity {
             Money productPriceSnapshot,
             Quantity quantity,
             String addressSnapshot,
+            String userName,
+            String userPhoneNumber,
+            String slackId,
             LocalDateTime dueAt,
             String requestedMemo
     ) {
@@ -158,6 +179,9 @@ public class Order extends BaseEntity {
                 productPriceSnapshot,
                 quantity,
                 addressSnapshot,
+                userName,
+                userPhoneNumber,
+                slackId,
                 dueAt,
                 requestedMemo
         );
@@ -207,6 +231,19 @@ public class Order extends BaseEntity {
         }
 
         this.requestedMemo = normalizeBlankToNull(newMemo);
+    }
+
+    // 요청사항 변경 (PLACED 상태에서만)
+    public void changeAddress(String newAddress, UUID userId) {
+        requireUserId(userId);
+
+        if (this.orderStatus != OrderStatus.PLACED) {
+            throw new IllegalStateException(
+                    OrderErrorType.CANNOT_CHANGE_MEMO_AFTER_DISPATCH.getMessage()
+            );
+        }
+
+        this.requestedMemo = normalizeBlankToNull(newAddress);
     }
 
     // 주문 출고 처리
@@ -277,20 +314,21 @@ public class Order extends BaseEntity {
 
         // 취소 처리
         this.orderStatus = OrderStatus.CANCELED;
-        this.canceledBy = userId;
+        this.canceledBy = requireUserId(userId);
         this.canceledAt = LocalDateTime.now();
         this.canceledReasonCode = reasonCode;
         this.canceledReasonMemo = reasonMemo.trim();
     }
 
     // 주문 삭제
-    public void delete(String ignoredDeletedBy) {
+    public void delete(UUID userId) {
         // 업무 규칙: 출고/배송완료 이후에는 삭제 금지
         if (this.orderStatus == OrderStatus.DISPATCHED || this.orderStatus == OrderStatus.DELIVERED) {
             throw new IllegalStateException("출고/배송완료 이후 주문은 삭제할 수 없습니다.");
         }
 
-        super.markAsDeleted();
+        this.deletedBy = userId;
+        this.deletedAt = LocalDateTime.now();
     }
 
     // 배송 ID 할당
@@ -299,7 +337,7 @@ public class Order extends BaseEntity {
         this.deliveryId = deliveryId;
     }
 
-    // 조회 메서드들
+    // 조회 메서드들 / 안쓰는건 추후 삭제 예정
     public boolean isPlaced() {
         return this.orderStatus == OrderStatus.PLACED;
     }

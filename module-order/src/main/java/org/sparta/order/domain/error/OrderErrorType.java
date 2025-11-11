@@ -21,6 +21,10 @@ public enum OrderErrorType implements ErrorType {
     QUANTITY_REQUIRED(HttpStatus.BAD_REQUEST, "주문 수량은 필수입니다"),
     ADDRESS_SNAPSHOT_REQUIRED(HttpStatus.BAD_REQUEST, "주소 스냅샷은 필수입니다"),
     DUE_AT_REQUIRED(HttpStatus.BAD_REQUEST, "납품 기한은 필수입니다"),
+    USERNAME_REQUIRED(HttpStatus.BAD_REQUEST, "주문자 실명은 필수입니다"),
+    USER_PHONENUMBER_REQUIRED(HttpStatus.BAD_REQUEST, "전화번호는 필수입니다"),
+    SLACK_ID_REQUIRED(HttpStatus.BAD_REQUEST, "slack 아이디는 필수입니다"),
+
 
     // 필수값 누락 - 주문 작업 시
     ORDER_ID_REQUIRED(HttpStatus.BAD_REQUEST, "주문 ID는 필수입니다"),
@@ -49,6 +53,8 @@ public enum OrderErrorType implements ErrorType {
     // 비즈니스 규칙 위반
     INVALID_QUANTITY_RANGE(HttpStatus.BAD_REQUEST, "주문 수량은 최소 1개 이상이어야 합니다"),
     INVALID_TOTAL_PRICE(HttpStatus.BAD_REQUEST, "총 금액 계산 중 오류가 발생했습니다"),
+    UNAUTHORIZED_USER_SUPPLIER_ID(HttpStatus.BAD_REQUEST, "사용자와 주문자가 일치하지 않습니다."),
+
 
     // 데이터 무결성
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "주문을 찾을 수 없습니다"),
@@ -57,9 +63,13 @@ public enum OrderErrorType implements ErrorType {
     RECEIPT_COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "수령업체를 찾을 수 없습니다"),
     HUB_NOT_FOUND(HttpStatus.NOT_FOUND, "허브를 찾을 수 없습니다."),
     COMPANY_NOT_FOUND(HttpStatus.NOT_FOUND, "업체를 찾을 수 없습니다."),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
 
     // 배송 관련
-    DELIVERY_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "배송 생성에 실패했습니다");
+    DELIVERY_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "배송 생성에 실패했습니다"),
+    DELIVERY_LOG_CREATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "배송로그 생성에 실패했습니다"),
+    DELIVERY_LOG_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "배송로그를 배송에 저장 실패"),
+    DELIVERY_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "배송 삭제 실패");
 
     private final HttpStatus status;
     private final String code;
