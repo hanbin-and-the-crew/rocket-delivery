@@ -1,7 +1,7 @@
 package org.sparta.order.infrastructure.client;
 
 import org.sparta.common.api.ApiResponse;
-import org.sparta.order.infrastructure.client.dto.UserResponse;
+import org.sparta.order.infrastructure.client.dto.response.UserResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,8 +15,10 @@ import java.util.UUID;
 public interface UserClient {
 
     /**
-     * 사용자 조회
-     */
-    @GetMapping("/api/users/{userId}")
-    ApiResponse<UserResponse> getUser(@PathVariable UUID userId);
+    *  특정 사용자 정보를 userId로 조회 (시스템에서 확인용)
+    * */
+    @GetMapping("/bos/{userId}")
+    ApiResponse<UserResponse> getSpecificUserInfo(
+            @PathVariable UUID userId
+    );
 }

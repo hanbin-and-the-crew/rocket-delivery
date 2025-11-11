@@ -1,4 +1,4 @@
-package org.sparta.order.infrastructure.client.dto;
+package org.sparta.order.infrastructure.client.dto.response;
 
 import org.sparta.order.domain.enumeration.UserRoleEnum;
 
@@ -12,6 +12,7 @@ public record UserResponse(
         String userName,
         String realName,
         String email,
+        String slackId,
         String userPhoneNumber,
         UUID hubId,
         UserRoleEnum role

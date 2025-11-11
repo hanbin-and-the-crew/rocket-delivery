@@ -1,7 +1,7 @@
 package org.sparta.order.infrastructure.client;
 
 import org.sparta.common.api.ApiResponse;
-import org.sparta.order.infrastructure.client.dto.HubResponse;
+import org.sparta.order.infrastructure.client.dto.response.HubResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

@@ -11,16 +11,21 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
+ * [ Order => Product로 메시지 발행 ]
+ * 메세지 발신 역할 (publisher)
+ * 
  * 주문 관련 이벤트를 Kafka로 발행.
  * - 주문 생성 → 재고 예약 요청
+ * - 주문 변경 -> 재고 예약 요청 (product쪽에 구현이 안되어있음 / 그냥 생성으로 사용해야될듯)
  * - 주문 취소 → 재고 예약 취소 요청
+ * - 주문 확정(출고) -> 주문건 출고 완료 알림
  *
  * 결과 이벤트(성공/실패/확정/취소완료)는 Product 서비스가 발행하고
  * 본 서비스의 StockEventListener가 구독:
- *   - stock-reserved
- *   - stock-reservation-failed
- *   - stock-confirmed
- *   - stock-reservation-cancelled
+ *   - stock-reserved   // 예약 성공
+ *   - stock-reservation-failed // 예약 실패 (성공이랑 하나로 묶여있음)
+ *   - stock-confirmed  // 예약 확정
+ *   - stock-reservation-cancelled  // 예약 취소 완료
  */
 @Slf4j
 @Component
@@ -31,6 +36,9 @@ public class OrderEventPublisher {
     private static final String TOPIC_STOCK_RESERVATION_CANCEL_REQUEST = "stock-reservation-cancel-request";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    // TODO: 재고수량 확인 요청 이벤트
+
 
     /** 주문 생성 → 재고 예약 요청 이벤트 */
     public void publishOrderCreated(UUID orderId, UUID productId, int quantity, UUID userId) {
@@ -84,4 +92,7 @@ public class OrderEventPublisher {
                     }
                 });
     }
+
+    // TODO: 주문 확정(출고) 알림 이벤트 발행 -> product : 실제 재고 수량에서 예약 수량 감소
+
 }
