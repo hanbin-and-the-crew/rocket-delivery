@@ -11,7 +11,7 @@ import java.util.UUID;
  */
 @Schema(description = "주문 검색 조건")
 public record OrderSearchCondition(
-        @Schema(description = "공급자 ID")
+        @Schema(description = "주문자 ID")
         UUID supplierId,
 
         @Schema(description = "수령업체 ID")

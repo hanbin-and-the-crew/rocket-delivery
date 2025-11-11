@@ -48,7 +48,7 @@ public class OrderResponse {
             @Schema(description = "주문 상태")
             OrderStatus status,
 
-            @Schema(description = "공급자 ID")
+            @Schema(description = "요청자 ID")
             UUID supplierId,
 
             @Schema(description = "요청업체 ID")
@@ -79,7 +79,16 @@ public class OrderResponse {
             Long totalPrice,
 
             @Schema(description = "배송지 주소")
-            String deliveryAddress,
+            String deliveryAddress,            
+            
+            @Schema(description = "주문자 실명")
+            String userName,            
+            
+            @Schema(description = "전화번호")
+            String userPhoneNumber,            
+            
+            @Schema(description = "slack 아이디")
+            String slackId,
 
             @Schema(description = "납품 기한")
             LocalDateTime dueAt,
@@ -127,6 +136,9 @@ public class OrderResponse {
                     order.getQuantity().getValue(),
                     order.getTotalPrice().getAmount(),
                     order.getAddressSnapshot(),
+                    order.getUserName(),
+                    order.getUserPhoneNumber(),
+                    order.getSlackId(),
                     order.getDueAt(),
                     order.getRequestedMemo(),
                     order.getDispatchedAt(),
@@ -166,6 +178,9 @@ public class OrderResponse {
             @Schema(description = "주문 ID")
             UUID orderId,
 
+            @Schema(description = "주문자 실명")
+            String userName,
+
             @Schema(description = "주문 상태")
             OrderStatus status,
 
@@ -182,17 +197,22 @@ public class OrderResponse {
             LocalDateTime dueAt,
 
             @Schema(description = "생성 시간")
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+
+            @Schema(description = "수정 시간")
+            LocalDateTime updatedAt
     ) {
         public static Summary of(Order order) {
             return new Summary(
                     order.getId(),
+                    order.getUserName(),
                     order.getOrderStatus(),
                     order.getProductNameSnapshot(),
                     order.getQuantity().getValue(),
                     order.getTotalPrice().getAmount(),
                     order.getDueAt(),
-                    order.getCreatedAt()
+                    order.getCreatedAt(),
+                    order.getUpdatedAt()
             );
         }
     }

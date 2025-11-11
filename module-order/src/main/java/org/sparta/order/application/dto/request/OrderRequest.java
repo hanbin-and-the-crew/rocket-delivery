@@ -48,6 +48,18 @@ public class OrderRequest {
             @NotBlank(message = "배송지 주소는 필수입니다")
             String deliveryAddress,
 
+            @Schema(description = "주문자 실명", example = "최원철")
+            @NotBlank(message = "주문자 실명은 필수입니다")
+            String userName,
+
+            @Schema(description = "전화번호", example = "010-1111-2222")
+            @NotBlank(message = "전화번호는 필수입니다")
+            String userPhoneNumber,
+
+            @Schema(description = "slack 아이디", example = "12@1234.com")
+            @NotBlank(message = "slack 아이디는 필수입니다")
+            String slackId,
+
             @Schema(description = "납품 기한", example = "2025-12-31T23:59:59")
             @NotNull(message = "납품 기한은 필수입니다")
             LocalDateTime dueAt,
@@ -57,14 +69,14 @@ public class OrderRequest {
     ) {
     }
 
-    @Schema(description = "주문 수량 변경 요청")
-    public record ChangeQuantity(
-            @Schema(description = "변경할 수량", example = "15")
-            @NotNull(message = "수량은 필수입니다")
-            @Min(value = 1, message = "수량은 최소 1개 이상이어야 합니다")
-            Integer quantity
-    ) {
-    }
+//    @Schema(description = "주문 수량 변경 요청")
+//    public record ChangeQuantity(
+//            @Schema(description = "변경할 수량", example = "15")
+//            @NotNull(message = "수량은 필수입니다")
+//            @Min(value = 1, message = "수량은 최소 1개 이상이어야 합니다")
+//            Integer quantity
+//    ) {
+//    }
 
     @Schema(description = "납품 기한 변경 요청")
     public record ChangeDueAt(
@@ -78,6 +90,13 @@ public class OrderRequest {
     public record ChangeMemo(
             @Schema(description = "변경할 요청사항", example = "배송 전 연락 부탁드립니다")
             String requestedMemo
+    ) {
+    }
+
+    @Schema(description = "주소 변경 요청")
+    public record ChangeAddress(
+            @Schema(description = "변경할 주소", example = "서울시 강동구 천호빌딩 101-1")
+            String addressSnapshot
     ) {
     }
 
