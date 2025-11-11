@@ -1,7 +1,10 @@
 package org.sparta.hub.application;
 
 import lombok.RequiredArgsConstructor;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.hub.domain.entity.Hub;
+import org.sparta.hub.domain.event.HubCreatedEvent;
+import org.sparta.hub.domain.event.HubDeletedEvent;
 import org.sparta.hub.domain.model.HubStatus;
 import org.sparta.hub.domain.repository.HubRepository;
 import org.sparta.hub.exception.AlreadyDeletedHubException;
@@ -28,6 +31,7 @@ import java.util.UUID;
 public class HubService {
 
     private final HubRepository hubRepository;
+    private final EventPublisher eventPublisher;
     private static final String DEFAULT_DELETER = "system";
 
     /**
@@ -47,6 +51,11 @@ public class HubService {
         );
 
         Hub saved = hubRepository.save(hub);
+
+        eventPublisher.publishExternal(
+                new HubCreatedEvent(saved.getHubId(), saved.getName(), saved.getAddress())
+        );
+
         return HubCreateResponse.from(saved);
     }
 
@@ -117,14 +126,15 @@ public class HubService {
         Hub hub = hubRepository.findById(hubId)
                 .orElseThrow(() -> new HubNotFoundException(hubId));
 
-        // 이미 삭제된 허브인 경우
         if (hub.isDeleted()) {
             throw new AlreadyDeletedHubException();
         }
 
-        // 허브 비활성화 처리 (Soft Delete)
         hub.markDeleted(DEFAULT_DELETER);
         hubRepository.flush();
+
+        eventPublisher.publishExternal(new HubDeletedEvent(hub.getHubId()));
+
         return HubResponse.from(hub);
     }
 
