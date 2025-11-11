@@ -40,6 +40,19 @@ public class Company {
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
 
+
+
+
+    public static Company create(String name, CompanyType type, UUID hubId, String address) {
+        return Company.builder()
+                .name(name)
+                .type(type)
+                .hubId(hubId)
+                .address(address)
+                .active(true)
+                .build();
+    }
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

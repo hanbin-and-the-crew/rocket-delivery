@@ -1,4 +1,4 @@
-package org.sparta.company.presentation.dto;
+package org.sparta.company.presentation;
 
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;

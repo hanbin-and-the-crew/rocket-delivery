@@ -1,4 +1,4 @@
-package org.sparta.company.presentation.dto;
+package org.sparta.company.presentation;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

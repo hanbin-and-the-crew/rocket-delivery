@@ -48,9 +48,14 @@ public class CompanyService {
     @Transactional
     public Company updateCompany(UUID id, CompanyRequest request) {
         Company company = getCompany(id);
+        if (!company.getName().equals(request.name())
+                && companyRepository.existsByName(request.name())) {
+            throw new DuplicateCompanyNameException(request.name());
+        }
         company.update(request.name(), request.type(), request.address());
         return companyRepository.save(company);
     }
+
 
     @Transactional
     public void deleteCompany(UUID id) {
