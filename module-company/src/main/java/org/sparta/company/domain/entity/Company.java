@@ -33,6 +33,8 @@ public class Company {
     @Column(nullable = false)
     private String address;
 
+
+    @Builder.Default
     @Column(nullable = false)
     private boolean active = true;
 
@@ -42,7 +44,7 @@ public class Company {
 
 
 
-
+    //  -- 도메인 메서드 --
     public static Company create(String name, CompanyType type, UUID hubId, String address) {
         return Company.builder()
                 .name(name)
@@ -83,4 +85,5 @@ public class Company {
     public boolean isActive() {
         return this.active;
     }
+
 }

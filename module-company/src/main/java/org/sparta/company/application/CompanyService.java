@@ -26,13 +26,12 @@ public class CompanyService {
         if (companyRepository.existsByName(request.name())) {
             throw new DuplicateCompanyNameException(request.name());
         }
-        Company company = Company.builder()
-                .name(request.name())
-                .type(request.type())
-                .hubId(request.hubId())
-                .address(request.address())
-                .build();
-
+        Company company = Company.create(
+                request.name(),
+                request.type(),
+                request.hubId(),
+                request.address()
+        );
         return companyRepository.save(company);
     }
 
@@ -41,9 +40,11 @@ public class CompanyService {
                 .orElseThrow(() -> new CompanyNotFoundException(id));
     }
 
+
     public List<Company> getAllActive() {
         return companyRepository.findAllActive();
     }
+
 
     @Transactional
     public Company updateCompany(UUID id, CompanyRequest request) {
