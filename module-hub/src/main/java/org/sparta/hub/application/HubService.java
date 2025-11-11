@@ -113,7 +113,7 @@ public class HubService {
      * 허브 삭제(비활성화) - deleteHub
      */
     @Transactional
-    public void deleteHub(UUID hubId) {
+    public HubResponse deleteHub(UUID hubId) {
         Hub hub = hubRepository.findById(hubId)
                 .orElseThrow(() -> new HubNotFoundException(hubId));
 
@@ -124,6 +124,8 @@ public class HubService {
 
         // 허브 비활성화 처리 (Soft Delete)
         hub.markDeleted(DEFAULT_DELETER);
+        hubRepository.flush();
+        return HubResponse.from(hub);
     }
 
 
