@@ -1,7 +1,12 @@
 dependencies {
     implementation project(':module-common')
-
+    implementation project(':module-jpa')
+    implementation project(':module-kafka')
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
 }

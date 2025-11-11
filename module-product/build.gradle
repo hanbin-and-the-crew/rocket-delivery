@@ -5,13 +5,11 @@ plugins {
 dependencies {
     implementation project(':module-common')
     implementation project(':module-jpa')
+    implementation project(':module-kafka')
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
-
-    // kafka (임시 - 추후 module-kafka로 분리 예정)
-    implementation 'org.springframework.kafka:spring-kafka'
 
     // retry (낙관적 락 재시도)
     implementation 'org.springframework.retry:spring-retry'

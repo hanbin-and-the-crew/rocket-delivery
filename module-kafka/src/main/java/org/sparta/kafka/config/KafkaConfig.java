@@ -1,4 +1,4 @@
-package org.sparta.product.infrastructure.config;
+package org.sparta.kafka.config;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -17,12 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Kafka 설정 (임시)
+ * Kafka 공통 설정
  *
- * 추후 module-kafka로 분리 예정
- *
- * Producer: Product 모듈에서 이벤트 발행
- * Consumer: Order 모듈에서 발행한 이벤트 수신
+ * Producer: 각 모듈에서 이벤트 발행
+ * Consumer: 각 모듈에서 다른 모듈의 이벤트 수신
  */
 @EnableKafka
 @Configuration
@@ -43,8 +41,8 @@ public class KafkaConfig {
         config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        config.put(ProducerConfig.ACKS_CONFIG, "all");
-        config.put(ProducerConfig.RETRIES_CONFIG, 3);
+        config.put(ProducerConfig.ACKS_CONFIG, "all");  // 모든 replica 응답 대기
+        config.put(ProducerConfig.RETRIES_CONFIG, 3);   // 재시도 3회
         config.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);  // 멱등성 보장
 
         return new DefaultKafkaProducerFactory<>(config);
@@ -66,7 +64,7 @@ public class KafkaConfig {
         config.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         config.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+        config.put(JsonDeserializer.TRUSTED_PACKAGES, "*");  // (개발용)
 
         return new DefaultKafkaConsumerFactory<>(config);
     }

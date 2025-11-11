@@ -11,7 +11,7 @@ import java.util.UUID;
  * - 예약 성공 시: StockReservedEvent 발행
  * - 예약 실패 시: StockReservationFailedEvent 발행
  */
-public record OrderCreatedEvent(
+public record OrderCreatedEvent (
         UUID eventId,       // 멱등성 보장용
         UUID orderId,
         UUID productId,
