@@ -6,9 +6,12 @@ import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.order.application.dto.request.OrderRequest;
 import org.sparta.order.application.dto.response.OrderResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.UUID;
 
@@ -32,29 +35,21 @@ public interface OrderApiSpec {
             description = "주문 ID로 주문 상세 정보를 조회합니다"
     )
     ApiResponse<OrderResponse.Detail> getOrder(
-            @PathVariable UUID orderId
+            @PathVariable UUID orderId,
+            @RequestHeader("X-User-Id") UUID userId
     );
 
-//    @Operation(
-//            summary = "주문 목록 조회",
-//            description = "주문 목록을 검색 조건에 따라 조회합니다"
-//    )
-//    ApiResponse<Page<OrderResponse.Summary>> searchOrders(
-//            @RequestParam(required = false) UUID supplierId,
-//            @RequestParam(required = false) UUID receiptCompanyId,
-//            @RequestParam(required = false) UUID productId,
-//            @RequestParam(required = false) String status,
-//            Pageable pageable
-//    );
-
     @Operation(
-            summary = "주문 수량 변경",
-            description = "주문 수량을 변경합니다 (PLACED 상태에서만 가능)"
+            summary = "주문 목록 조회",
+            description = "주문 목록을 검색 조건에 따라 조회합니다"
     )
-    ApiResponse<OrderResponse.Update> changeQuantity(
-            @PathVariable UUID orderId,
-            @Valid @RequestBody OrderRequest.ChangeQuantity request,
-            @RequestHeader("X-User-Id") UUID userId
+    ApiResponse<Page<OrderResponse.Summary>> searchOrders(
+            @RequestParam(required = false) UUID supplierId,
+            @RequestParam(required = false) UUID receiptCompanyId,
+            @RequestParam(required = false) UUID productId,
+            @RequestParam(required = false) String status,
+            @RequestHeader("X-User-Id") UUID userId,
+            Pageable pageable
     );
 
     @Operation(
@@ -74,6 +69,16 @@ public interface OrderApiSpec {
     ApiResponse<OrderResponse.Update> changeMemo(
             @PathVariable UUID orderId,
             @Valid @RequestBody OrderRequest.ChangeMemo request,
+            @RequestHeader("X-User-Id") UUID userId
+    );
+
+    @Operation(
+            summary = "주소 변경",
+            description = "주소를 변경합니다 (PLACED 상태에서만 가능)"
+    )
+    ApiResponse<OrderResponse.Update> changeAddress(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody OrderRequest.ChangeAddress request,
             @RequestHeader("X-User-Id") UUID userId
     );
 
@@ -103,6 +108,6 @@ public interface OrderApiSpec {
     )
     ApiResponse<Void> deleteOrder(
             @PathVariable UUID orderId,
-            @RequestHeader("X-User-Id") String deletedBy
+            @RequestHeader("X-User-Id") UUID userId
     );
 }

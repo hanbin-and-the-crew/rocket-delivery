@@ -5,7 +5,11 @@ import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.order.application.dto.request.OrderRequest;
 import org.sparta.order.application.dto.response.OrderResponse;
+import org.sparta.order.application.dto.response.OrderSearchCondition;
 import org.sparta.order.application.service.OrderService;
+import org.sparta.order.domain.enumeration.OrderStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -20,7 +24,7 @@ public class OrderController implements OrderApiSpec {
 
     private final OrderService orderService;
 
-    @Override
+    @Override   // 주문 생성
     @PostMapping
     public ApiResponse<OrderResponse.Create> createOrder(
             @Valid @RequestBody OrderRequest.Create request,
@@ -30,51 +34,42 @@ public class OrderController implements OrderApiSpec {
         return ApiResponse.success(response);
     }
 
-    @Override
+    @Override   // 주문 단건 조회
     @GetMapping("/{orderId}")
     public ApiResponse<OrderResponse.Detail> getOrder(
-            @PathVariable UUID orderId
-    ) {
-        OrderResponse.Detail response = orderService.getOrder(orderId);
-        return ApiResponse.success(response);
-    }
-
-//    @Override
-//    @GetMapping
-//    public ApiResponse<Page<OrderResponse.Summary>> searchOrders(
-//            @RequestParam(required = false) UUID supplierId,
-//            @RequestParam(required = false) UUID receiptCompanyId,
-//            @RequestParam(required = false) UUID productId,
-//            @RequestParam(required = false) String status,
-//            Pageable pageable
-//    ) {
-//        OrderSearchCondition condition = OrderSearchCondition.of(
-//                supplierId,
-//                receiptCompanyId,
-//                productId,
-//                status != null ? OrderStatus.valueOf(status) : null,
-//                null,
-//                null,
-//                null,
-//                null
-//        );
-//
-//        Page<OrderResponse.Summary> response = orderService.searchOrders(condition, pageable);
-//        return ApiResponse.success(response);
-//    }
-
-    @Override
-    @PatchMapping("/{orderId}/quantity")
-    public ApiResponse<OrderResponse.Update> changeQuantity(
             @PathVariable UUID orderId,
-            @Valid @RequestBody OrderRequest.ChangeQuantity request,
             @RequestHeader("X-User-Id") UUID userId
     ) {
-        OrderResponse.Update response = orderService.changeQuantity(orderId, request, userId);
+        OrderResponse.Detail response = orderService.getOrder(orderId, userId);
         return ApiResponse.success(response);
     }
 
-    @Override
+    @Override    // 주문 목록 조회
+    @GetMapping
+    public ApiResponse<Page<OrderResponse.Summary>> searchOrders(
+            @RequestParam(required = false) UUID supplierId,
+            @RequestParam(required = false) UUID receiptCompanyId,
+            @RequestParam(required = false) UUID productId,
+            @RequestParam(required = false) String status,
+            @RequestHeader("X-User-Id") UUID userId,
+            Pageable pageable
+    ) {
+        OrderSearchCondition condition = OrderSearchCondition.of(
+                supplierId,
+                receiptCompanyId,
+                productId,
+                status != null ? OrderStatus.valueOf(status) : null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        Page<OrderResponse.Summary> response = orderService.searchOrders(condition, pageable);
+        return ApiResponse.success(response);
+    }
+
+    @Override   // 배송 기한 변경
     @PatchMapping("/{orderId}/due-at")
     public ApiResponse<OrderResponse.Update> changeDueAt(
             @PathVariable UUID orderId,
@@ -85,7 +80,7 @@ public class OrderController implements OrderApiSpec {
         return ApiResponse.success(response);
     }
 
-    @Override
+    @Override   // 요청사항 변경
     @PatchMapping("/{orderId}/memo")
     public ApiResponse<OrderResponse.Update> changeMemo(
             @PathVariable UUID orderId,
@@ -96,7 +91,19 @@ public class OrderController implements OrderApiSpec {
         return ApiResponse.success(response);
     }
 
-    @Override
+    // TODO: 구현 예정
+    @Override   // 요청사항 변경
+    @PatchMapping("/{orderId}/address")
+    public ApiResponse<OrderResponse.Update> changeAddress(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody OrderRequest.ChangeAddress request,
+            @RequestHeader("X-User-Id") UUID userId
+    ) {
+        OrderResponse.Update response = orderService.changeAddress(orderId, request, userId);
+        return ApiResponse.success(response);
+    }
+
+    @Override  // 출고 완료 (상태 변경)
     @PostMapping("/{orderId}/dispatch")
     public ApiResponse<OrderResponse.Update> dispatchOrder(
             @PathVariable UUID orderId,
@@ -107,7 +114,7 @@ public class OrderController implements OrderApiSpec {
         return ApiResponse.success(response);
     }
 
-    @Override
+    @Override   // 주문 취소
     @PostMapping("/{orderId}/cancel")
     public ApiResponse<OrderResponse.Update> cancelOrder(
             @PathVariable UUID orderId,
@@ -118,13 +125,13 @@ public class OrderController implements OrderApiSpec {
         return ApiResponse.success(response);
     }
 
-    @Override
+    @Override // 주문 삭제
     @DeleteMapping("/{orderId}")
-    public ApiResponse<Void> deleteOrder(
+    public ApiResponse<Void> deleteOrder(   
             @PathVariable UUID orderId,
-            @RequestHeader("X-User-Id") String deletedBy
+            @RequestHeader("X-User-Id") UUID userId
     ) {
-        orderService.deleteOrder(orderId, deletedBy);
+        orderService.deleteOrder(orderId, userId);
         return ApiResponse.success(null);
     }
 }
