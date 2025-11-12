@@ -4,18 +4,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sparta.slack.application.dto.DailyDispatchResult;
+import org.sparta.slack.application.dto.route.DailyDispatchResult;
+import org.sparta.slack.application.service.route.DailyRouteDispatchService;
+import org.sparta.slack.application.service.route.DeliveryAssignmentService;
+import org.sparta.slack.application.service.route.RouteNotificationService;
+import org.sparta.slack.application.service.route.RoutePlanningService;
 import org.sparta.slack.domain.entity.CompanyDeliveryRoute;
 import org.sparta.slack.domain.repository.CompanyDeliveryRouteRepository;
 import org.sparta.slack.domain.vo.RoutePlanningResult;
 import org.sparta.slack.domain.vo.RouteStopSnapshot;
-import org.sparta.slack.application.service.AiRoutePlanner;
-import org.sparta.slack.application.service.DeliveryAssignmentService;
-import org.sparta.slack.application.service.SlackDirectMessageSender;
+import org.sparta.slack.application.service.route.DeliveryAssignmentService;
+import org.sparta.slack.application.service.route.RouteNotificationService;
+import org.sparta.slack.application.service.route.RoutePlanningService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,8 +26,10 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+/** DailyRouteDispatchService의 경로별 발송 흐름을 검증하는 테스트. */
 @ExtendWith(MockitoExtension.class)
 class DailyRouteDispatchServiceTest {
 
@@ -35,10 +40,10 @@ class DailyRouteDispatchServiceTest {
     private DeliveryAssignmentService assignmentService;
 
     @Mock
-    private AiRoutePlanner aiRoutePlanner;
+    private RoutePlanningService routePlanningService;
 
     @Mock
-    private SlackDirectMessageSender slackDirectMessageSender;
+    private RouteNotificationService routeNotificationService;
 
     @InjectMocks
     private DailyRouteDispatchService dailyRouteDispatchService;
@@ -96,20 +101,15 @@ class DailyRouteDispatchServiceTest {
     void dispatch_ShouldPlanAndSendSlack() {
         when(routeRepository.findAllByScheduledDateAndStatusIn(any(), any()))
                 .thenReturn(List.of(route));
-        when(aiRoutePlanner.plan(route)).thenReturn(planningResult);
+        when(routePlanningService.plan(route)).thenReturn(planningResult);
         UUID messageId = UUID.randomUUID();
-        when(slackDirectMessageSender.send(any(), any(), any(), any())).thenReturn(messageId);
+        when(routeNotificationService.notifyManager(route, planningResult)).thenReturn(messageId);
 
         List<DailyDispatchResult> results = dailyRouteDispatchService.dispatch(LocalDate.now());
 
         assertThat(results).hasSize(1);
         assertThat(results.get(0).success()).isTrue();
-        verify(routeRepository, times(2)).save(route);
-        verify(slackDirectMessageSender).send(
-                eq("U123456"),
-                eq("ROUTE_DAILY_SUMMARY"),
-                any(),
-                eq("허브 → 업체A (120km)")
-        );
+        verify(routeRepository).save(route);
+        verify(routeNotificationService).notifyManager(route, planningResult);
     }
 }

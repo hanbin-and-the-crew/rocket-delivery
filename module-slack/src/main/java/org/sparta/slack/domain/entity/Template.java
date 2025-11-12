@@ -73,9 +73,6 @@ public class Template extends BaseEntity {
         this.isActive = true;
     }
 
-    /**
-     * 템플릿 생성 팩토리 메서드
-     */
     public static Template create(
             String templateCode,
             TemplateFormat format,
@@ -157,7 +154,6 @@ public class Template extends BaseEntity {
 
     /**
      * 변수를 실제 값으로 치환하여 메시지 렌더링
-     * 예: "안녕하세요 {{name}}님" + {"name": "홍길동"} -> "안녕하세요 홍길동님"
      */
     public String render(String payloadJson) {
         if (payloadJson == null || payloadJson.isBlank()) {
@@ -249,7 +245,6 @@ public class Template extends BaseEntity {
                 java.time.LocalDateTime dateTime = java.time.LocalDateTime.of(year, month, day, hour, minute, second);
                 return dateTime.format(ISO_SECOND_FORMATTER);
             } catch (Exception ignored) {
-                // ignore and fall back to JSON text
             }
         }
         return node.toString();

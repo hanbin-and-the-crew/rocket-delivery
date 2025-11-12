@@ -14,6 +14,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/** Template 렌더링과 상태 변경이 올바른지 검증한다. */
 class TemplateTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());

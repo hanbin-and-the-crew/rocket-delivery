@@ -17,6 +17,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
+/** RouteSummaryTemplateInitializer의 생성/업데이트 동작을 검증한다. */
 @ExtendWith(MockitoExtension.class)
 class RouteSummaryTemplateInitializerTest {
 

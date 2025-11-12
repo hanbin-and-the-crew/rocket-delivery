@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.slack.application.port.out.SlackDmPort;
 import org.sparta.slack.application.port.out.SlackNotificationSender;
-import org.sparta.slack.application.service.SlackUserDirectoryService;
+import org.sparta.slack.infrastructure.adapter.SlackUserDirectoryAdapter;
 import org.sparta.slack.domain.entity.Message;
 import org.sparta.slack.error.SlackErrorType;
 import org.springframework.stereotype.Component;
@@ -16,7 +16,7 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class SlackNotificationSenderImpl implements SlackNotificationSender {
 
-    private final SlackUserDirectoryService slackUserDirectoryService;
+    private final SlackUserDirectoryAdapter slackUserDirectoryAdapter;
     private final SlackDmPort slackDmPort;
 
     @Override
@@ -31,7 +31,7 @@ public class SlackNotificationSenderImpl implements SlackNotificationSender {
         }
 
         if (target.contains("@")) {
-            target = slackUserDirectoryService.resolveUserId(target);
+            target = slackUserDirectoryAdapter.resolveUserId(target);
         }
 
         SlackDmPort.SlackDmResult result = slackDmPort.sendMessage(target, message.getSlackDetail().getMessageBody());

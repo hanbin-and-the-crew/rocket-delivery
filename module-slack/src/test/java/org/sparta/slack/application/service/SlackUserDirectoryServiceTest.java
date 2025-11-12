@@ -5,21 +5,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sparta.slack.application.port.out.SlackUserLookupPort;
+import org.sparta.slack.infrastructure.adapter.SlackUserDirectoryAdapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * SlackUserDirectoryAdapter 캐시 동작을 검증하는 테스트.
+ */
 class SlackUserDirectoryServiceTest {
 
     private SlackUserLookupPort slackUserLookupPort;
-    private SlackUserDirectoryService slackUserDirectoryService;
+    private SlackUserDirectoryAdapter slackUserDirectoryAdapter;
 
     @BeforeEach
     void setUp() {
         slackUserLookupPort = Mockito.mock(SlackUserLookupPort.class);
-        slackUserDirectoryService = new SlackUserDirectoryService(slackUserLookupPort);
+        slackUserDirectoryAdapter = new SlackUserDirectoryAdapter(slackUserLookupPort);
     }
 
     @Test
@@ -29,8 +33,8 @@ class SlackUserDirectoryServiceTest {
         when(slackUserLookupPort.lookupUserByEmail(email))
                 .thenReturn(new SlackUserLookupPort.SlackUser("U123", email, "캐시 사용자"));
 
-        String first = slackUserDirectoryService.resolveUserId(email);
-        String second = slackUserDirectoryService.resolveUserId(email);
+        String first = slackUserDirectoryAdapter.resolveUserId(email);
+        String second = slackUserDirectoryAdapter.resolveUserId(email);
 
         assertThat(first).isEqualTo("U123");
         assertThat(second).isEqualTo("U123");

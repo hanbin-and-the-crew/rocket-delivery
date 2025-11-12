@@ -18,7 +18,8 @@ public enum SlackErrorType implements ErrorType {
     SLACK_USER_NOT_FOUND(HttpStatus.NOT_FOUND, "SLACK-USER-003", "해당 이메일의 Slack 사용자를 찾을 수 없습니다."),
     SLACK_CHANNEL_NOT_FOUND(HttpStatus.BAD_REQUEST, "SLACK-CHANNEL-001", "Slack DM 채널을 열 수 없습니다."),
     SLACK_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "SLACK-RATE-001", "Slack API 호출 한도를 초과했습니다."),
-    SLACK_NETWORK_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "SLACK-NETWORK-001", "Slack API 통신 중 오류가 발생했습니다.");
+    SLACK_NETWORK_ERROR(HttpStatus.SERVICE_UNAVAILABLE, "SLACK-NETWORK-001", "Slack API 통신 중 오류가 발생했습니다."),
+    SLACK_MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "SLACK-MSG-001", "Slack 메시지를 찾을 수 없습니다.");
 
     private final HttpStatus status;
     private final String code;

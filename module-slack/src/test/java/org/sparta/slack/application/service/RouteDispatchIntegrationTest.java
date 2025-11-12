@@ -3,6 +3,7 @@ package org.sparta.slack.application.service;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.sparta.slack.application.service.route.DailyRouteDispatchService;
 import org.sparta.slack.domain.entity.CompanyDeliveryRoute;
 import org.sparta.slack.domain.entity.Template;
 import org.sparta.slack.domain.enums.Channel;
@@ -12,10 +13,10 @@ import org.sparta.slack.domain.repository.CompanyDeliveryRouteRepository;
 import org.sparta.slack.domain.vo.RouteStopSnapshot;
 import org.sparta.slack.application.port.out.SlackNotificationSender;
 import org.sparta.slack.infrastructure.repository.TemplateJpaRepository;
-import org.sparta.slack.user.domain.entity.UserSlackView;
-import org.sparta.slack.user.domain.enums.UserRole;
-import org.sparta.slack.user.domain.enums.UserStatus;
-import org.sparta.slack.user.domain.repository.UserSlackViewRepository;
+import org.sparta.slack.domain.entity.UserSlackView;
+import org.sparta.slack.domain.enums.UserRole;
+import org.sparta.slack.domain.enums.UserStatus;
+import org.sparta.slack.domain.repository.UserSlackViewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -29,6 +30,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
+/** 일일 경로 발송이 끝까지 수행되는지 확인하는 통합 테스트. */
 @SpringBootTest
 @ActiveProfiles("test")
 @org.springframework.transaction.annotation.Transactional

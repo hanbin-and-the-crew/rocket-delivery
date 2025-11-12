@@ -1,7 +1,7 @@
 package org.sparta.slack.application.port.out;
 
-import org.sparta.slack.user.domain.entity.UserSlackView;
-import org.sparta.slack.user.domain.enums.UserRole;
+import org.sparta.slack.domain.entity.UserSlackView;
+import org.sparta.slack.domain.enums.UserRole;
 
 import java.util.List;
 import java.util.Set;

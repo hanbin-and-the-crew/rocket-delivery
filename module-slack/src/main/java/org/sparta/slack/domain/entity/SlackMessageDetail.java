@@ -78,4 +78,11 @@ public class SlackMessageDetail {
     public void updateThreadTs(String threadTs) {
         this.threadTs = threadTs;
     }
+
+    public void updateMessageBody(String messageBody) {
+        if (messageBody == null || messageBody.isBlank()) {
+            throw new IllegalArgumentException("메시지 본문은 필수입니다");
+        }
+        this.messageBody = messageBody;
+    }
 }

@@ -154,4 +154,26 @@ public class Message extends BaseEntity {
         this.sentAt = null;
         this.deliveryResult = DeliveryResult.success();
     }
+
+    public void updateContent(
+            String templateCode,
+            String payload,
+            String messageBody
+    ) {
+        validateTemplateCode(templateCode);
+        validatePayload(payload);
+        if (messageBody == null || messageBody.isBlank()) {
+            throw new IllegalArgumentException("메시지 본문은 필수입니다");
+        }
+        this.templateCode = templateCode;
+        this.payload = payload;
+        if (this.slackDetail == null) {
+            this.slackDetail = SlackMessageDetail.create(this.recipient.getSlackId(), messageBody);
+        } else {
+            this.slackDetail.updateMessageBody(messageBody);
+        }
+        this.status = MessageStatus.PENDING;
+        this.sentAt = null;
+        this.deliveryResult = DeliveryResult.success();
+    }
 }
