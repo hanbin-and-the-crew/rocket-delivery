@@ -41,12 +41,14 @@ public class Delivery extends BaseEntity {
 
     @Column(length = 100)
     private String recipientSlackId;
-    
-    private UUID companyDeliveryManId;  // 배송이 생성된 후 DeliveryMan 배정 null 허용해야 됨
 
-    private UUID hubDeliveryManId;  // 배송이 생성된 후 DeliveryMan 배정 null 허용해야 됨
+    // 배송이 생성된 후 DeliveryMan 배정 (null 허용)
+    private UUID companyDeliveryManId;
 
+    // 배송이 생성된 후 DeliveryMan 배정 (null 허용)
+    private UUID hubDeliveryManId;
 
+    // Private 생성자
     private Delivery(
             UUID orderId,
             DeliveryStatus deliveryStatus,
@@ -65,7 +67,13 @@ public class Delivery extends BaseEntity {
         this.recipientSlackId = recipientSlackId;
     }
 
-    // 배송 생성
+    // ========================================
+    // 정적 팩토리 메서드
+    // ========================================
+
+    /**
+     * 배송 생성
+     */
     public static Delivery create(
             UUID orderId,
             UUID departureHubId,
@@ -85,40 +93,141 @@ public class Delivery extends BaseEntity {
         );
     }
 
+    // ========================================
     // 상태 변경 메서드
+    // ========================================
+
+    /**
+     * 허브 대기 상태로 변경
+     */
     public void hubWaiting() {
         this.deliveryStatus = DeliveryStatus.HUB_WAITING;
     }
 
+    /**
+     * 허브 이동 중 상태로 변경
+     */
     public void hubMoving() {
         this.deliveryStatus = DeliveryStatus.HUB_MOVING;
     }
 
+    /**
+     * 목적지 허브 도착 상태로 변경
+     */
     public void arriveAtDestinationHub() {
         this.deliveryStatus = DeliveryStatus.DEST_HUB_ARRIVED;
     }
 
+    /**
+     * 업체 배송 시작 (업체 배송 담당자 배정)
+     */
     public void startCompanyMoving(UUID companyDeliveryManId) {
+        if (this.deliveryStatus != DeliveryStatus.HUB_WAITING &&
+                this.deliveryStatus != DeliveryStatus.DEST_HUB_ARRIVED) {
+            throw new IllegalStateException("업체 배송은 HUB_WAITING 또는 DEST_HUB_ARRIVED 상태에서만 시작할 수 있습니다.");
+        }
         this.deliveryStatus = DeliveryStatus.COMPANY_MOVING;
         this.companyDeliveryManId = companyDeliveryManId;
     }
 
+    /**
+     * 배송 완료
+     */
     public void completeDelivery() {
+        if (this.deliveryStatus != DeliveryStatus.COMPANY_MOVING) {
+            throw new IllegalStateException("배송은 COMPANY_MOVING 상태에서만 완료할 수 있습니다.");
+        }
         this.deliveryStatus = DeliveryStatus.DELIVERED;
     }
 
-    // 주소 변경 (주문이 PLACED일 때 변경 -> event 발행)
+    /**
+     * 일반적인 상태 변경 (유연한 상태 변경)
+     */
+    public void updateStatus(DeliveryStatus deliveryStatus) {
+        this.deliveryStatus = deliveryStatus;
+    }
+
+    // ========================================
+    // 배송 정보 변경 메서드
+    // ========================================
+
+    /**
+     * 주소 변경 (주문이 PLACED일 때 변경 -> event 발행)
+     */
     public void updateAddress(String newAddress) {
         this.deliveryAddress = newAddress;
     }
 
-    // 업체 배송 담당자, 허브 배송 담당자 저장
+    /**
+     * 업체 배송 담당자, 허브 배송 담당자 저장
+     */
     public void saveDeliveryMan(UUID companyDeliveryManId, UUID hubDeliveryManId) {
         this.companyDeliveryManId = companyDeliveryManId;
         this.hubDeliveryManId = hubDeliveryManId;
     }
 
-    public void delete(UUID deliveryId) {
+    /**
+     * 업체 배송 담당자만 배정
+     */
+    public void assignCompanyDeliveryMan(UUID companyDeliveryManId) {
+        this.companyDeliveryManId = companyDeliveryManId;
+    }
+
+    /**
+     * 허브 배송 담당자만 배정
+     */
+    public void assignHubDeliveryMan(UUID hubDeliveryManId) {
+        this.hubDeliveryManId = hubDeliveryManId;
+    }
+
+    // ========================================
+    // 논리 삭제 메서드
+    // ========================================
+
+    /**
+     * 배송 삭제 (논리 삭제)
+     */
+    public void delete(UUID userId) {
         this.deletedAt = LocalDateTime.now();
+    }
+
+    // ========================================
+    // 비즈니스 로직 검증 메서드
+    // ========================================
+
+    /**
+     * 배송이 취소 가능한 상태인지 확인
+     */
+    public boolean isCancellable() {
+        return this.deliveryStatus == DeliveryStatus.HUB_WAITING
+                || this.deliveryStatus == DeliveryStatus.HUB_MOVING;
+    }
+
+    /**
+     * 배송이 완료되었는지 확인
+     */
+    public boolean isCompleted() {
+        return this.deliveryStatus == DeliveryStatus.DELIVERED;
+    }
+
+    /**
+     * 배송 담당자가 배정되었는지 확인
+     */
+    public boolean hasDeliveryMan() {
+        return this.companyDeliveryManId != null || this.hubDeliveryManId != null;
+    }
+
+    /**
+     * 업체 배송 담당자가 배정되었는지 확인
+     */
+    public boolean hasCompanyDeliveryMan() {
+        return this.companyDeliveryManId != null;
+    }
+
+    /**
+     * 허브 배송 담당자가 배정되었는지 확인
+     */
+    public boolean hasHubDeliveryMan() {
+        return this.hubDeliveryManId != null;
     }
 }
