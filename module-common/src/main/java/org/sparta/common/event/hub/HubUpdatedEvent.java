@@ -12,7 +12,9 @@ public record HubUpdatedEvent(
         String name,
         String address
 ) implements DomainEvent {
+
     public static HubUpdatedEvent of(UUID hubId, String name, String address) {
         return new HubUpdatedEvent(UUID.randomUUID(), Instant.now(), hubId, name, address);
     }
+
 }

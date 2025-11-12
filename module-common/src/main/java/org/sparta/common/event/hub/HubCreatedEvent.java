@@ -11,8 +11,9 @@ public record HubCreatedEvent(
         String name,
         String region
 ) implements DomainEvent {
-    public HubCreatedEvent(UUID hubId, String name, String region) {
-        this(UUID.randomUUID(), Instant.now(), hubId, name, region);
+
+    public static HubCreatedEvent of(UUID hubId, String name, String address) {
+        return new HubCreatedEvent(UUID.randomUUID(), Instant.now(), hubId, name, address);
     }
 }
 

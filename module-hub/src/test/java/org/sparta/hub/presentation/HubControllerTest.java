@@ -5,30 +5,37 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.common.api.ApiControllerAdvice;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.hub.domain.entity.Hub;
 import org.sparta.hub.domain.repository.HubRepository;
 import org.sparta.hub.presentation.dto.request.HubCreateRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
         "eureka.client.enabled=false",
-        "spring.cloud.discovery.enabled=false"
+        "spring.cloud.discovery.enabled=false",
+        "app.eventpublisher.enabled=false" // ✅ EventPublisher 자동 비활성화
 })
 @AutoConfigureMockMvc
 @Transactional
 @ActiveProfiles("test")
 @Import(ApiControllerAdvice.class)
 class HubControllerTest {
+
+    @MockBean  // ✅ EventPublisher Mock 주입
+    private EventPublisher eventPublisher;
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
@@ -51,7 +58,7 @@ class HubControllerTest {
     @Test
     @DisplayName("허브 이름이 중복되면 409와 ApiResponse.fail 반환")
     void createHub_duplicate_fail() throws Exception {
-        hubRepository.saveAndFlush(org.sparta.hub.domain.entity.Hub.create(
+        hubRepository.saveAndFlush(Hub.create(
                 "중복 허브", "서울시", 37.55, 127.01
         ));
 
@@ -84,22 +91,22 @@ class HubControllerTest {
     @DisplayName("사용자 목록 조회 - INACTIVE는 숨김")
     void getAllHubs_userOnlyActive() throws Exception {
         hubRepository.deleteAll();
-        hubRepository.save(Hub.create("A1","addr",1.0,1.0));
-        var inactive = Hub.create("I1","addr",2.0,2.0);
+        hubRepository.save(Hub.create("A1", "addr", 1.0, 1.0));
+        var inactive = Hub.create("I1", "addr", 2.0, 2.0);
         inactive.markDeleted("tester");
         hubRepository.save(inactive);
 
         mockMvc.perform(get("/api/hubs").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data[*].name").value(org.hamcrest.Matchers.contains("A1")));
+                .andExpect(jsonPath("$.data[*].name").value(contains("A1")));
     }
 
     @Test
     @DisplayName("사용자 단건 조회 - INACTIVE는 404")
     void getHubById_userInactiveHidden() throws Exception {
         hubRepository.deleteAll();
-        var inactive = Hub.create("I2","addr",2.0,2.0);
+        var inactive = Hub.create("I2", "addr", 2.0, 2.0);
         inactive.markDeleted("tester");
         Hub saved = hubRepository.save(inactive);
 

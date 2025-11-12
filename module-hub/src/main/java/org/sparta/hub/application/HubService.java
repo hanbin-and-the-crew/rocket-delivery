@@ -35,8 +35,9 @@ public class HubService {
     private final EventPublisher eventPublisher;
     private static final String DEFAULT_DELETER = "system";
 
+
     /**
-     * 허브 생성 기능 - creatHub
+     *  허브 생성 기능 - creatHub
      */
     @Transactional
     public HubCreateResponse createHub(HubCreateRequest request) {
@@ -51,11 +52,13 @@ public class HubService {
                 request.latitude(),
                 request.longitude()
         );
-
         Hub saved = hubRepository.save(hub);
 
         eventPublisher.publishExternal(
-                new HubCreatedEvent(saved.getHubId(), saved.getName(), saved.getAddress())
+            HubCreatedEvent.of(
+                    saved.getHubId(),
+                    saved.getName(),
+                    saved.getAddress())
         );
 
         return HubCreateResponse.from(saved);
@@ -119,9 +122,9 @@ public class HubService {
         hub.update(request.address(), request.latitude(), request.longitude(), request.status());
         hubRepository.flush();
 
-        eventPublisher.publishExternal(
-                HubUpdatedEvent.of(hub.getHubId(), hub.getName(), hub.getAddress())
-        );
+        eventPublisher.publishExternal(HubUpdatedEvent.of(
+                hub.getHubId(), hub.getName(), hub.getAddress()
+        ));
 
         return HubResponse.from(hub);
     }
@@ -139,9 +142,7 @@ public class HubService {
         hub.markDeleted(DEFAULT_DELETER);
         hubRepository.flush();
 
-        eventPublisher.publishExternal(
-                new HubDeletedEvent(hub.getHubId())
-        );
+        eventPublisher.publishExternal(HubDeletedEvent.of(hub.getHubId()));
 
         return HubResponse.from(hub);
     }

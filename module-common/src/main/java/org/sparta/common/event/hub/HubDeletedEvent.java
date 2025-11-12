@@ -9,7 +9,7 @@ public record HubDeletedEvent(
         Instant occurredAt,
         UUID hubId
 ) implements DomainEvent {
-    public HubDeletedEvent(UUID hubId) {
-        this(UUID.randomUUID(), Instant.now(), hubId);
+    public static HubDeletedEvent of(UUID hubId) {
+        return new HubDeletedEvent(UUID.randomUUID(), Instant.now(), hubId);
     }
 }
