@@ -68,22 +68,22 @@ public class OrderService {
         log.info("주문 생성 시작 - productId: {}, quantity: {}, userId: {}",
                 request.productId(), request.quantity(), userId);
 
-        // 0. supplierId와 현재 userId 동일 검증
-        ApiResponse<UserResponse> supplierResponse = userClient.getSpecificUserInfo(request.supplierId());
-        UserResponse supplier = supplierResponse.data();
-        if (supplier == null) {
-            throw new BusinessException(OrderErrorType.SUPPLIER_NOT_FOUND);
-        }
-        if (!request.supplierId().equals(userId)) {
-            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
-        }
-
-        // 1. 상품 정보 조회
-        ProductDetailResponse product = getProductOrThrow(request.productId());
-
-        // 2. 허브 정보 검증
-        validateHub(request.supplierHubId());
-        validateHub(request.receiptHubId());
+//        // 0. supplierId와 현재 userId 동일 검증
+//        ApiResponse<UserResponse> supplierResponse = userClient.getSpecificUserInfo(request.supplierId());
+//        UserResponse supplier = supplierResponse.data();
+//        if (supplier == null) {
+//            throw new BusinessException(OrderErrorType.SUPPLIER_NOT_FOUND);
+//        }
+//        if (!request.supplierId().equals(userId)) {
+//            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
+//        }
+//
+//        // 1. 상품 정보 조회
+//        ProductDetailResponse product = getProductOrThrow(request.productId());
+//
+//        // 2. 허브 정보 검증
+//        validateHub(request.supplierHubId());
+//        validateHub(request.receiptHubId());
 
         // 3. 주문 생성
         Order order = Order.create(
@@ -93,8 +93,8 @@ public class OrderService {
                 request.receiptCompanyId(),
                 request.receiptHubId(),
                 request.productId(),
-                product.name(),
-                Money.of(product.price()),
+                "aa",//product.name(),
+                Money.of(10000L),//Money.of(product.price()),
                 Quantity.of(request.quantity()),
                 request.deliveryAddress(),
                 request.userName(),
@@ -106,44 +106,44 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // 4. 재고 예약 이벤트 발행 (Kafka)
-        orderEventPublisher.publishOrderCreated(
-                savedOrder.getId(),
-                request.productId(),
-                request.quantity(),
-                userId
-        );
-
-        // 5. 배송 생성
-        try {
-            DeliveryCreateResponse delivery = createDelivery(savedOrder);
-            savedOrder.setDeliveryId(delivery.deliveryId());
-            orderRepository.save(savedOrder);
-            log.info("배송 생성 완료 - orderId: {}, deliveryId: {}", savedOrder.getId(), delivery.deliveryId());
-        } catch (Exception e) {
-            log.error("배송 생성 실패 - orderId: {}", savedOrder.getId(), e);
-            // 주문 삭제
-            savedOrder.delete(userId);
-            orderRepository.delete(savedOrder);
-            throw new BusinessException(OrderErrorType.DELIVERY_CREATE_FAILED);
-        }
-
-        // 6. 배송로그 생성
-        try {
-            DeliveryLogCreateResponse deliveryLog = createDeliveryLog(savedOrder);
-
-            // 7. 배송로그 ID를 배송에 저장
-            saveDeliveryLog(savedOrder, deliveryLog.deliveryLogId(), userId);
-
-        } catch (Exception e) {
-            log.error("배송로그 생성 실패 - orderId: {}", savedOrder.getId(), e);
-
-            // 실패 시, 주문과 배송 모두 삭제
-            deleteDelivery(order.getDeliveryId(), userId);
-            savedOrder.delete(userId);
-            orderRepository.delete(savedOrder);
-            throw new BusinessException(OrderErrorType.DELIVERY_LOG_CREATE_FAILED);
-        }
+//        // 4. 재고 예약 이벤트 발행 (Kafka)
+//        orderEventPublisher.publishOrderCreated(
+//                savedOrder.getId(),
+//                request.productId(),
+//                request.quantity(),
+//                userId
+//        );
+//
+//        // 5. 배송 생성
+//        try {
+//            DeliveryCreateResponse delivery = createDelivery(savedOrder);
+//            savedOrder.setDeliveryId(delivery.deliveryId());
+//            orderRepository.save(savedOrder);
+//            log.info("배송 생성 완료 - orderId: {}, deliveryId: {}", savedOrder.getId(), delivery.deliveryId());
+//        } catch (Exception e) {
+//            log.error("배송 생성 실패 - orderId: {}", savedOrder.getId(), e);
+//            // 주문 삭제
+//            savedOrder.delete(userId);
+//            orderRepository.delete(savedOrder);
+//            throw new BusinessException(OrderErrorType.DELIVERY_CREATE_FAILED);
+//        }
+//
+//        // 6. 배송로그 생성
+//        try {
+//            DeliveryLogCreateResponse deliveryLog = createDeliveryLog(savedOrder);
+//
+//            // 7. 배송로그 ID를 배송에 저장
+//            saveDeliveryLog(savedOrder, deliveryLog.deliveryLogId(), userId);
+//
+//        } catch (Exception e) {
+//            log.error("배송로그 생성 실패 - orderId: {}", savedOrder.getId(), e);
+//
+//            // 실패 시, 주문과 배송 모두 삭제
+//            deleteDelivery(order.getDeliveryId(), userId);
+//            savedOrder.delete(userId);
+//            orderRepository.delete(savedOrder);
+//            throw new BusinessException(OrderErrorType.DELIVERY_LOG_CREATE_FAILED);
+//        }
         
        // TODO: Slack에 "주문 완료" 이벤트 발행
         /**
