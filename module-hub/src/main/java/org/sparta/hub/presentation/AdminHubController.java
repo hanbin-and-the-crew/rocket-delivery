@@ -1,5 +1,6 @@
 package org.sparta.hub.presentation;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.hub.application.HubService;
@@ -16,6 +17,7 @@ import java.util.UUID;
  * - 모든 상태의 허브 조회 가능
  * - 삭제: Soft Delete (INACTIVE 전환)
  */
+@Tag(name = "Hub API (Admin)", description = "운영자용 허브 관리 API")
 @RestController
 @RequestMapping("/api/admin/hubs")
 @RequiredArgsConstructor

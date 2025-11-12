@@ -30,6 +30,10 @@ spring:
     init:
       mode: never
 
+  cloud:
+    discovery:
+      enabled: false
+
 logging:
   level:
     root: warn
@@ -46,6 +50,7 @@ server:
   port: 0  # 랜덤 포트 (MockMvc나 RestAssured 사용 시 충돌 방지)
 
 app:
+  # 이벤트 퍼블리셔 비활성화 (통합테스트 안정성)
   eventpublisher:
     enabled: false
 
@@ -54,3 +59,11 @@ h2:
   console:
     enabled: true
     path: /h2-console
+
+
+eureka:
+  client:
+    enabled: false
+
+
+

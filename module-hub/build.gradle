@@ -1,6 +1,18 @@
+bootJar {
+    enabled = true
+}
+
+jar {
+    enabled = true
+}
+
 dependencies {
     implementation project(':module-common')
     implementation project(':module-jpa')
+
+    //kafka
+    implementation project(':module-kafka')
+    implementation 'org.springframework.kafka:spring-kafka'
 
     // Spring Boot Starter Web
     implementation 'org.springframework.boot:spring-boot-starter-web'

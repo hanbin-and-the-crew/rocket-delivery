@@ -12,6 +12,11 @@ spring:
   application:
     name: hub-service
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: hub-service
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
@@ -53,5 +58,12 @@ springdoc:
 # 공통 로깅(상세 SQL 로깅은 프로파일에서 분리)
 logging:
   level:
+    org.sparta.common.event: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+
+app:
+  eventpublisher:
+    enabled: true

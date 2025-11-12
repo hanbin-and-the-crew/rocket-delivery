@@ -91,6 +91,13 @@ public class EventPublisher {
             return "message-events";
         }
 
+        // Hub 관련 이벤트
+        if (eventType.startsWith("Hub")) {
+            return "hub-events";
+        }
+
+
+
         // 기본 토픽
         return "domain-events";
     }

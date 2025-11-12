@@ -1,5 +1,6 @@
 package org.sparta.hub.presentation;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
@@ -21,6 +22,7 @@ import java.util.UUID;
  * - ACTIVE 상태 허브 단건/전체 조회
  * - 수정
  */
+@Tag(name = "Hub API (User)", description = "일반 사용자용 허브 API")
 @RestController
 @RequestMapping("/api/hubs")
 @RequiredArgsConstructor
