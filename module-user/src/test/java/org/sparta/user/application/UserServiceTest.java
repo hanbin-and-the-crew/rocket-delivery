@@ -7,6 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.entity.User;
 import org.sparta.user.domain.enums.UserRoleEnum;
@@ -59,6 +60,9 @@ public class UserServiceTest {
 
     @InjectMocks
     private UserService userService;
+
+    @Mock
+    private EventPublisher eventPublisher;
 
 
     @Test
@@ -130,6 +134,11 @@ public class UserServiceTest {
         // given
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
         given(userDetails.getId()).willReturn(userId);
+
+        User mockUser = mock(User.class);
+        given(mockUser.getUserId()).willReturn(userId);
+
+        given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
         given(userRepository.softDeleteByUserId(eq(userId), any(LocalDateTime.class))).willReturn(1);
 
         // when
@@ -146,7 +155,9 @@ public class UserServiceTest {
         // given
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
         given(userDetails.getId()).willReturn(userId);
-        given(userRepository.softDeleteByUserId(eq(userId), any(LocalDateTime.class))).willReturn(0);
+
+        // 조회 시 회원 없음
+        given(userRepository.findById(userId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> userService.deleteSelf(userDetails))
