@@ -40,7 +40,7 @@ class HubRouteControllerIntegrationTest {
     @Autowired
     private HubRouteRepository hubRouteRepository;
 
-    @MockBean  
+    @MockBean
     private org.sparta.common.event.EventPublisher eventPublisher;
 
     private final ObjectMapper objectMapper = new ObjectMapper();

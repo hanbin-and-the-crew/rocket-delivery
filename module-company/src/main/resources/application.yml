@@ -61,3 +61,7 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+
+hub:
+  redis:
+    enabled: false

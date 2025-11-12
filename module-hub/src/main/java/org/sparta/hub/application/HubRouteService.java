@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.sparta.hub.domain.entity.HubRoute;
 import org.sparta.hub.domain.repository.HubRouteRepository;
 import org.sparta.hub.exception.HubRouteNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,7 @@ public class HubRouteService {
                 .orElseThrow(() -> new HubRouteNotFoundException(routeId));
     }
 
+    @CacheEvict(cacheNames = "routePlan", allEntries = true)
     @Transactional
     public HubRoute updateRoute(UUID routeId, int duration, int distance) {
         HubRoute route = getRoute(routeId);
