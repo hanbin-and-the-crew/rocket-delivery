@@ -5,6 +5,7 @@ import org.sparta.common.event.EventPublisher;
 import org.sparta.hub.domain.entity.Hub;
 import org.sparta.hub.domain.event.HubCreatedEvent;
 import org.sparta.hub.domain.event.HubDeletedEvent;
+import org.sparta.hub.domain.event.HubUpdatedEvent;
 import org.sparta.hub.domain.model.HubStatus;
 import org.sparta.hub.domain.repository.HubRepository;
 import org.sparta.hub.exception.AlreadyDeletedHubException;
@@ -116,6 +117,12 @@ public class HubService {
                 .orElseThrow(() -> new HubNotFoundException(hubId));
 
         hub.update(request.address(), request.latitude(), request.longitude(), request.status());
+        hubRepository.flush();
+
+        eventPublisher.publishExternal(
+                HubUpdatedEvent.of(hub.getHubId(), hub.getName(), hub.getAddress())
+        );
+
         return HubResponse.from(hub);
     }
 
@@ -127,14 +134,14 @@ public class HubService {
         Hub hub = hubRepository.findById(hubId)
                 .orElseThrow(() -> new HubNotFoundException(hubId));
 
-        if (hub.isDeleted()) {
-            throw new AlreadyDeletedHubException();
-        }
+        if (hub.isDeleted()) throw new AlreadyDeletedHubException();
 
         hub.markDeleted(DEFAULT_DELETER);
         hubRepository.flush();
 
-        eventPublisher.publishExternal(new HubDeletedEvent(hub.getHubId()));
+        eventPublisher.publishExternal(
+                new HubDeletedEvent(hub.getHubId())
+        );
 
         return HubResponse.from(hub);
     }
