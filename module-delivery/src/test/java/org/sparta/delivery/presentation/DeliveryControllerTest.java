@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.delivery.application.dto.request.DeliveryRequest;
 import org.sparta.delivery.application.dto.response.DeliveryResponse;
-import org.sparta.delivery.application.dto.DeliverySearchCondition;
 import org.sparta.delivery.application.service.DeliveryService;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +41,8 @@ class DeliveryControllerTest {
 
     @MockBean
     private DeliveryService deliveryService;
+
+    // ========== 배송 생성 테스트 ==========
 
     @Test
     @DisplayName("배송 생성 성공")
@@ -83,7 +84,25 @@ class DeliveryControllerTest {
     }
 
     @Test
-    @DisplayName("배송 목록 조회 성공")
+    @DisplayName("배송 생성 실패 - 필수 파라미터 누락")
+    void create_delivery_fail_missing_parameter() throws Exception {
+        // given
+        UUID userId = UUID.randomUUID();
+        String invalidRequest = "{}";
+
+        // when & then
+        mockMvc.perform(post("/api/deliveries")
+                        .header("X-User-Id", userId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidRequest))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    // ========== 배송 목록 조회 테스트 ==========
+
+    @Test
+    @DisplayName("배송 목록 조회 성공 - 페이징만 사용")
     void get_all_deliveries_success() throws Exception {
         // given
         UUID userId = UUID.randomUUID();
@@ -101,7 +120,8 @@ class DeliveryControllerTest {
         Pageable pageable = PageRequest.of(0, 10);
         Page<DeliveryResponse.Summary> page = new PageImpl<>(List.of(summary), pageable, 1);
 
-        given(deliveryService.getAllDeliveries(any(UUID.class), any(DeliverySearchCondition.class), any(Pageable.class)))
+        // ✅ 변경: DeliverySearchCondition 제거, Pageable만 사용
+        given(deliveryService.getAllDeliveries(any(Pageable.class)))
                 .willReturn(page);
 
         // when & then
@@ -118,6 +138,32 @@ class DeliveryControllerTest {
                 .andExpect(jsonPath("$.data.totalElements").value(1))
                 .andExpect(jsonPath("$.data.size").value(10));
     }
+
+    @Test
+    @DisplayName("배송 목록 조회 성공 - 빈 결과")
+    void get_all_deliveries_success_empty() throws Exception {
+        // given
+        UUID userId = UUID.randomUUID();
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<DeliveryResponse.Summary> emptyPage = new PageImpl<>(List.of(), pageable, 0);
+
+        given(deliveryService.getAllDeliveries(any(Pageable.class)))
+                .willReturn(emptyPage);
+
+        // when & then
+        mockMvc.perform(get("/api/deliveries")
+                        .header("X-User-Id", userId.toString())
+                        .param("page", "0")
+                        .param("size", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.content").isEmpty())
+                .andExpect(jsonPath("$.data.totalElements").value(0));
+    }
+
+    // ========== 배송 상세 조회 테스트 ==========
 
     @Test
     @DisplayName("배송 상세 조회 성공")
@@ -141,7 +187,8 @@ class DeliveryControllerTest {
                 null
         );
 
-        given(deliveryService.getDelivery(eq(deliveryId), any(UUID.class))).willReturn(detail);
+        given(deliveryService.getDelivery(eq(deliveryId), any(UUID.class)))
+                .willReturn(detail);
 
         // when & then
         mockMvc.perform(get("/api/deliveries/{deliveryId}", deliveryId)
@@ -153,6 +200,21 @@ class DeliveryControllerTest {
                 .andExpect(jsonPath("$.data.deliveryId").value(deliveryId.toString()))
                 .andExpect(jsonPath("$.data.recipientName").value("홍길동"));
     }
+
+    @Test
+    @DisplayName("배송 조회 실패 - User ID 헤더 누락")
+    void get_delivery_fail_missing_user_id() throws Exception {
+        // given
+        UUID deliveryId = UUID.randomUUID();
+
+        // when & then
+        mockMvc.perform(get("/api/deliveries/{deliveryId}", deliveryId)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+    }
+
+    // ========== 배송 상태 변경 테스트 ==========
 
     @Test
     @DisplayName("배송 상태 변경 성공")
@@ -167,8 +229,11 @@ class DeliveryControllerTest {
                 LocalDateTime.now()
         );
 
-        given(deliveryService.updateStatus(eq(deliveryId), any(DeliveryRequest.UpdateStatus.class), any(UUID.class)))
-                .willReturn(response);
+        given(deliveryService.updateStatus(
+                eq(deliveryId),
+                any(DeliveryRequest.UpdateStatus.class),
+                any(UUID.class)
+        )).willReturn(response);
 
         // when & then
         mockMvc.perform(patch("/api/deliveries/{deliveryId}/status", deliveryId)
@@ -181,6 +246,8 @@ class DeliveryControllerTest {
                 .andExpect(jsonPath("$.data.deliveryId").value(deliveryId.toString()))
                 .andExpect(jsonPath("$.data.updatedAt").exists());
     }
+
+    // ========== 배송 담당자 배정 테스트 ==========
 
     @Test
     @DisplayName("배송 담당자 배정 성공")
@@ -198,10 +265,13 @@ class DeliveryControllerTest {
                 LocalDateTime.now()
         );
 
-        given(deliveryService.assignDeliveryMan(eq(deliveryId), any(DeliveryRequest.AssignDeliveryMan.class), any(UUID.class)))
-                .willReturn(response);
+        given(deliveryService.assignDeliveryMan(
+                eq(deliveryId),
+                any(DeliveryRequest.AssignDeliveryMan.class),
+                any(UUID.class)
+        )).willReturn(response);
 
-        // when & then - ✅ 경로 수정: delivery-man → manager
+        // when & then
         mockMvc.perform(patch("/api/deliveries/{deliveryId}/manager", deliveryId)
                         .header("X-User-Id", userId.toString())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -211,6 +281,8 @@ class DeliveryControllerTest {
                 .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.deliveryId").value(deliveryId.toString()));
     }
+
+    // ========== 배송 삭제 테스트 ==========
 
     @Test
     @DisplayName("배송 삭제 성공")
@@ -223,7 +295,8 @@ class DeliveryControllerTest {
                 LocalDateTime.now()
         );
 
-        given(deliveryService.deleteDelivery(eq(deliveryId), any(UUID.class))).willReturn(response);
+        given(deliveryService.deleteDelivery(eq(deliveryId), any(UUID.class)))
+                .willReturn(response);
 
         // when & then
         mockMvc.perform(delete("/api/deliveries/{deliveryId}", deliveryId)
@@ -234,34 +307,5 @@ class DeliveryControllerTest {
                 .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.deliveryId").value(deliveryId.toString()))
                 .andExpect(jsonPath("$.data.deletedAt").exists());
-    }
-
-    @Test
-    @DisplayName("배송 생성 실패 - 필수 파라미터 누락")
-    void create_delivery_fail_missing_parameter() throws Exception {
-        // given
-        UUID userId = UUID.randomUUID();
-        String invalidRequest = "{}";
-
-        // when & then
-        mockMvc.perform(post("/api/deliveries")
-                        .header("X-User-Id", userId.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidRequest))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("배송 조회 실패 - User ID 헤더 누락")
-    void get_delivery_fail_missing_user_id() throws Exception {
-        // given
-        UUID deliveryId = UUID.randomUUID();
-
-        // when & then
-        mockMvc.perform(get("/api/deliveries/{deliveryId}", deliveryId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
     }
 }

@@ -3,7 +3,6 @@ package org.sparta.delivery.infrastructure.repository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.sparta.delivery.application.dto.DeliverySearchCondition;
 import org.sparta.delivery.domain.entity.Delivery;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +41,8 @@ class DeliveryJpaRepositoryTest {
         entityManager.clear();
     }
 
+    // ========== 배송 저장 테스트 ==========
+
     @Test
     @DisplayName("배송 저장 성공")
     void save_delivery_success() {
@@ -56,6 +57,8 @@ class DeliveryJpaRepositoryTest {
         assertThat(savedDelivery.getId()).isNotNull();
         assertThat(savedDelivery.getOrderId()).isEqualTo(delivery.getOrderId());
     }
+
+    // ========== ID로 배송 조회 테스트 ==========
 
     @Test
     @DisplayName("ID로 배송 조회 성공 - 삭제되지 않은 배송")
@@ -90,6 +93,8 @@ class DeliveryJpaRepositoryTest {
         assertThat(result).isEmpty();
     }
 
+    // ========== 주문 ID로 배송 조회 테스트 ==========
+
     @Test
     @DisplayName("주문 ID로 배송 조회 성공")
     void find_by_order_id_and_deleted_at_is_null_success() {
@@ -106,20 +111,21 @@ class DeliveryJpaRepositoryTest {
         assertThat(result.get().getOrderId()).isEqualTo(savedDelivery.getOrderId());
     }
 
+    // ========== 배송 목록 조회 테스트 (페이징) ==========
+
     @Test
-    @DisplayName("배송 검색 성공 - 조건 없음")
-    void search_deliveries_success_no_condition() {
+    @DisplayName("배송 목록 조회 성공 - 조건 없음")
+    void find_all_not_deleted_success() {
         // given
         Delivery delivery1 = createTestDelivery();
         Delivery delivery2 = createTestDelivery();
         deliveryRepository.saveAll(List.of(delivery1, delivery2));
         entityManager.flush();
 
-        DeliverySearchCondition condition = DeliverySearchCondition.empty();
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // when
-        Page<Delivery> result = deliveryRepository.searchDeliveries(condition, pageable);
+        Page<Delivery> result = deliveryRepository.findAllNotDeleted(pageable);
 
         // then
         assertThat(result.getContent()).hasSize(2);
@@ -127,135 +133,32 @@ class DeliveryJpaRepositoryTest {
     }
 
     @Test
-    @DisplayName("배송 검색 성공 - 주문 ID 조건")
-    void search_deliveries_success_with_order_id() {
+    @DisplayName("배송 목록 조회 성공 - 빈 결과")
+    void find_all_not_deleted_success_empty() {
         // given
-        UUID orderId = UUID.randomUUID();
-        Delivery delivery1 = Delivery.create(
-                orderId,
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                "서울특별시 강남구 테헤란로 123",
-                "홍길동",
-                "@홍길동"
-        );
-        Delivery delivery2 = createTestDelivery();
-        deliveryRepository.saveAll(List.of(delivery1, delivery2));
-        entityManager.flush();
-
-        DeliverySearchCondition condition = DeliverySearchCondition.of(orderId, null, null, null, null);
         Pageable pageable = PageRequest.of(0, 10);
 
         // when
-        Page<Delivery> result = deliveryRepository.searchDeliveries(condition, pageable);
+        Page<Delivery> result = deliveryRepository.findAllNotDeleted(pageable);
 
         // then
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getOrderId()).isEqualTo(orderId);
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
     }
 
     @Test
-    @DisplayName("배송 검색 성공 - 배송 상태 조건")
-    void search_deliveries_success_with_status() {
-        // given
-        Delivery delivery1 = createTestDelivery();
-        delivery1.hubMoving();
-        Delivery delivery2 = createTestDelivery();
-        deliveryRepository.saveAll(List.of(delivery1, delivery2));
-        entityManager.flush();
-
-        DeliverySearchCondition condition = DeliverySearchCondition.of(null, null, null, DeliveryStatus.HUB_MOVING, null);
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // when
-        Page<Delivery> result = deliveryRepository.searchDeliveries(condition, pageable);
-
-        // then
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getDeliveryStatus()).isEqualTo(DeliveryStatus.HUB_MOVING);
-    }
-
-    @Test
-    @DisplayName("배송 검색 성공 - 수령인 이름 조건 (LIKE 검색)")
-    void search_deliveries_success_with_recipient_name() {
-        // given
-        Delivery delivery1 = Delivery.create(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                "서울특별시 강남구 테헤란로 123",
-                "김철수",
-                "@김철수"
-        );
-        Delivery delivery2 = createTestDelivery();
-        deliveryRepository.saveAll(List.of(delivery1, delivery2));
-        entityManager.flush();
-
-        DeliverySearchCondition condition = DeliverySearchCondition.of(null, null, null, null, "김철");
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // when
-        Page<Delivery> result = deliveryRepository.searchDeliveries(condition, pageable);
-
-        // then
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getRecipientName()).contains("김철");
-    }
-
-    @Test
-    @DisplayName("배송 검색 성공 - 여러 조건 동시 적용")
-    void search_deliveries_success_with_multiple_conditions() {
-        // given
-        UUID departureHubId = UUID.randomUUID();
-        UUID destinationHubId = UUID.randomUUID();
-
-        Delivery delivery1 = Delivery.create(
-                UUID.randomUUID(),
-                departureHubId,
-                destinationHubId,
-                "서울특별시 강남구 테헤란로 123",
-                "홍길동",
-                "@홍길동"
-        );
-        delivery1.hubMoving();
-
-        Delivery delivery2 = createTestDelivery();
-        deliveryRepository.saveAll(List.of(delivery1, delivery2));
-        entityManager.flush();
-
-        DeliverySearchCondition condition = DeliverySearchCondition.of(
-                null,
-                departureHubId,
-                destinationHubId,
-                DeliveryStatus.HUB_MOVING,
-                "홍길"
-        );
-        Pageable pageable = PageRequest.of(0, 10);
-
-        // when
-        Page<Delivery> result = deliveryRepository.searchDeliveries(condition, pageable);
-
-        // then
-        assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0).getDepartureHubId()).isEqualTo(departureHubId);
-        assertThat(result.getContent().get(0).getDestinationHubId()).isEqualTo(destinationHubId);
-        assertThat(result.getContent().get(0).getDeliveryStatus()).isEqualTo(DeliveryStatus.HUB_MOVING);
-    }
-
-    @Test
-    @DisplayName("배송 검색 - 페이징 확인")
-    void search_deliveries_with_paging() {
+    @DisplayName("배송 목록 조회 - 페이징 확인")
+    void find_all_not_deleted_with_paging() {
         // given
         for (int i = 0; i < 25; i++) {
             deliveryRepository.save(createTestDelivery());
         }
         entityManager.flush();
 
-        DeliverySearchCondition condition = DeliverySearchCondition.empty();
         Pageable pageable = PageRequest.of(0, 10);
 
         // when
-        Page<Delivery> result = deliveryRepository.searchDeliveries(condition, pageable);
+        Page<Delivery> result = deliveryRepository.findAllNotDeleted(pageable);
 
         // then
         assertThat(result.getContent()).hasSize(10);
@@ -264,39 +167,30 @@ class DeliveryJpaRepositoryTest {
     }
 
     @Test
-    @DisplayName("배송 검색 - 정렬 확인 (생성일 기준)")
-    void search_deliveries_with_sorting() {
+    @DisplayName("배송 목록 조회 - 정렬 확인 (생성일 기준)")
+    void find_all_not_deleted_with_sorting() {
         // given
         Delivery delivery1 = createTestDelivery();
         deliveryRepository.save(delivery1);
         entityManager.flush();
 
         // 시간 차이 보장
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        sleep(100);
 
         Delivery delivery2 = createTestDelivery();
         deliveryRepository.save(delivery2);
         entityManager.flush();
 
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        sleep(100);
 
         Delivery delivery3 = createTestDelivery();
         deliveryRepository.save(delivery3);
         entityManager.flush();
 
-        DeliverySearchCondition condition = DeliverySearchCondition.empty();
         Pageable pageable = PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         // when
-        Page<Delivery> result = deliveryRepository.searchDeliveries(condition, pageable);
+        Page<Delivery> result = deliveryRepository.findAllNotDeleted(pageable);
 
         // then
         assertThat(result.getContent()).hasSize(3);
@@ -314,6 +208,117 @@ class DeliveryJpaRepositoryTest {
                 .isAfterOrEqualTo(deliveries.get(2).getCreatedAt());
     }
 
+    @Test
+    @DisplayName("배송 목록 조회 - 삭제된 배송 제외")
+    void find_all_not_deleted_exclude_deleted() {
+        // given
+        Delivery delivery1 = createTestDelivery();
+        Delivery delivery2 = createTestDelivery();
+        Delivery delivery3 = createTestDelivery();
+
+        deliveryRepository.saveAll(List.of(delivery1, delivery2, delivery3));
+        entityManager.flush();
+
+        // delivery2 삭제
+        delivery2.delete(UUID.randomUUID());
+        deliveryRepository.save(delivery2);
+        entityManager.flush();
+
+        Pageable pageable = PageRequest.of(0, 10);
+
+        // when
+        Page<Delivery> result = deliveryRepository.findAllNotDeleted(pageable);
+
+        // then
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+
+        // delivery2가 포함되지 않아야 함
+        assertThat(result.getContent())
+                .noneMatch(d -> d.getId().equals(delivery2.getId()));
+    }
+
+    // ========== 상태별 배송 조회 테스트 ==========
+
+    @Test
+    @DisplayName("특정 상태의 배송 조회 성공")
+    void find_by_status_success() {
+        // given
+        Delivery delivery1 = createTestDelivery();
+        delivery1.hubMoving();
+
+        Delivery delivery2 = createTestDelivery();
+        Delivery delivery3 = createTestDelivery();
+
+        deliveryRepository.saveAll(List.of(delivery1, delivery2, delivery3));
+        entityManager.flush();
+
+        // when
+        List<Delivery> result = deliveryRepository.findByStatus(DeliveryStatus.HUB_MOVING);
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getDeliveryStatus()).isEqualTo(DeliveryStatus.HUB_MOVING);
+    }
+
+    // ========== 배송 담당자별 조회 테스트 ==========
+
+    @Test
+    @DisplayName("업체 배송 담당자 ID와 상태로 배송 조회 성공")
+    void find_by_company_delivery_man_id_and_status_success() {
+        // given
+        UUID companyManId = UUID.randomUUID();
+
+        Delivery delivery1 = createTestDelivery();
+        delivery1.startCompanyMoving(companyManId);
+
+        Delivery delivery2 = createTestDelivery();
+
+        deliveryRepository.saveAll(List.of(delivery1, delivery2));
+        entityManager.flush();
+
+        // when
+        List<Delivery> result = deliveryRepository.findByCompanyDeliveryManIdAndStatus(
+                companyManId,
+                DeliveryStatus.COMPANY_MOVING
+        );
+
+        // then
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getCompanyDeliveryManId()).isEqualTo(companyManId);
+        assertThat(result.get(0).getDeliveryStatus()).isEqualTo(DeliveryStatus.COMPANY_MOVING);
+    }
+
+    @Test
+    @DisplayName("업체 배송 담당자가 배정된 모든 배송 조회")
+    void find_by_company_delivery_man_id_success() {
+        // given
+        UUID companyManId = UUID.randomUUID();
+
+        Delivery delivery1 = createTestDelivery();
+        delivery1.startCompanyMoving(companyManId);
+
+        Delivery delivery2 = createTestDelivery();
+        delivery2.startCompanyMoving(companyManId);
+
+        Delivery delivery3 = createTestDelivery();
+
+        deliveryRepository.saveAll(List.of(delivery1, delivery2, delivery3));
+        entityManager.flush();
+
+        // when
+        List<Delivery> result = deliveryRepository.findByCompanyDeliveryManId(companyManId);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result).allMatch(d -> d.getCompanyDeliveryManId().equals(companyManId));
+    }
+
+    // ========== Helper 메서드 ==========
+
+    /**
+     * 테스트용 Delivery 객체 생성
+     */
     private Delivery createTestDelivery() {
         return Delivery.create(
                 UUID.randomUUID(),
@@ -323,5 +328,16 @@ class DeliveryJpaRepositoryTest {
                 "홍길동",
                 "@홍길동"
         );
+    }
+
+    /**
+     * Thread.sleep을 간단하게 사용
+     */
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

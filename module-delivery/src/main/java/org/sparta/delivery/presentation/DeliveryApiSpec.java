@@ -5,15 +5,12 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.delivery.application.dto.DeliverySearchCondition;
 import org.sparta.delivery.application.dto.request.DeliveryRequest;
 import org.sparta.delivery.application.dto.response.DeliveryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestHeader;
 
-import java.util.List;
 import java.util.UUID;
 
 @Tag(name = "Delivery", description = "배송 관리 API")
@@ -36,10 +33,9 @@ public interface DeliveryApiSpec {
 //            @Parameter(hidden = true) UUID userId
 //    );
 
-    @Operation(summary = "배송 목록 조회", description = "검색 조건과 페이징을 적용하여 배송 목록을 조회합니다.")
+    @Operation(summary = "배송 목록 조회", description = "삭제되지 않은 모든 배송 목록을 페이징하여 조회합니다.")
     ApiResponse<Page<DeliveryResponse.Summary>> getAllDeliveries(
             @RequestHeader("X-User-Id") UUID userId,
-            @ModelAttribute DeliverySearchCondition condition,
             Pageable pageable
     );
 

@@ -7,12 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.delivery.application.dto.request.DeliveryRequest;
 import org.sparta.delivery.application.dto.response.DeliveryResponse;
-import org.sparta.delivery.application.dto.DeliverySearchCondition;
 import org.sparta.delivery.application.service.DeliveryService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -35,15 +32,14 @@ public class DeliveryController {
         return ApiResponse.success(response);
     }
 
-    @Operation(summary = "배송 목록 조회", description = "검색 조건과 페이징을 적용하여 배송 목록을 조회합니다.")
+    @Operation(summary = "배송 목록 조회", description = "삭제되지 않은 모든 배송 목록을 페이징하여 조회합니다.")
     @GetMapping
     public ApiResponse<Page<DeliveryResponse.Summary>> getAllDeliveries(
             @RequestHeader("X-User-Id") UUID userId,
-            @ModelAttribute DeliverySearchCondition condition,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            Pageable pageable
     ) {
-        Page<DeliveryResponse.Summary> response = deliveryService.getAllDeliveries(userId, condition, pageable);
-        return ApiResponse.success(response);
+        Page<DeliveryResponse.Summary> deliveries = deliveryService.getAllDeliveries(pageable);
+        return ApiResponse.success(deliveries);
     }
 
     @Operation(summary = "배송 상세 조회", description = "배송 ID로 배송 상세 정보를 조회합니다.")

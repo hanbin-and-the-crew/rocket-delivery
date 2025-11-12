@@ -3,6 +3,8 @@ package org.sparta.delivery.infrastructure.repository;
 import lombok.RequiredArgsConstructor;
 import org.sparta.delivery.domain.entity.Delivery;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -36,8 +38,8 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
     }
 
     @Override
-    public List<Delivery> findAll() {
-        return deliveryJpaRepository.findAll();
+    public Page<Delivery> findAll(Pageable pageable) {
+        return deliveryJpaRepository.findAllNotDeleted(pageable);
     }
 
     @Override

@@ -174,65 +174,65 @@ class DeliveryIntegrationTest {
                 .andExpect(jsonPath("$.data.totalPages").value(2));
     }
 
-    @Test
-    @DisplayName("배송 목록 조회 - 검색 조건 적용")
-    void get_deliveries_with_search_condition() throws Exception {
-        // given
-        UUID orderId = UUID.randomUUID();
-        Delivery delivery1 = Delivery.create(
-                orderId,
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                "서울특별시 강남구 테헤란로 123",
-                "홍길동",
-                "@홍길동"
-        );
-        delivery1.hubMoving();
-
-        Delivery delivery2 = Delivery.create(
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                "서울특별시 강남구 테헤란로 456",
-                "김철수",
-                "@김철수"
-        );
-
-        deliveryRepository.saveAll(java.util.List.of(delivery1, delivery2));
-
-        // when & then - 주문 ID로 검색
-        mockMvc.perform(get("/api/deliveries")
-                        .header("X-User-Id", userId.toString())
-                        .param("orderId", orderId.toString())
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.content.length()").value(1))
-                .andExpect(jsonPath("$.data.content[0].orderId").value(orderId.toString()));
-
-        // when & then - 배송 상태로 검색
-        mockMvc.perform(get("/api/deliveries")
-                        .header("X-User-Id", userId.toString())
-                        .param("deliveryStatus", "HUB_MOVING")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.content.length()").value(1))
-                .andExpect(jsonPath("$.data.content[0].deliveryStatus").value("HUB_MOVING"));
-
-        // when & then - 수령인 이름으로 검색
-        mockMvc.perform(get("/api/deliveries")
-                        .header("X-User-Id", userId.toString())
-                        .param("recipientName", "홍길")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.content.length()").value(1))
-                .andExpect(jsonPath("$.data.content[0].recipientName").value("홍길동"));
-    }
+//    @Test
+//    @DisplayName("배송 목록 조회 - 검색 조건 적용")
+//    void get_deliveries_with_search_condition() throws Exception {
+//        // given
+//        UUID orderId = UUID.randomUUID();
+//        Delivery delivery1 = Delivery.create(
+//                orderId,
+//                UUID.randomUUID(),
+//                UUID.randomUUID(),
+//                "서울특별시 강남구 테헤란로 123",
+//                "홍길동",
+//                "@홍길동"
+//        );
+//        delivery1.hubMoving();
+//
+//        Delivery delivery2 = Delivery.create(
+//                UUID.randomUUID(),
+//                UUID.randomUUID(),
+//                UUID.randomUUID(),
+//                "서울특별시 강남구 테헤란로 456",
+//                "김철수",
+//                "@김철수"
+//        );
+//
+//        deliveryRepository.saveAll(java.util.List.of(delivery1, delivery2));
+//
+//        // when & then - 주문 ID로 검색
+//        mockMvc.perform(get("/api/deliveries")
+//                        .header("X-User-Id", userId.toString())
+//                        .param("orderId", orderId.toString())
+//                        .contentType(MediaType.APPLICATION_JSON))
+//                .andDo(print())
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+//                .andExpect(jsonPath("$.data.content.length()").value(1))
+//                .andExpect(jsonPath("$.data.content[0].orderId").value(orderId.toString()));
+//
+//        // when & then - 배송 상태로 검색
+//        mockMvc.perform(get("/api/deliveries")
+//                        .header("X-User-Id", userId.toString())
+//                        .param("deliveryStatus", "HUB_MOVING")
+//                        .contentType(MediaType.APPLICATION_JSON))
+//                .andDo(print())
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+//                .andExpect(jsonPath("$.data.content.length()").value(1))
+//                .andExpect(jsonPath("$.data.content[0].deliveryStatus").value("HUB_MOVING"));
+//
+//        // when & then - 수령인 이름으로 검색
+//        mockMvc.perform(get("/api/deliveries")
+//                        .header("X-User-Id", userId.toString())
+//                        .param("recipientName", "홍길")
+//                        .contentType(MediaType.APPLICATION_JSON))
+//                .andDo(print())
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
+//                .andExpect(jsonPath("$.data.content.length()").value(1))
+//                .andExpect(jsonPath("$.data.content[0].recipientName").value("홍길동"));
+//    }
 
     @Test
     @DisplayName("배송 업체 이동 시작 후 완료")

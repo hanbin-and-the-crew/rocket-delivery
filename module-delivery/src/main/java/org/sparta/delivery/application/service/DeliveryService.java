@@ -3,7 +3,6 @@ package org.sparta.delivery.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
-import org.sparta.delivery.application.dto.DeliverySearchCondition;
 import org.sparta.delivery.application.dto.request.DeliveryRequest;
 import org.sparta.delivery.application.dto.response.DeliveryResponse;
 import org.sparta.delivery.domain.entity.Delivery;
@@ -61,21 +60,11 @@ public class DeliveryService {
     }
 
     /**
-     * 배송 목록 조회 (검색 + 페이징 + 정렬)
+     * 배송 목록 조회 (페이징 + 정렬)
      */
-    public Page<DeliveryResponse.Summary> getAllDeliveries(
-            UUID userId,
-            DeliverySearchCondition condition,
-            Pageable pageable
-    ) {
-        log.info("배송 목록 조회 - userId: {}, condition: {}", userId, condition);
-
-        // 페이지 크기 검증 및 조정
-        Pageable validatedPageable = validateAndAdjustPageable(pageable);
-
-        // 검색 조건에 따른 조회
-        Page<Delivery> deliveries = deliveryRepository.searchDeliveries(condition, validatedPageable);
-
+    @Transactional(readOnly = true)
+    public Page<DeliveryResponse.Summary> getAllDeliveries(Pageable pageable) {
+        Page<Delivery> deliveries = deliveryRepository.findAllNotDeleted(pageable);
         return deliveries.map(DeliveryResponse.Summary::from);
     }
 
