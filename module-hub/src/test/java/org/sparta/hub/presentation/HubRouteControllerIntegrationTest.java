@@ -10,6 +10,7 @@ import org.sparta.hub.domain.repository.HubRouteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,7 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = {
                 "eureka.client.enabled=false",
                 "spring.cloud.discovery.enabled=false",
-                "app.eventpublisher.enabled=false" // 
+                "app.eventpublisher.enabled=false" //
         }
 )
 @AutoConfigureMockMvc
@@ -38,6 +39,9 @@ class HubRouteControllerIntegrationTest {
 
     @Autowired
     private HubRouteRepository hubRouteRepository;
+
+    @MockBean  
+    private org.sparta.common.event.EventPublisher eventPublisher;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
