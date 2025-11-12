@@ -6,6 +6,7 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.user.UserApplication;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.infrastructure.SecurityDisabledConfig;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -31,6 +33,9 @@ class UserApiIntegrationTest {
 
     @LocalServerPort
     private int port;
+
+    @MockitoBean
+    private EventPublisher eventPublisher;
 
     @Autowired
     private UserRepository userRepository;
