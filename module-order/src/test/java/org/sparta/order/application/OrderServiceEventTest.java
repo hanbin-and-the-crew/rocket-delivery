@@ -14,7 +14,7 @@ import org.sparta.order.domain.vo.Money;
 import org.sparta.order.domain.vo.Quantity;
 import org.sparta.order.infrastructure.client.ProductClient;
 import org.sparta.order.infrastructure.client.UserClient;
-import org.sparta.order.infrastructure.event.Listener.OrderEventListener;
+import org.sparta.order.application.event.OrderEventListener;
 import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;
 import org.sparta.order.infrastructure.repository.OrderJpaRepository;
 import org.springframework.test.context.ActiveProfiles;

@@ -1,4 +1,4 @@
-package org.sparta.order.infrastructure.event;
+package org.sparta.order.application.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
