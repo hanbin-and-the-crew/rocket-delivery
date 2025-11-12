@@ -1,5 +1,6 @@
 package org.sparta.company.presentation;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = "Company API (User)", description = "일반 사용자용 업체 API")
 @RestController
 @RequestMapping("/api/companies")
 @RequiredArgsConstructor
