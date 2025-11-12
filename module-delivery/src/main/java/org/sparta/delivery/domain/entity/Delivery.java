@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.sparta.jpa.entity.BaseEntity;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -115,5 +116,9 @@ public class Delivery extends BaseEntity {
     public void saveDeliveryMan(UUID companyDeliveryManId, UUID hubDeliveryManId) {
         this.companyDeliveryManId = companyDeliveryManId;
         this.hubDeliveryManId = hubDeliveryManId;
+    }
+
+    public void delete(UUID deliveryId) {
+        this.deletedAt = LocalDateTime.now();
     }
 }
