@@ -1,5 +1,6 @@
 package org.sparta.order.application;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.order.application.dto.request.OrderRequest;
@@ -10,6 +11,9 @@ import org.sparta.order.infrastructure.repository.OrderJpaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -38,6 +42,19 @@ class TransactionalEventTest {
 
     @Autowired
     private OrderJpaRepository orderRepository;
+
+    // DB 매번 비우는 행위
+    @Autowired
+    private PlatformTransactionManager txManager;
+
+    @BeforeEach
+    void clearDatabase() {
+        TransactionTemplate tx = new TransactionTemplate(txManager);
+        tx.execute(status -> {
+            orderRepository.deleteAll();
+            return null;
+        });
+    }
 
     @Test
     @DisplayName("트랜잭션 롤백 시 이벤트가 발행되지 않는다")
@@ -75,7 +92,7 @@ class TransactionalEventTest {
         assertThat(orderRepository.findAll()).hasSize(1);
 
         // 이벤트 리스너도 실행됩니다.
-        verify(paymentEventListener, times(1))
+        verify(paymentEventListener, timeout(1000).times(1))
                 .handleOrderCreated(any(OrderCreatedEvent.class));
     }
 
