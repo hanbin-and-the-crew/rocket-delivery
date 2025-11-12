@@ -1,4 +1,4 @@
-package org.sparta.order.infrastructure.event.Listener;
+package org.sparta.order.application.event;
 
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;

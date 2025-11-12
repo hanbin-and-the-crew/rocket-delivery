@@ -1,4 +1,4 @@
-package org.sparta.order.infrastructure.event;
+package org.sparta.order.application.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +20,8 @@ import org.sparta.order.application.service.OrderService;
  */
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
+@Component("orderStockEventListener")
 public class StockEventListener {
 
     private final OrderService orderService;

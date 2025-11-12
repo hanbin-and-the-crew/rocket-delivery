@@ -4,9 +4,12 @@ import org.sparta.order.domain.entity.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface PaymentJpaRepository extends JpaRepository<Payment, UUID> {
 
+    Payment save(Payment payment);
+    List<Payment> findByOrderId(UUID orderId);
 }

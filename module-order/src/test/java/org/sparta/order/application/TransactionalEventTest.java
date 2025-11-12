@@ -5,17 +5,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.order.application.dto.request.OrderRequest;
 import org.sparta.order.application.service.OrderService;
-import org.sparta.order.infrastructure.event.Listener.PaymentEventListener;
+import org.sparta.order.application.event.PaymentEventListener;
 import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;
 import org.sparta.order.infrastructure.repository.OrderJpaRepository;
+import org.sparta.order.support.fixtures.OrderFixture;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -59,8 +58,9 @@ class TransactionalEventTest {
     @Test
     @DisplayName("트랜잭션 롤백 시 이벤트가 발행되지 않는다")
     void whenTransactionRollback_EventShouldNotBePublished() {
+
         // given
-        OrderRequest.Create request = createInvalidRequest(); // 예외를 발생시킬 요청
+        OrderRequest.Create request = OrderFixture.createInvalidRequest(); // 예외를 발생시킬 요청
 
         // when & then
         // 주문 생성 중 예외가 발생하여 트랜잭션이 롤백됩니다.
@@ -73,16 +73,14 @@ class TransactionalEventTest {
         // 이벤트 리스너도 실행되지 않습니다.
         verify(paymentEventListener, never())
                 .handleOrderCreated(any(OrderCreatedEvent.class));
-
-        // 이를 통해 데이터 일관성이 유지됩니다.
-        // "주문은 없는데 결제는 진행된다"는 상황을 방지할 수 있습니다.
     }
 
     @Test
     @DisplayName("트랜잭션 커밋 성공 시 이벤트가 발행된다")
     void whenTransactionCommit_EventShouldBePublished() {
+
         // given
-        OrderRequest.Create request = createValidRequest();
+        OrderRequest.Create request = OrderFixture.createValidRequest();
 
         // when
         orderService.createOrder(request, userId);
@@ -94,46 +92,5 @@ class TransactionalEventTest {
         // 이벤트 리스너도 실행됩니다.
         verify(paymentEventListener, timeout(1000).times(1))
                 .handleOrderCreated(any(OrderCreatedEvent.class));
-    }
-
-    /**
-     * 나중에 Fixture로 빠질 것들
-     * Order Test 폴더 구조 물어보고 변경할 예정
-     */
-
-    private OrderRequest.Create createValidRequest() {
-        return new OrderRequest.Create(
-                UUID.randomUUID(), // supplierId
-                UUID.randomUUID(), // supplierCompanyId
-                UUID.randomUUID(), // supplierHubId
-                UUID.randomUUID(), // receiptCompanyId
-                UUID.randomUUID(), // receiptHubId
-                UUID.randomUUID(), // productId
-                3, // quantity
-                "서울특별시 강남구 테헤란로 123", // deliveryAddress
-                "홍길동", // userName
-                "010-1111-2222", // userPhoneNumber
-                "test@sample.com", // slackId
-                LocalDateTime.now().plusDays(5), // dueAt
-                "정상 주문 요청" // requestedMemo
-        );
-    }
-
-    private OrderRequest.Create createInvalidRequest() {
-        return new OrderRequest.Create(
-                UUID.randomUUID(), // supplierId
-                UUID.randomUUID(), // supplierCompanyId
-                UUID.randomUUID(), // supplierHubId
-                UUID.randomUUID(), // receiptCompanyId
-                UUID.randomUUID(), // receiptHubId
-                UUID.randomUUID(), // productId
-                -5, // 유효하지 않은 quantity
-                "서울특별시 강남구 테헤란로 123",
-                "홍길동",
-                "010-1111-2222",
-                "test@sample.com",
-                LocalDateTime.now().plusDays(5),
-                "잘못된 주문 요청"
-        );
     }
 }
