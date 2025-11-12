@@ -1,5 +1,9 @@
 package org.sparta.slack.domain.entity;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -7,6 +11,11 @@ import lombok.NoArgsConstructor;
 import org.sparta.jpa.entity.BaseEntity;
 import org.sparta.slack.domain.enums.Channel;
 import org.sparta.slack.domain.enums.TemplateFormat;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Template Aggregate Root
@@ -18,6 +27,15 @@ import org.sparta.slack.domain.enums.TemplateFormat;
 @Table(name = "p_templates")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Template extends BaseEntity {
+
+    private static final ObjectMapper PAYLOAD_OBJECT_MAPPER = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .findAndRegisterModules()
+            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+    private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{\\s*([^{}]+?)\\s*}}");
+    private static final java.time.format.DateTimeFormatter ISO_SECOND_FORMATTER =
+            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
     @Id
     @Column(name = "template_code", length = 100)
@@ -146,8 +164,94 @@ public class Template extends BaseEntity {
             return this.content;
         }
 
-        // TODO: 실제 구현시 JSON 파싱 및 템플릿 엔진 사용
-        // 현재는 단순 반환
-        return this.content;
+        Map<String, String> payloadValues = parsePayload(payloadJson);
+        if (payloadValues.isEmpty()) {
+            return this.content;
+        }
+
+        return applyPlaceholders(this.content, payloadValues);
+    }
+
+    private Map<String, String> parsePayload(String payloadJson) {
+        try {
+            JsonNode root = PAYLOAD_OBJECT_MAPPER.readTree(payloadJson);
+            Map<String, String> flattened = new LinkedHashMap<>();
+            flattenNode("", root, flattened);
+            return flattened;
+        } catch (JsonProcessingException ex) {
+            return Map.of();
+        }
+    }
+
+    private void flattenNode(String prefix, JsonNode node, Map<String, String> accumulator) {
+        if (node == null || node.isNull()) {
+            if (!prefix.isBlank()) {
+                accumulator.put(prefix, "");
+            }
+            return;
+        }
+
+        if (node.isObject()) {
+            node.fields().forEachRemaining(entry -> {
+                String childPrefix = prefix.isBlank()
+                        ? entry.getKey()
+                        : prefix + "." + entry.getKey();
+                flattenNode(childPrefix, entry.getValue(), accumulator);
+            });
+            return;
+        }
+
+        if (node.isArray()) {
+            if (!prefix.isBlank()) {
+                accumulator.put(prefix, scalarValue(node));
+            }
+            int index = 0;
+            for (JsonNode child : node) {
+                String childPrefix = prefix + "[" + index + "]";
+                flattenNode(childPrefix, child, accumulator);
+                index++;
+            }
+            return;
+        }
+
+        if (prefix.isBlank()) {
+            return;
+        }
+        accumulator.put(prefix, node.asText());
+    }
+
+    private String applyPlaceholders(String templateBody, Map<String, String> values) {
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(templateBody);
+        StringBuffer buffer = new StringBuffer();
+
+        while (matcher.find()) {
+            String key = matcher.group(1).trim();
+            String replacement = values.getOrDefault(key, "");
+            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
+        }
+
+        matcher.appendTail(buffer);
+        return buffer.toString();
+    }
+
+    private String scalarValue(JsonNode node) {
+        if (node.isValueNode()) {
+            return node.asText();
+        }
+        if (node.isArray() && node.size() >= 3) {
+            try {
+                int year = node.get(0).asInt();
+                int month = node.get(1).asInt();
+                int day = node.get(2).asInt();
+                int hour = node.size() > 3 ? node.get(3).asInt() : 0;
+                int minute = node.size() > 4 ? node.get(4).asInt() : 0;
+                int second = node.size() > 5 ? node.get(5).asInt() : 0;
+                java.time.LocalDateTime dateTime = java.time.LocalDateTime.of(year, month, day, hour, minute, second);
+                return dateTime.format(ISO_SECOND_FORMATTER);
+            } catch (Exception ignored) {
+                // ignore and fall back to JSON text
+            }
+        }
+        return node.toString();
     }
 }

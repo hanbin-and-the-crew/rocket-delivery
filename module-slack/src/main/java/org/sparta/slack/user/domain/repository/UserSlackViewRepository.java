@@ -1,8 +1,12 @@
 package org.sparta.slack.user.domain.repository;
 
 import org.sparta.slack.user.domain.entity.UserSlackView;
+import org.sparta.slack.user.domain.enums.UserRole;
+import org.sparta.slack.user.domain.enums.UserStatus;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -17,4 +21,8 @@ public interface UserSlackViewRepository {
     Optional<UserSlackView> findByUserId(UUID userId);
 
     Optional<UserSlackView> findBySlackId(String slackId);
+
+    List<UserSlackView> findAllByRolesAndStatus(Set<UserRole> roles, UserStatus status);
+
+    List<UserSlackView> findAllByHubIdAndRolesAndStatus(UUID hubId, Set<UserRole> roles, UserStatus status);
 }
