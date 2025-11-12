@@ -18,6 +18,11 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * 3주차 이벤트 리스너 기반 이벤트 처리
+ * Step3. 비동기 처리와 ThreadPool 설정
+ * createOrder이 정상적으로 실행되면 테스트도 통과할 것임.. (현재 다른 도메인이랑 주고받는 부분에서 문제)
+ */
 @Slf4j
 @SpringBootTest
 class AsyncEventTest {
@@ -44,20 +49,20 @@ class AsyncEventTest {
         orderService.createOrder(request, userId);
 
         // 비동기 처리를 위한 대기
-        // 실무에서는 Awaitility 라이브러리를 사용하는 것이 더 안정적입니다.
         Thread.sleep(1000);
 
         // then
         verify(paymentEventListener, times(1))
                 .handleOrderCreatedAsync(any(OrderCreatedEvent.class));
 
-        // 로그를 확인하면 "event-async-" 접두사가 붙은 스레드 이름을 볼 수 있습니다.
+        // 로그를 확인하면 "order-async-" 접두사가 붙은 스레드 이름을 볼 수 있습니다.
         // 이를 통해 비동기로 실행되었음을 확인할 수 있습니다.
     }
 
     @Test
     @DisplayName("비동기 처리 중 예외가 발생해도 메인 로직에 영향을 주지 않는다")
     void whenAsyncEventThrowsException_MainFlowShouldNotBeAffected() {
+
         // given
         OrderRequest.Create request = OrderFixture.createValidRequest();
 
@@ -68,11 +73,7 @@ class AsyncEventTest {
 
         // when & then
         // 비동기 작업에서 예외가 발생해도, 메인 로직(주문 생성)은 성공합니다.
-        // 이는 사용자 경험 측면에서 중요합니다.
         assertThatCode(() -> orderService.createOrder(request, userId))
                 .doesNotThrowAnyException();
-
-        // 다만 실무에서는 비동기 작업의 실패를 감지하고 대응하는 로직이 필요합니다.
-        // 예: 재시도, 관리자 알림, 수동 처리를 위한 큐 저장 등
     }
 }

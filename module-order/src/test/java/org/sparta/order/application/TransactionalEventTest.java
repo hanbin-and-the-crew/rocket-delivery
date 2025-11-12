@@ -58,6 +58,7 @@ class TransactionalEventTest {
     @Test
     @DisplayName("트랜잭션 롤백 시 이벤트가 발행되지 않는다")
     void whenTransactionRollback_EventShouldNotBePublished() {
+
         // given
         OrderRequest.Create request = OrderFixture.createInvalidRequest(); // 예외를 발생시킬 요청
 
@@ -72,14 +73,12 @@ class TransactionalEventTest {
         // 이벤트 리스너도 실행되지 않습니다.
         verify(paymentEventListener, never())
                 .handleOrderCreated(any(OrderCreatedEvent.class));
-
-        // 이를 통해 데이터 일관성이 유지됩니다.
-        // "주문은 없는데 결제는 진행된다"는 상황을 방지할 수 있습니다.
     }
 
     @Test
     @DisplayName("트랜잭션 커밋 성공 시 이벤트가 발행된다")
     void whenTransactionCommit_EventShouldBePublished() {
+
         // given
         OrderRequest.Create request = OrderFixture.createValidRequest();
 
