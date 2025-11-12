@@ -108,6 +108,9 @@ public class Delivery extends BaseEntity {
      * 허브 이동 중 상태로 변경
      */
     public void hubMoving() {
+        if (this.deliveryStatus != DeliveryStatus.HUB_WAITING) {
+            throw new IllegalStateException("HUB_WAITING 상태에서만 허브 이동을 시작할 수 있습니다.");
+        }
         this.deliveryStatus = DeliveryStatus.HUB_MOVING;
     }
 
@@ -115,6 +118,9 @@ public class Delivery extends BaseEntity {
      * 목적지 허브 도착 상태로 변경
      */
     public void arriveAtDestinationHub() {
+        if (this.deliveryStatus != DeliveryStatus.HUB_MOVING) {
+            throw new IllegalStateException("HUB_MOVING 상태에서만 도착할 수 있습니다.");
+        }
         this.deliveryStatus = DeliveryStatus.DEST_HUB_ARRIVED;
     }
 
@@ -162,6 +168,9 @@ public class Delivery extends BaseEntity {
      * 업체 배송 담당자, 허브 배송 담당자 저장
      */
     public void saveDeliveryMan(UUID companyDeliveryManId, UUID hubDeliveryManId) {
+        if (this.deliveryStatus == DeliveryStatus.DELIVERED || this.deliveryStatus == DeliveryStatus.CANCELED) {
+            throw new IllegalStateException("완료되거나 취소된 배송은 담당자를 변경할 수 없습니다.");
+        }
         this.companyDeliveryManId = companyDeliveryManId;
         this.hubDeliveryManId = hubDeliveryManId;
     }
@@ -170,6 +179,9 @@ public class Delivery extends BaseEntity {
      * 업체 배송 담당자만 배정
      */
     public void assignCompanyDeliveryMan(UUID companyDeliveryManId) {
+        if (this.deliveryStatus == DeliveryStatus.DELIVERED || this.deliveryStatus == DeliveryStatus.CANCELED) {
+            throw new IllegalStateException("완료되거나 취소된 배송은 담당자를 변경할 수 없습니다.");
+        }
         this.companyDeliveryManId = companyDeliveryManId;
     }
 
@@ -177,6 +189,9 @@ public class Delivery extends BaseEntity {
      * 허브 배송 담당자만 배정
      */
     public void assignHubDeliveryMan(UUID hubDeliveryManId) {
+        if (this.deliveryStatus == DeliveryStatus.DELIVERED || this.deliveryStatus == DeliveryStatus.CANCELED) {
+            throw new IllegalStateException("완료되거나 취소된 배송은 담당자를 변경할 수 없습니다.");
+        }
         this.hubDeliveryManId = hubDeliveryManId;
     }
 
