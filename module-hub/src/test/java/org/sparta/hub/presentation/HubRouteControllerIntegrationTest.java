@@ -19,7 +19,14 @@ import java.util.UUID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(
+        classes = org.sparta.hub.HubApplication.class,
+        properties = {
+                "eureka.client.enabled=false",
+                "spring.cloud.discovery.enabled=false",
+                "app.eventpublisher.enabled=false" // 
+        }
+)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
