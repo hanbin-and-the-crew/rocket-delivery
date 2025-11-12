@@ -2,10 +2,10 @@ package org.sparta.hub.application;
 
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.common.event.hub.HubCreatedEvent;
+import org.sparta.common.event.hub.HubDeletedEvent;
+import org.sparta.common.event.hub.HubUpdatedEvent;
 import org.sparta.hub.domain.entity.Hub;
-import org.sparta.hub.domain.event.HubCreatedEvent;
-import org.sparta.hub.domain.event.HubDeletedEvent;
-import org.sparta.hub.domain.event.HubUpdatedEvent;
 import org.sparta.hub.domain.model.HubStatus;
 import org.sparta.hub.domain.repository.HubRepository;
 import org.sparta.hub.exception.AlreadyDeletedHubException;

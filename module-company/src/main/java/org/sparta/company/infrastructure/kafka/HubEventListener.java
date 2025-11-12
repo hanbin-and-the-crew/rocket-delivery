@@ -2,9 +2,9 @@ package org.sparta.company.infrastructure.kafka;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.sparta.hub.domain.event.HubCreatedEvent;
-import org.sparta.hub.domain.event.HubUpdatedEvent;
-import org.sparta.hub.domain.event.HubDeletedEvent;
+import org.sparta.common.event.hub.HubCreatedEvent;
+import org.sparta.common.event.hub.HubDeletedEvent;
+import org.sparta.common.event.hub.HubUpdatedEvent;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
