@@ -16,13 +16,13 @@ public class HubEventListener {
 
     @KafkaListener(topics = "hub-events", groupId = "company-service", containerFactory = "kafkaListenerContainerFactory")
     public void handleHubCreated(HubCreatedEvent event) {
-        log.info("✅ 허브 생성 이벤트 수신 - 허브명: {}, 지역: {}", event.name(), event.region());
+        log.info("허브 생성 이벤트 수신 - 허브명: {}, 지역: {}", event.name(), event.region());
         // TODO: 허브 생성 시 관련 회사 데이터 업데이트 로직 추가
     }
 
     @KafkaListener(topics = "hub-events", groupId = "company-service", containerFactory = "kafkaListenerContainerFactory")
     public void handleHubDeleted(HubDeletedEvent event) {
-        log.info("⚠️ 허브 삭제 이벤트 수신 - 허브 ID: {}", event.hubId());
+        log.info("허브 삭제 이벤트 수신 - 허브 ID: {}", event.hubId());
         // TODO: 허브 삭제 시 관련 회사 비활성화 로직 추가
     }
 }

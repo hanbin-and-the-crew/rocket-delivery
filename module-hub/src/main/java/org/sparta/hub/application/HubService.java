@@ -39,6 +39,7 @@ public class HubService {
      */
     @Transactional
     public HubCreateResponse createHub(HubCreateRequest request) {
+
         if (hubRepository.existsByName(request.name())) {
             throw new DuplicateHubNameException(request.name());
         }
