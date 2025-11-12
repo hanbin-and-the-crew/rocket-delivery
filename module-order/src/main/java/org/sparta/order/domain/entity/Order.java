@@ -93,10 +93,9 @@ public class Order extends BaseEntity {
     private LocalDateTime canceledAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private CanceledReasonCode canceledReasonCode;
 
-    @Column(nullable = false, length = 500)
+    @Column(length = 500)
     private String canceledReasonMemo;
 
     @Column
