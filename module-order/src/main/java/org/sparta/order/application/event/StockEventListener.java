@@ -20,8 +20,8 @@ import org.sparta.order.application.service.OrderService;
  */
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
+@Component("orderStockEventListener")
 public class StockEventListener {
 
     private final OrderService orderService;

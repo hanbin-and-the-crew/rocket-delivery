@@ -51,8 +51,6 @@ public class OrderServiceEventTest {
     void createOrder_ShouldPublishOrderCreatedEvent() {
 
         // given
-        UUID userId = java.util.UUID.randomUUID();
-
         OrderRequest.Create request = new OrderRequest.Create(
                 UUID.randomUUID(), // supplierId
                 UUID.randomUUID(), // supplierCompanyId
