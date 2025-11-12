@@ -61,3 +61,23 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+
+slack:
+  notification:
+    bot-token: ${SLACK_BOT_TOKEN:}
+    default-channel: ${SLACK_DEFAULT_CHANNEL:}
+    base-url: https://slack.com/api
+    daily-dispatch-cron: ${SLACK_DAILY_DISPATCH_CRON:0 0 6 * * *}
+
+ai:
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    model: ${GEMINI_MODEL:gemini-1.5-flash-latest}
+
+naver:
+  maps:
+    directions:
+      base-url: https://naveropenapi.apigw.ntruss.com/map-direction/v1
+      client-id: ${NAVER_MAP_CLIENT_ID:}
+      client-secret: ${NAVER_MAP_CLIENT_SECRET:}
