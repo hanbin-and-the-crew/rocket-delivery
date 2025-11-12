@@ -29,7 +29,7 @@ public class AsyncConfig implements AsyncConfigurer {
         executor.setCorePoolSize(8);
         executor.setMaxPoolSize(16);
         executor.setQueueCapacity(500);
-        executor.setThreadNamePrefix("order-");
+        executor.setThreadNamePrefix("order-async-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();

@@ -1,7 +1,76 @@
+plugins {
+    id 'jacoco'
+}
+
 dependencies {
     implementation project(':module-common')
+    implementation project(':module-jpa')
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    //JSON 직렬화에 필요
+    implementation "com.fasterxml.jackson.core:jackson-databind"
+
+    testImplementation "org.springframework.kafka:spring-kafka-test" // 선택: KafkaListener 테스트용
+
+    // test
+    testImplementation project(':module-common')
+    testImplementation project(':module-jpa')
+    testImplementation 'com.h2database:h2'
+    testImplementation 'io.rest-assured:rest-assured:5.3.2'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // testcontainers
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:postgresql:1.19.3'
+    testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testRuntimeOnly 'org.postgresql:postgresql'
+}
+
+// Jacoco
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/config/**',
+                    '**/dto/**',
+                    '**/Application.class',
+                    '**/Q*.class'  // QueryDSL Q 클래스 제외
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.70  // 70% 커버리지 요구
+            }
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()  // JUnit 5 사용
+    finalizedBy jacocoTestReport
 }

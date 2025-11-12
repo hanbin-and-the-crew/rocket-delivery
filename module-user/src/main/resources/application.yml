@@ -17,6 +17,10 @@ spring:
     redis:
       host: localhost
       port: 6378
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: user-service
 
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
