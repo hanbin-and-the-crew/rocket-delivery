@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.dto.request.OrderRequest;
 import org.sparta.order.application.dto.response.OrderResponse;
 import org.sparta.order.application.dto.response.OrderSearchCondition;
@@ -19,8 +20,10 @@ import org.sparta.order.infrastructure.client.*;
 import org.sparta.order.infrastructure.client.dto.request.*;
 import org.sparta.order.infrastructure.client.dto.response.*;
 import org.sparta.order.infrastructure.event.*;
+import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;
 import org.sparta.order.infrastructure.repository.OrderJpaRepository;
 import org.sparta.order.infrastructure.repository.OrderRepositoryImpl;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -49,7 +52,8 @@ public class OrderService {
     private final DeliveryClient deliveryClient;
     private final DeliveryLogClient deliveryLogClient;
 
-    private final OrderEventPublisher orderEventPublisher;
+    private final OrderEventPublisher orderEventPublisher; // Kafka 이벤트 퍼블리셔
+    private final EventPublisher springOrderEventPublisher; // Spring 이벤트 퍼블리셔
 
     /**
      * 주문 생성
@@ -142,6 +146,12 @@ public class OrderService {
         }
         
        // TODO: Slack에 "주문 완료" 이벤트 발행
+        /**
+         *
+         * EventListener STEP1. 주문 생성 이후 OrderCreatedEvent를 발행
+         *
+         */
+        springOrderEventPublisher.publishLocal(OrderCreatedEvent.of(savedOrder, userId));
         
         log.info("주문 생성 완료 - orderId: {}", savedOrder.getId());
         return OrderResponse.Create.of(savedOrder);
