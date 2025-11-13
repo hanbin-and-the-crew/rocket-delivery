@@ -90,6 +90,8 @@ springdoc:
         url: /delivery/api-docs
       - name: Slack Service
         url: /slack/api-docs
+      - name: DeliveryLog Service
+        url: /deliveryLog/api-docs
 
 logging:
   level:

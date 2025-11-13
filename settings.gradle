@@ -12,4 +12,4 @@ include 'module-slack'
 include 'module-delivery'
 include 'module-gateway'
 include 'module-server'
-
+include 'module-deliverylog'
