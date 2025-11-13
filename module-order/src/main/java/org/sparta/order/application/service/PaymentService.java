@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.dto.request.PaymentRequest;
 import org.sparta.order.domain.entity.Payment;
-import org.sparta.order.infrastructure.event.dto.PaymentCompletedEvent;
+import org.sparta.order.infrastructure.event.publisher.PaymentCompletedSpringEvent;
 import org.sparta.order.infrastructure.repository.PaymentJpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +23,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class PaymentService {
     private final PaymentJpaRepository paymentRepository;
-    private final EventPublisher springOrderEventPublisher; // Spring 이벤트 퍼블리셔
+    private final EventPublisher eventPublisher; // Spring 이벤트 퍼블리셔
 
     @Transactional
     public void processPayment(PaymentRequest.Create request, UUID userId) {
@@ -38,8 +38,10 @@ public class PaymentService {
 
             Payment savedPayment = paymentRepository.save(payment);
 
-            // 결제 완료 이벤트 발행
-            springOrderEventPublisher.publishLocal(PaymentCompletedEvent.of(savedPayment, userId));
+            // 결제 완료 이벤트 발행 
+            // Spring Event랑 Kafka 둘 다
+            eventPublisher.publishLocal(PaymentCompletedSpringEvent.of(savedPayment, userId));
+            //eventPublisher.publishExternal(PaymentCompletedEvent.of(savedPayment));
 
             log.info("결제 생성 완료 - paymentId: {}", savedPayment.getId());
         } else {

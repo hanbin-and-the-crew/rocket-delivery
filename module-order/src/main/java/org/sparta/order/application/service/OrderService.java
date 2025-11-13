@@ -8,24 +8,19 @@ import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.dto.request.OrderRequest;
 import org.sparta.order.application.dto.response.OrderResponse;
-import org.sparta.order.application.dto.response.OrderSearchCondition;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
 import org.sparta.order.domain.enumeration.OrderStatus;
 import org.sparta.order.domain.error.OrderErrorType;
-import org.sparta.order.domain.repository.OrderRepository;
 import org.sparta.order.domain.vo.Money;
 import org.sparta.order.domain.vo.Quantity;
 import org.sparta.order.infrastructure.client.*;
 import org.sparta.order.infrastructure.client.dto.request.*;
 import org.sparta.order.infrastructure.client.dto.response.*;
-import org.sparta.order.infrastructure.event.*;
-import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;
+import org.sparta.order.infrastructure.event.publisher.OrderCanceledEvent;
+import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
+import org.sparta.order.infrastructure.event.publisher.PaymentCompletedEvent;
 import org.sparta.order.infrastructure.repository.OrderJpaRepository;
-import org.sparta.order.infrastructure.repository.OrderRepositoryImpl;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,8 +47,9 @@ public class OrderService {
     private final DeliveryClient deliveryClient;
     private final DeliveryLogClient deliveryLogClient;
 
-    private final OrderEventPublisher orderEventPublisher; // Kafka 이벤트 퍼블리셔
+    private final EventPublisher orderEventPublisher; // Kafka 이벤트 퍼블리셔
     private final EventPublisher springOrderEventPublisher; // Spring 이벤트 퍼블리셔
+    // 이것도 코드 안정화되면 이벤트 퍼블리셔 합칠 예정
 
     /**
      * 주문 생성
@@ -93,7 +89,7 @@ public class OrderService {
                 request.receiptCompanyId(),
                 request.receiptHubId(),
                 request.productId(),
-                "aa",//product.name(),
+                "temp",//product.name(),
                 Money.of(10000L),//Money.of(product.price()),
                 Quantity.of(request.quantity()),
                 request.deliveryAddress(),
@@ -151,7 +147,9 @@ public class OrderService {
          * EventListener STEP1. 주문 생성 이후 OrderCreatedEvent를 발행
          *
          */
-        springOrderEventPublisher.publishLocal(OrderCreatedEvent.of(savedOrder, userId));
+        springOrderEventPublisher.publishLocal(OrderCreatedSpringEvent.of(savedOrder, userId));
+        //orderEventPublisher.publishLocal(OrderCreatedEvent.of(savedOrder, userId));
+        // 아래 주문 출고쪽으로
         
         log.info("주문 생성 완료 - orderId: {}", savedOrder.getId());
         return OrderResponse.Create.of(savedOrder);
@@ -298,15 +296,11 @@ public class OrderService {
         }
 
         order.dispatch(orderId, userId, request.dispatchedAt());
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
         // 출고 완료, Product 서비스에 재고 감소 이벤트 발행
-        orderEventPublisher.publishOrderCreated(
-                order.getId(),
-                order.getProductId(),
-                order.getQuantity().getValue(),
-                userId
-        );
+        // 현재 주문 생성에도 똑같이 되어 있어서 나중에 정리되면 둘 중 하나는 제거할 것
+        orderEventPublisher.publishExternal(PaymentCompletedEvent.of(savedOrder));
 
         log.info("주문 출고 처리 완료 - orderId: {}", orderId);
 
@@ -335,16 +329,12 @@ public class OrderService {
         // 주문 취소 처리
         CanceledReasonCode reasonCode = CanceledReasonCode.valueOf(request.reasonCode());
         order.cancel(orderId, userId, reasonCode, request.reasonMemo());
-        orderRepository.save(order);
+        Order canceledOrder = orderRepository.save(order);
         
         // TODO : 배송, 배송 로그 삭제 처리 이벤트
 
         // 재고 예약 취소 이벤트 발행
-        orderEventPublisher.publishOrderCancelled(
-                orderId,
-                order.getProductId(),
-                order.getQuantity().getValue()
-        );
+        orderEventPublisher.publishExternal(OrderCanceledEvent.of(canceledOrder));
 
         order.delete(userId);
         orderRepository.delete(order);

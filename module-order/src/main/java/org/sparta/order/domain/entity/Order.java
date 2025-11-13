@@ -353,4 +353,16 @@ public class Order extends BaseEntity {
         return this.orderStatus == OrderStatus.PLACED;
     }
 
+    // Event쪽인데 서로 말하고자 하는게 상이함. 나중에 확인해보고 바꿔야할듯
+    public void markAsStockReserved() {
+        this.orderStatus = OrderStatus.DISPATCHED;
+    }
+
+    public void confirm() {
+        this.orderStatus = OrderStatus.DELIVERED;
+    }
+
+    public void cancel() {
+        this.orderStatus = OrderStatus.CANCELED;
+    }
 }

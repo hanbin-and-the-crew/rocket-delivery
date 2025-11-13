@@ -1,4 +1,4 @@
-package org.sparta.order.infrastructure.event.dto;
+package org.sparta.order.infrastructure.event.publisher;
 
 import java.util.UUID;
 

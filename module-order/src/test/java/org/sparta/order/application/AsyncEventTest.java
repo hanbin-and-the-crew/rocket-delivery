@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.sparta.order.application.dto.request.OrderRequest;
 import org.sparta.order.application.service.OrderService;
 import org.sparta.order.application.event.PaymentEventListener;
-import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;
+import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
 import org.sparta.order.support.fixtures.OrderFixture;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -53,7 +53,7 @@ class AsyncEventTest {
 
         // then
         verify(paymentEventListener, times(1))
-                .handleOrderCreatedAsync(any(OrderCreatedEvent.class));
+                .handleOrderCreatedAsync(any(OrderCreatedSpringEvent.class));
 
         // 로그를 확인하면 "order-async-" 접두사가 붙은 스레드 이름을 볼 수 있습니다.
         // 이를 통해 비동기로 실행되었음을 확인할 수 있습니다.
@@ -69,7 +69,7 @@ class AsyncEventTest {
         // Mock을 설정하여 결제 처리 중 예외가 발생하도록 합니다.
         doThrow(new RuntimeException("결제 실패"))
                 .when(paymentEventListener)
-                .handleOrderCreatedAsync(any(OrderCreatedEvent.class));
+                .handleOrderCreatedAsync(any(OrderCreatedSpringEvent.class));
 
         // when & then
         // 비동기 작업에서 예외가 발생해도, 메인 로직(주문 생성)은 성공합니다.

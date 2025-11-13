@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.order.application.dto.request.PaymentRequest;
 import org.sparta.order.application.service.PaymentService;
-import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;
+import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -21,7 +21,7 @@ public class PaymentEventListener {
     // phase = AFTER_COMMIT: 트랜잭션이 성공적으로 커밋된 후에만 실행됩니다.
     // 만약 주문 생성 중 예외가 발생해 트랜잭션이 롤백되면, 이 리스너는 실행되지 않습니다.
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleOrderCreated(OrderCreatedEvent event) {
+    public void handleOrderCreated(OrderCreatedSpringEvent event) {
         log.info("결제 처리 시작 - 주문 ID: {}", event.orderId());
 
         // 결제 처리 로직
@@ -42,7 +42,7 @@ public class PaymentEventListener {
     // 트랜잭션 커밋 후 비동기로 실행됩니다.
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void handleOrderCreatedAsync(OrderCreatedEvent event) {
+    public void handleOrderCreatedAsync(OrderCreatedSpringEvent event) {
         log.info("결제 처리 시작 - 주문 ID: {}", event.orderId());
 
         // 결제 처리 로직

@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+/*
+* 과제용 Spring Event 코드임. Kafka 아님!
+* */
 @Component
 @Slf4j
 @RequiredArgsConstructor
