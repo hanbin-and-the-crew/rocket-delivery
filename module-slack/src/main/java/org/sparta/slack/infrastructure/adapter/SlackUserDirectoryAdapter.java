@@ -25,14 +25,13 @@ public class SlackUserDirectoryAdapter {
     public String resolveUserId(String email) {
         CacheEntry cached = cache.get(email);
         if (cached != null && !cached.isExpired()) {
-            log.debug("Slack userId cache hit - email={}, userId={}", email, cached.userId());
+
             return cached.userId();
         }
 
         SlackUserLookupPort.SlackUser slackUser = slackUserLookupPort.lookupUserByEmail(email);
         CacheEntry entry = new CacheEntry(slackUser.id(), Instant.now().plus(CACHE_TTL));
         cache.put(email, entry);
-        log.info("Slack userId cache stored - email={}, userId={}", email, slackUser.id());
         return slackUser.id();
     }
 
