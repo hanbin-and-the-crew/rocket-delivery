@@ -38,8 +38,8 @@ Rocket Delivery는 B2B 물류 서비스로 주문 접수부터 재고 예약, �
 
 ### 아키텍처 다이어그램
 
+<img width="1062" height="1062" alt="image" src="https://github.com/user-attachments/assets/1720795d-e939-4403-8b2e-9804aa267f75" />
 
-![Rocket Delivery Architecture Placeholder](./docs/architecture-overview.png)
 
 ---
 
