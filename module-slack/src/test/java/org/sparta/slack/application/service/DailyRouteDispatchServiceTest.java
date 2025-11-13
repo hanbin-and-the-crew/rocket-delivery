@@ -7,7 +7,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sparta.slack.application.dto.route.DailyDispatchResult;
+import org.sparta.slack.application.route.dto.DailyDispatchResult;
 import org.sparta.slack.application.service.route.DailyRouteDispatchService;
 import org.sparta.slack.application.service.route.DeliveryAssignmentService;
 import org.sparta.slack.application.service.route.RouteNotificationService;
@@ -16,9 +16,6 @@ import org.sparta.slack.domain.entity.CompanyDeliveryRoute;
 import org.sparta.slack.domain.repository.CompanyDeliveryRouteRepository;
 import org.sparta.slack.domain.vo.RoutePlanningResult;
 import org.sparta.slack.domain.vo.RouteStopSnapshot;
-import org.sparta.slack.application.service.route.DeliveryAssignmentService;
-import org.sparta.slack.application.service.route.RouteNotificationService;
-import org.sparta.slack.application.service.route.RoutePlanningService;
 
 import java.time.LocalDate;
 import java.util.List;

@@ -3,7 +3,7 @@ package org.sparta.slack.application.mapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
-import org.sparta.slack.application.command.OrderDeadlineCommand;
+import org.sparta.slack.application.notification.command.OrderDeadlineCommand;
 import org.sparta.slack.domain.enums.UserRole;
 
 import java.time.LocalDateTime;

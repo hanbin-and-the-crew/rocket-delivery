@@ -6,8 +6,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.sparta.slack.application.command.OrderDeadlineCommand;
 import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
+import org.sparta.slack.application.notification.command.OrderDeadlineCommand;
 import org.sparta.slack.application.service.notification.OrderDeadlineFacade;
 import org.junit.jupiter.api.extension.ExtendWith;
 
