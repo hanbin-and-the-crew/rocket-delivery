@@ -1,5 +1,6 @@
 package org.sparta.hub.presentation;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.hub.application.HubRoutePlanner;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+@Tag(name = "HubRoute-Plan API", description = "허브 간 경로 API")
 @RestController
 @RequestMapping("/api/hub-routes")
 @RequiredArgsConstructor
@@ -16,8 +18,7 @@ public class RoutePlanController {
 
     private final HubRoutePlanner planner;
 
-    // Swagger 태그 적용
-    // @Tag(name = "HubRoute - Plan", description = "허브 간 경로 계획(릴레이 포함)")
+    @Tag(name = "HubRoute - Plan", description = "허브 간 경로 계획(릴레이 포함)")
     @GetMapping("/plan")
     public ResponseEntity<ApiResponse<RoutePlanResponse>> plan(
             @RequestParam UUID sourceHubId,

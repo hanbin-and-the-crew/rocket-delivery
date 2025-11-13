@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Cacheable(value = "hubRoutes", key = "#from.name + '->' + #to.name")
 @Transactional(readOnly = true)
 public class HubRoutePlanner {
 
