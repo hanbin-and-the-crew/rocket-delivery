@@ -29,6 +29,8 @@ public class Hub extends BaseEntity {
     private Double longitude;
 
     private String deletedBy;
+    private String createdBy;
+    private String updatedBy;
 
     @Enumerated(EnumType.STRING)
     private HubStatus status = HubStatus.ACTIVE;
@@ -49,11 +51,15 @@ public class Hub extends BaseEntity {
     }
 
     //허브 수정
-    public void update(String address, Double latitude, Double longitude, HubStatus status) {
+    public void update(String address, Double latitude, Double longitude, HubStatus status, String updatedBy) {
         if(address != null) this.address = address;
         if (latitude != null) this.latitude = latitude;
         if (longitude != null) this.longitude = longitude;
         if (status != null) this.status = status;
+        this.updatedBy = updatedBy;
+    }
+    public void update(String address, Double latitude, Double longitude, HubStatus status) {
+        update(this.address, latitude, longitude, status, null);
     }
 
     //허브 삭제

@@ -23,8 +23,9 @@ public record HubCreateResponse(
                 hub.getLatitude(),
                 hub.getLongitude(),
                 hub.getStatus().name(),
-                null, // BaseEntity 추가 후 createdAt, createdBy 매핑
-                null
+                hub.getCreatedAt(),
+                hub.getCreatedBy()
+
         );
     }
 }

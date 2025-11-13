@@ -39,6 +39,10 @@ public class HubRoute {
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
 
+    private String createdBy;
+    private String updatedBy;
+    private String deletedBy;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -61,30 +65,58 @@ public class HubRoute {
         }
     }
 
-    public void update(int duration, int distance) {
+
+    public void update(int duration, int distance, String updatedBy) {
         if (distance <= 0 || duration <= 0) {
             throw new IllegalArgumentException("거리와 소요 시간은 0보다 커야 합니다.");
         }
         this.distance = distance;
         this.duration = duration;
         this.updatedAt = LocalDateTime.now();
+        this.updatedBy = updatedBy;
+    }
+    public void update(int duration, int distance) {
+        update(duration, distance, null);
     }
 
-    public void markAsDeleted() {
+
+
+    public void markAsDeleted(String deletedBy) {
         this.status = HubRouteStatus.INACTIVE;
         this.deletedAt = LocalDateTime.now();
+        this.deletedBy = deletedBy;
+    }
+    public void markAsDeleted() {
+        markAsDeleted(null);
     }
 
-    public void closeRoute() {
+
+
+
+    public void closeRoute(String updatedBy) {
         this.status = HubRouteStatus.CLOSED;
         this.updatedAt = LocalDateTime.now();
+        this.updatedBy = updatedBy;
+    }
+    public void closeRoute() {
+        closeRoute(null);
     }
 
-    public void reopenRoute() {
+
+
+
+    public void reopenRoute(String updatedBy) {
         this.status = HubRouteStatus.ACTIVE;
         this.updatedAt = LocalDateTime.now();
+        this.updatedBy = updatedBy;
         this.deletedAt = null;
+        this.deletedBy = null;
     }
+    public void reopenRoute() {
+        reopenRoute(null);
+    }
+
+
 
     public boolean isActive() {
         return this.status == HubRouteStatus.ACTIVE;

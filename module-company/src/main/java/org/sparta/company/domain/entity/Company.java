@@ -42,7 +42,9 @@ public class Company {
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
 
-
+    private String createdBy;
+    private String updatedBy;
+    private String deletedBy;
 
     //  -- 도메인 메서드 --
     public static Company create(String name, CompanyType type, UUID hubId, String address) {
@@ -65,22 +67,34 @@ public class Company {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void update(String name, CompanyType type, String address) {
+
+
+    public void update(String name, CompanyType type, String address, String updatedBy) {
         if (name != null && !name.isBlank()) this.name = name;
         if (type != null) this.type = type;
         if (address != null && !address.isBlank()) this.address = address;
         this.updatedAt = LocalDateTime.now();
+        this.updatedBy = updatedBy;
     }
+    public void update(String name, CompanyType type, String address) {
+        update(name, type, address,  null);
+    }
+
+
 
     public void markAsDeleted() {
         this.active = false;
         this.deletedAt = LocalDateTime.now();
     }
 
+
+
     public void restore() {
         this.active = true;
         this.deletedAt = null;
     }
+
+
 
     public boolean isActive() {
         return this.active;
