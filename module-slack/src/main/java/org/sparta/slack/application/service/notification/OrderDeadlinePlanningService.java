@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.sparta.slack.application.command.OrderDeadlineCommand;
+import org.sparta.slack.application.notification.command.OrderDeadlineCommand;
 import org.sparta.slack.application.service.notification.OrderDeadlinePlanResult;
 import org.sparta.slack.config.properties.AiPlanningProperties;
 import org.slf4j.Logger;

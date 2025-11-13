@@ -1,4 +1,4 @@
-package org.sparta.slack.application.dto.route;
+package org.sparta.slack.application.route.dto;
 
 import java.time.LocalDate;
 import java.util.List;

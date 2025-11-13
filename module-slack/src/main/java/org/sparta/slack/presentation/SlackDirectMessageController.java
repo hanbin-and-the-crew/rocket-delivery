@@ -1,11 +1,11 @@
-package org.sparta.slack.application.controller;
+package org.sparta.slack.presentation;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.slack.application.dto.message.SlackEmailMessageRequest;
-import org.sparta.slack.application.dto.message.SlackEmailMessageResponse;
+import org.sparta.slack.presentation.dto.message.SlackEmailMessageRequest;
+import org.sparta.slack.presentation.dto.message.SlackEmailMessageResponse;
 import org.sparta.slack.application.service.notification.SlackEmailNotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

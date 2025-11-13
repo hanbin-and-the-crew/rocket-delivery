@@ -1,4 +1,4 @@
-package org.sparta.slack.application.dto.message;
+package org.sparta.slack.presentation.dto.message;
 
 public record SlackEmailMessageResponse(
         String result,

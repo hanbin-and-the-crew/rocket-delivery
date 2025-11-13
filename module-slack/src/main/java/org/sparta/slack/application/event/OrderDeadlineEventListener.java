@@ -2,7 +2,7 @@ package org.sparta.slack.application.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.slack.application.command.OrderDeadlineCommand;
+import org.sparta.slack.application.notification.command.OrderDeadlineCommand;
 import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
 import org.sparta.slack.application.mapper.OrderDeadlineCommandMapper;
 import org.sparta.slack.application.service.notification.OrderDeadlineFacade;

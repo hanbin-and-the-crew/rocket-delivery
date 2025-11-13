@@ -1,10 +1,10 @@
 package org.sparta.slack.application.service.notification;
 
 import lombok.RequiredArgsConstructor;
-import org.sparta.slack.application.command.OrderDeadlineCommand;
-import org.sparta.slack.application.dto.notification.OrderDeadlineNotificationResult;
-import org.sparta.slack.application.dto.notification.OrderSlackMessagePayload;
-import org.sparta.slack.application.dto.notification.OrderSlackNotificationRequest;
+import org.sparta.slack.application.notification.command.OrderDeadlineCommand;
+import org.sparta.slack.application.notification.dto.OrderDeadlineNotificationResult;
+import org.sparta.slack.application.notification.dto.OrderSlackMessagePayload;
+import org.sparta.slack.application.notification.dto.OrderSlackNotificationRequest;
 import org.springframework.stereotype.Service;
 
 /**

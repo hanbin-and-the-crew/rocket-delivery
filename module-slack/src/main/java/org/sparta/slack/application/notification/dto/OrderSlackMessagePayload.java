@@ -1,4 +1,4 @@
-package org.sparta.slack.application.dto.notification;
+package org.sparta.slack.application.notification.dto;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

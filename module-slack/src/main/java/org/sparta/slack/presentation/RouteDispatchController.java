@@ -1,11 +1,11 @@
-package org.sparta.slack.application.controller;
+package org.sparta.slack.presentation;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.sparta.slack.application.dto.route.DailyDispatchResult;
-import org.sparta.slack.application.dto.route.DispatchRequest;
-import org.sparta.slack.application.dto.route.RouteRegistrationRequest;
-import org.sparta.slack.application.dto.route.RouteResponse;
+import org.sparta.slack.application.route.dto.DailyDispatchResult;
+import org.sparta.slack.presentation.dto.route.DispatchRequest;
+import org.sparta.slack.presentation.dto.route.RouteRegistrationRequest;
+import org.sparta.slack.presentation.dto.route.RouteResponse;
 import org.sparta.slack.application.service.route.CompanyDeliveryRouteCommandService;
 import org.sparta.slack.application.service.route.CompanyDeliveryRouteQueryService;
 import org.sparta.slack.application.service.route.DailyRouteDispatchService;
