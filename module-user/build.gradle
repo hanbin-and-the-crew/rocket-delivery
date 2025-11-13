@@ -50,6 +50,11 @@ dependencies {
     // Testcontainers (DB 통합 테스트용)
     testImplementation 'org.testcontainers:junit-jupiter:1.20.3'
     testImplementation 'org.testcontainers:postgresql:1.20.3'
+
+    // zipkin
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
+    implementation 'io.zipkin.reporter2:zipkin-reporter-brave' // 이것만 있어도 되지 않을까..?
 }
 
 jacoco {
