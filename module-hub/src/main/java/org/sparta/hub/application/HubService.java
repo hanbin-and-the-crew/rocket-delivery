@@ -1,6 +1,10 @@
 package org.sparta.hub.application;
 
 import lombok.RequiredArgsConstructor;
+import org.sparta.common.event.EventPublisher;
+import org.sparta.common.event.hub.HubCreatedEvent;
+import org.sparta.common.event.hub.HubDeletedEvent;
+import org.sparta.common.event.hub.HubUpdatedEvent;
 import org.sparta.hub.domain.entity.Hub;
 import org.sparta.hub.domain.model.HubStatus;
 import org.sparta.hub.domain.repository.HubRepository;
@@ -28,13 +32,16 @@ import java.util.UUID;
 public class HubService {
 
     private final HubRepository hubRepository;
+    private final EventPublisher eventPublisher;
     private static final String DEFAULT_DELETER = "system";
 
+
     /**
-     * 허브 생성 기능 - creatHub
+     *  허브 생성 기능 - creatHub
      */
     @Transactional
     public HubCreateResponse createHub(HubCreateRequest request) {
+
         if (hubRepository.existsByName(request.name())) {
             throw new DuplicateHubNameException(request.name());
         }
@@ -45,8 +52,15 @@ public class HubService {
                 request.latitude(),
                 request.longitude()
         );
-
         Hub saved = hubRepository.save(hub);
+
+        eventPublisher.publishExternal(
+            HubCreatedEvent.of(
+                    saved.getHubId(),
+                    saved.getName(),
+                    saved.getAddress())
+        );
+
         return HubCreateResponse.from(saved);
     }
 
@@ -100,31 +114,38 @@ public class HubService {
     /**
      * 허브 수정 - updateHub
      */
+    //@CacheEvict(cacheNames = "routePlan", allEntries = true)
     @Transactional
     public HubResponse updateHub(UUID hubId, HubUpdateRequest request) {
         Hub hub = hubRepository.findById(hubId)
                 .orElseThrow(() -> new HubNotFoundException(hubId));
 
         hub.update(request.address(), request.latitude(), request.longitude(), request.status());
+        hubRepository.flush();
+
+        eventPublisher.publishExternal(HubUpdatedEvent.of(
+                hub.getHubId(), hub.getName(), hub.getAddress()
+        ));
+
         return HubResponse.from(hub);
     }
 
     /**
      * 허브 삭제(비활성화) - deleteHub
      */
+    //@CacheEvict(cacheNames = "routePlan", allEntries = true)
     @Transactional
     public HubResponse deleteHub(UUID hubId) {
         Hub hub = hubRepository.findById(hubId)
                 .orElseThrow(() -> new HubNotFoundException(hubId));
 
-        // 이미 삭제된 허브인 경우
-        if (hub.isDeleted()) {
-            throw new AlreadyDeletedHubException();
-        }
+        if (hub.isDeleted()) throw new AlreadyDeletedHubException();
 
-        // 허브 비활성화 처리 (Soft Delete)
         hub.markDeleted(DEFAULT_DELETER);
         hubRepository.flush();
+
+        eventPublisher.publishExternal(HubDeletedEvent.of(hub.getHubId()));
+
         return HubResponse.from(hub);
     }
 

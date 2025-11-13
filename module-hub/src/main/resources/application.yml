@@ -12,6 +12,11 @@ spring:
   application:
     name: hub-service
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: hub-service
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
@@ -34,6 +39,15 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  cache:
+    type: redis
+  data:
+    redis:
+      host: localhost
+      port: 6378
+      timeout: 2000ms
+
+
 # 보안 관련(BCrypt)
 security:
   bcrypt:
@@ -53,5 +67,19 @@ springdoc:
 # 공통 로깅(상세 SQL 로깅은 프로파일에서 분리)
 logging:
   level:
+    org.sparta.common.event: DEBUG
+    org.springframework.kafka: INFO
+    org.apache.kafka: WARN
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+    org.springframework.cache: INFO
+    org.springframework.data.redis: INFO
+
+
+app:
+  eventpublisher:
+    enabled: true
+
+hub:
+  redis:
+    enabled: true

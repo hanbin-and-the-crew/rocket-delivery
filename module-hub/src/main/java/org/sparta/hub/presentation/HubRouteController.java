@@ -1,5 +1,6 @@
 package org.sparta.hub.presentation;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse; // ← 공통 규칙: common.api 패키지
 import org.sparta.hub.application.HubRouteService;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = "HubRoute CRUD API")
 @RestController
 @RequestMapping("/api/hub-routes")
 @RequiredArgsConstructor

@@ -3,10 +3,16 @@ spring:
     redis:
       host: localhost
       port: 6378
-    cache:
-      type: none
+  cache:
+    type: none
+
   application:
     name: user-service-test
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: user-service
 
   config:
     import: "optional:dotenv:../../../.env"

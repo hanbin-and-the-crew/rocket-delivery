@@ -1,11 +1,17 @@
 package org.sparta.user.application.service;
 
+import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.user.domain.entity.User;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.domain.repository.UserRepository;
+import org.sparta.user.infrastructure.event.publisher.UserCreatedEvent;
+import org.sparta.user.infrastructure.event.publisher.UserDeletedEvent;
+import org.sparta.user.infrastructure.event.publisher.UserRoleChangedEvent;
+import org.sparta.user.infrastructure.event.publisher.UserUpdatedEvent;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
 import org.sparta.user.presentation.UserRequest;
@@ -29,19 +35,14 @@ import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CustomUserDetailsService customUserDetailsService;
+    private final EventPublisher eventPublisher; // Spring 이벤트 퍼블리셔
 
-    public UserService(UserRepository userRepository,
-                         PasswordEncoder passwordEncoder,
-                         CustomUserDetailsService customUserDetailsService) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.customUserDetailsService = customUserDetailsService;
-    }
 
     public String health() {
         return "ok";
@@ -77,6 +78,10 @@ public class UserService {
                 userPhoneNumber, email, role, hubId);
 
         user = userRepository.save(user);
+
+        // 유저 생성 이벤트 발행
+        eventPublisher.publishExternal(UserCreatedEvent.of(user));
+
         return UserResponse.SignUpUser.from(user);
     }
 
@@ -140,6 +145,9 @@ public class UserService {
         context.setAuthentication(updateAuthentication(authentication, updatedUserDetails));
         SecurityContextHolder.setContext(context);
 
+        // 유저 정보 변경 이벤트 발행
+        eventPublisher.publishExternal(UserUpdatedEvent.of(updateUser));
+
         return UserResponse.UpdateUser.from(updateUser);
     }
 
@@ -160,13 +168,18 @@ public class UserService {
             @CacheEvict(value = "userCache", key = "#user.Id"),
             @CacheEvict(value = "userListCache", allEntries = true)
     })
-    public void deleteSelf(CustomUserDetails user) {
+    public void deleteSelf(CustomUserDetails userDetails) {
+        User user = userRepository.findById(userDetails.getId())
+                .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다."));
+
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
-        int updated = userRepository.softDeleteByUserId(user.getId(), now);
+        int updated = userRepository.softDeleteByUserId(user.getUserId(), now);
         if (updated == 0) {
-            // 이미 탈퇴했거나 존재하지 않는 경우
             throw new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다.");
         }
+
+        // 유저 삭제 이벤트 발행
+        eventPublisher.publishExternal(UserDeletedEvent.of(user));
     }
 
     /**
@@ -245,6 +258,9 @@ public class UserService {
         context.setAuthentication(updateAuthentication(authentication, updatedUserDetails));
         SecurityContextHolder.setContext(context);
 
+        // 유저 정보 변경 이벤트 발행
+        eventPublisher.publishExternal(UserUpdatedEvent.of(updateUser));
+
         return UserResponse.UpdateUser.from(updateUser);
     }
 
@@ -257,12 +273,17 @@ public class UserService {
             @CacheEvict(value = "userListCache", allEntries = true)
     })
     public void deleteUser(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다."));
+
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
-        int updated = userRepository.softDeleteByUserId(userId, now);
+        int updated = userRepository.softDeleteByUserId(user.getUserId(), now);
         if (updated == 0) {
-            // 이미 탈퇴했거나 존재하지 않는 경우
             throw new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다.");
         }
+
+        // 유저 삭제 이벤트 발행
+        eventPublisher.publishExternal(UserDeletedEvent.of(user));
     }
 
     /**
@@ -291,6 +312,9 @@ public class UserService {
         }
 
         user.updateStatus(newStatus);
+
+        // 유저 권한 변경 이벤트 발행
+        eventPublisher.publishExternal(UserRoleChangedEvent.of(user));
     }
 
 
