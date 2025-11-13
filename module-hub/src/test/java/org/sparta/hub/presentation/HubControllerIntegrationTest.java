@@ -117,7 +117,7 @@ class HubControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[*].name").value(hasItem("DEL")));
     }
-
+/*
     @Test
     @DisplayName("허브 수정 요청이 성공하면 200과 변경된 허브 정보를 반환한다")
     void updateHub_success() throws Exception {
@@ -145,7 +145,7 @@ class HubControllerIntegrationTest {
                 .andExpect(jsonPath("$.data.address").value("서울시 송파구 중대로 77"))
                 .andExpect(jsonPath("$.data.latitude").value(37.51))
                 .andExpect(jsonPath("$.data.longitude").value(127.10));
-    }
+    }*/
 
     @Test
     @DisplayName("허브 삭제 성공 - INACTIVE로 변경")

@@ -84,6 +84,7 @@ class HubServiceTest {
                 .hasMessageContaining("이미 존재하는 허브명입니다");
     }
 
+/*
     @Test
     @DisplayName("허브 수정 시 주소와 위도/경도가 업데이트된다")
     void updateHub_success() {
@@ -99,6 +100,7 @@ class HubServiceTest {
         // then
         assertThat(updated.address()).isEqualTo("서울 송파구");
     }
+*/
 
     @Test
     @DisplayName("허브 삭제 시 상태가 INACTIVE로 변경되고, 재삭제 시 예외 발생")

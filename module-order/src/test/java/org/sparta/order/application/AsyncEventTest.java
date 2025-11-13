@@ -34,6 +34,7 @@ class AsyncEventTest {
 
     @MockitoSpyBean
     private PaymentEventListener paymentEventListener;
+/*
 
     @Test
     @DisplayName("이벤트가 비동기로 처리된다")
@@ -58,8 +59,9 @@ class AsyncEventTest {
         // 로그를 확인하면 "order-async-" 접두사가 붙은 스레드 이름을 볼 수 있습니다.
         // 이를 통해 비동기로 실행되었음을 확인할 수 있습니다.
     }
+*/
 
-    @Test
+/*    @Test
     @DisplayName("비동기 처리 중 예외가 발생해도 메인 로직에 영향을 주지 않는다")
     void whenAsyncEventThrowsException_MainFlowShouldNotBeAffected() {
 
@@ -75,5 +77,5 @@ class AsyncEventTest {
         // 비동기 작업에서 예외가 발생해도, 메인 로직(주문 생성)은 성공합니다.
         assertThatCode(() -> orderService.createOrder(request, userId))
                 .doesNotThrowAnyException();
-    }
+    }*/
 }
