@@ -2,7 +2,7 @@ package org.sparta.slack.presentation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.sparta.slack.domain.enums.MessageStatus;
-import org.sparta.slack.application.dto.message.MessageSearchCondition;
+import org.sparta.slack.application.message.dto.MessageSearchCondition;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;

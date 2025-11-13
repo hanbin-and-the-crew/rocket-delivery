@@ -1,4 +1,4 @@
-package org.sparta.slack.application.dto.message;
+package org.sparta.slack.presentation.dto.message;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

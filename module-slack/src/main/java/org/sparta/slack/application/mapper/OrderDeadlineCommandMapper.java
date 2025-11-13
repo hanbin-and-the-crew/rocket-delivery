@@ -2,7 +2,7 @@ package org.sparta.slack.application.mapper;
 
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
-import org.sparta.slack.application.command.OrderDeadlineCommand;
+import org.sparta.slack.application.notification.command.OrderDeadlineCommand;
 import org.sparta.slack.domain.enums.UserRole;
 import org.sparta.slack.error.SlackErrorType;
 

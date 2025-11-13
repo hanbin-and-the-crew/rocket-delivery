@@ -1,4 +1,4 @@
-package org.sparta.slack.application.dto.notification;
+package org.sparta.slack.application.notification.dto;
 
 import org.sparta.slack.domain.enums.UserRole;
 

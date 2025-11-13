@@ -1,4 +1,4 @@
-package org.sparta.slack.application.command;
+package org.sparta.slack.application.notification.command;
 
 import org.sparta.common.error.BusinessException;
 import org.sparta.slack.domain.enums.UserRole;

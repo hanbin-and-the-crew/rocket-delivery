@@ -2,7 +2,7 @@ package org.sparta.slack.application.service.route;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.slack.application.dto.route.DailyDispatchResult;
+import org.sparta.slack.application.route.dto.DailyDispatchResult;
 import org.sparta.slack.domain.entity.CompanyDeliveryRoute;
 import org.sparta.slack.domain.enums.RouteStatus;
 import org.sparta.slack.domain.repository.CompanyDeliveryRouteRepository;

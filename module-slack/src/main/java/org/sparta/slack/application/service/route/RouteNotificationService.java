@@ -1,7 +1,7 @@
 package org.sparta.slack.application.service.route;
 
 import lombok.RequiredArgsConstructor;
-import org.sparta.slack.application.dto.route.DailyRouteMessagePayload;
+import org.sparta.slack.application.route.dto.DailyRouteMessagePayload;
 import org.sparta.slack.application.service.notification.SlackDirectMessageSender;
 import org.sparta.slack.domain.entity.CompanyDeliveryRoute;
 import org.sparta.slack.domain.vo.RoutePlanningResult;

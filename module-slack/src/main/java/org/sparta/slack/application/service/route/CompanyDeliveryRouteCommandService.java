@@ -1,7 +1,7 @@
 package org.sparta.slack.application.service.route;
 
 import lombok.RequiredArgsConstructor;
-import org.sparta.slack.application.command.RouteRegisterCommand;
+import org.sparta.slack.application.route.command.RouteRegisterCommand;
 import org.sparta.slack.domain.entity.CompanyDeliveryRoute;
 import org.sparta.slack.domain.repository.CompanyDeliveryRouteRepository;
 import org.springframework.stereotype.Service;

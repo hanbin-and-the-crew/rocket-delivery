@@ -1,4 +1,4 @@
-package org.sparta.slack.application.dto.route;
+package org.sparta.slack.presentation.dto.route;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -7,11 +7,19 @@ import org.sparta.slack.domain.vo.RouteStopSnapshot;
 import java.util.UUID;
 
 public record RouteStopRequest(
+
         UUID deliveryId,
-        @NotBlank String label,
-        @NotBlank String address,
+
+        @NotBlank
+        String label,
+
+        @NotBlank
+        String address,
+
         Double latitude,
+
         Double longitude,
+
         Integer sequence
 ) {
 

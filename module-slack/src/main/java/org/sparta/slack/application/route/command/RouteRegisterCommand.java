@@ -1,4 +1,4 @@
-package org.sparta.slack.application.command;
+package org.sparta.slack.application.route.command;
 
 import org.sparta.slack.domain.vo.RouteStopSnapshot;
 
