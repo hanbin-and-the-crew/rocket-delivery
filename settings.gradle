@@ -13,4 +13,5 @@ include 'module-delivery'
 include 'module-deliverylog'
 include 'module-gateway'
 include 'module-server'
-
+include 'module-deliverylog'
+include 'module-deliveryman'
