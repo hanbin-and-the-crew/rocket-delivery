@@ -1,7 +1,41 @@
+bootJar {
+    enabled = true
+}
+
+jar {
+    enabled = true
+}
+
 dependencies {
     implementation project(':module-common')
+    implementation project(':module-jpa')
+
+    //kafka
+    implementation project(':module-kafka')
+    implementation 'org.springframework.kafka:spring-kafka'
+
+    // Spring Boot Starter Web
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // ✅ H2 임베디드 DB (테스트용)
+    testRuntimeOnly 'com.h2database:h2'
+
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    // API 문서화 (Swagger/OpenAPI)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
+
+    //redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
 }

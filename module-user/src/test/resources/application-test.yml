@@ -1,0 +1,68 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6378
+  cache:
+    type: none
+
+  application:
+    name: user-service-test
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: user-service
+
+  config:
+    import: "optional:dotenv:../../../.env"
+
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+  h2:
+    console:
+      enabled: true
+
+# Eureka 클라이언트 비활성화
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# 테스트 포트
+server:
+  port: 0
+
+# 로깅
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+    org.sparta.product: debug
+
+# JWT 테스트용 길이수만 맞춘 랜덤 String(.env와 다름)
+jwt:
+  access:
+    secret:
+      key: ${JWT_ACCESS_SECRET_KEY:p9GxkFqR3v2M1Jt8LzVbXy7nH4dCw2QaD7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1X}
+    token:
+      expire: ${JWT_ACCESS_TOKEN_EXPIRE:1800000}
+  refresh:
+    secret:
+      key: ${JWT_REFRESH_SECRET_KEY:p9GxkFqR3v2M1Jt8LzVbXy7nH4dCw2QaD7J8K9L0M1N2O3P4Q5R6S7T8U9V0W1Y}
+    token:
+      expire: ${JWT_REFRESH_TOKEN_EXPIRE:18000000}

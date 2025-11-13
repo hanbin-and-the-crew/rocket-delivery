@@ -12,6 +12,12 @@ spring:
   application:
     name: slack-service
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: slack-service
+      auto-offset-reset: earliest
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
@@ -21,7 +27,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -55,3 +61,23 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+
+slack:
+  notification:
+    bot-token: ${SLACK_BOT_TOKEN:}
+    default-channel: ${SLACK_DEFAULT_CHANNEL:}
+    base-url: https://slack.com/api
+    daily-dispatch-cron: ${SLACK_DAILY_DISPATCH_CRON:0 0 6 * * *}
+
+ai:
+  gemini:
+    base-url: https://generativelanguage.googleapis.com/v1
+    api-key: ${GEMINI_API_KEY}
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
+naver:
+  maps:
+    directions:
+      base-url: https://maps.apigw.ntruss.com/map-direction/v1/driving
+      endpoint-path: ""
+      client-id: ${NAVER_MAP_CLIENT_ID:}
+      client-secret: ${NAVER_MAP_CLIENT_SECRET:}

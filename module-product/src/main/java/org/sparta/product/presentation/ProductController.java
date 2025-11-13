@@ -3,31 +3,54 @@ package org.sparta.product.presentation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.sparta.product.application.service.ProductService;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
 public class ProductController implements ProductApiSpec{
 
+    private final ProductService productService;
+
     @Override
-    @PostMapping("/")
+    @PostMapping
     public ApiResponse<ProductResponse.Create> createProduct(
             @Valid @RequestBody
             ProductRequest.Create request
     ) {
-        // TODO: 실제 서비스 로직 구현 필요 테스트 용으로 임시로 생성
-        ProductResponse.Create response = new ProductResponse.Create(
-                1L,
-                request.name(),
-                request.description(),
-                request.price(),
-                request.stock()
-        );
+        ProductResponse.Create response = productService.createProduct(request);
         return ApiResponse.success(response);
+    }
+
+    @Override
+    @GetMapping("/{productId}")
+    public ApiResponse<ProductResponse.Detail> getProduct(
+            @PathVariable UUID productId
+    ) {
+        ProductResponse.Detail response = productService.getProduct(productId);
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @PatchMapping("/{productId}")
+    public ApiResponse<ProductResponse.Update> updateProduct(
+            @PathVariable UUID productId,
+            @Valid @RequestBody ProductRequest.Update request
+    ) {
+        ProductResponse.Update response = productService.updateProduct(productId, request);
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @DeleteMapping("/{productId}")
+    public ApiResponse<Void> deleteProduct(
+            @PathVariable UUID productId
+    ) {
+        productService.deleteProduct(productId);
+        return ApiResponse.success(null);
     }
 
 }

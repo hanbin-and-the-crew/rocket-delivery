@@ -28,10 +28,16 @@ spring:
             - Path=/company/**, /companies/**
           filters:
             - RewritePath=/company/(?<segment>.*), /$\{segment}
+        - id: delivery-log-service
+          uri: lb://DELIVERY-LOG-SERVICE
+          predicates:
+            - Path=/delivery-logs/**, /delivery-log/**
+          filters:
+            - RewritePath=/delivery-logs/(?<segment>.*), /$\{segment}
         - id: delivery-service
           uri: lb://DELIVERY-SERVICE
           predicates:
-            - Path=/delivery/**, /deliveries/**
+            - Path=/delivery/**, /deliveries/**, /deliveries/**
           filters:
             - RewritePath=/delivery/(?<segment>.*), /$\{segment}
         - id: hub-service
@@ -64,6 +70,8 @@ spring:
             - Path=/user/**, /users/**, /auth/**
           filters:
             - RewritePath=/user/(?<segment>.*), /$\{segment}
+            - RewritePath=/users/(?<segment>.*), /$\{segment}
+            - RewritePath=/auth/(?<segment>.*), /$\{segment}
         - id: jpa-service
           uri: lb://JPA-SERVICE
           predicates:
@@ -84,10 +92,16 @@ springdoc:
         url: /hub/api-docs
       - name: Company Service
         url: /company/api-docs
+      - name: Delivery Log Service
+        url: /delivery-logs/api-docs
       - name: Delivery Service
         url: /delivery/api-docs
       - name: Slack Service
         url: /slack/api-docs
+      - name: DeliveryLog Service
+        url: /deliveryLog/api-docs
+      - name: DelvieryMan Service
+        url: /deliveryMan/api-docs
 
 logging:
   level:
