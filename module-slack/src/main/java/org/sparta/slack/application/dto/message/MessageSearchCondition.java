@@ -1,4 +1,4 @@
-package org.sparta.slack.application.service.message;
+package org.sparta.slack.application.dto.message;
 
 import org.sparta.slack.domain.enums.MessageStatus;
 

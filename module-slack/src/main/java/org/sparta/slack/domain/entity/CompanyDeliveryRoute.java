@@ -4,22 +4,23 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
 import org.sparta.jpa.entity.BaseEntity;
 import org.sparta.slack.domain.converter.RouteStopConverter;
 import org.sparta.slack.domain.enums.RouteStatus;
 import org.sparta.slack.domain.vo.RoutePlanningResult;
 import org.sparta.slack.domain.vo.RouteStopSnapshot;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
- * 업체 배송 경로 기록 Aggregate
+ *  배송 경로 스냅샷 저장,  AI/Slack 워크플로우 연결
  */
 @Getter
 @Entity
@@ -179,22 +180,22 @@ public class CompanyDeliveryRoute extends BaseEntity {
             String destinationAddress
     ) {
         if (deliveryId == null) {
-            throw new IllegalArgumentException("deliveryId는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "deliveryId는 필수입니다");
         }
         if (scheduledDate == null) {
-            throw new IllegalArgumentException("scheduledDate는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "scheduledDate는 필수입니다");
         }
         if (originHubId == null) {
-            throw new IllegalArgumentException("originHubId는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "originHubId는 필수입니다");
         }
         if (destinationCompanyId == null) {
-            throw new IllegalArgumentException("destinationCompanyId는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "destinationCompanyId는 필수입니다");
         }
         if (originAddress == null || originAddress.isBlank()) {
-            throw new IllegalArgumentException("originAddress는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "originAddress는 필수입니다");
         }
         if (destinationAddress == null || destinationAddress.isBlank()) {
-            throw new IllegalArgumentException("destinationAddress는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "destinationAddress는 필수입니다");
         }
     }
 
@@ -204,10 +205,10 @@ public class CompanyDeliveryRoute extends BaseEntity {
 
     public void assignManager(UUID managerId, String managerName, String slackId, int order) {
         if (managerId == null) {
-            throw new IllegalArgumentException("managerId는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "managerId는 필수입니다");
         }
         if (slackId == null || slackId.isBlank()) {
-            throw new IllegalArgumentException("담당자 Slack ID는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "담당자 Slack ID는 필수입니다");
         }
 
         this.deliveryManagerId = managerId;
@@ -219,7 +220,9 @@ public class CompanyDeliveryRoute extends BaseEntity {
     }
 
     public void applyPlanningResult(RoutePlanningResult result) {
-        Objects.requireNonNull(result, "경로 계획 결과는 필수입니다");
+        if (result == null) {
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "경로 계획 결과는 필수입니다");
+        }
         this.stops = new ArrayList<>(result.orderedStops());
         this.expectedDistanceMeters = result.expectedDistanceMeters();
         this.expectedDurationMinutes = result.expectedDurationMinutes();
@@ -238,7 +241,7 @@ public class CompanyDeliveryRoute extends BaseEntity {
 
     public void markDispatched(UUID messageId) {
         if (messageId == null) {
-            throw new IllegalArgumentException("messageId는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "messageId는 필수입니다");
         }
         this.dispatchMessageId = messageId;
         this.dispatchedAt = LocalDateTime.now();

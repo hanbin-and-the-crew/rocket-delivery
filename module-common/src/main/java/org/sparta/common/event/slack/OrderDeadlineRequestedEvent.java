@@ -1,7 +1,6 @@
-package org.sparta.slack.shared.event;
+package org.sparta.common.event.slack;
 
 import org.sparta.common.event.DomainEvent;
-import org.sparta.slack.domain.enums.UserRole;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -52,7 +51,7 @@ public record OrderDeadlineRequestedEvent(
             LocalDateTime deliveryDeadline,
             Integer workStartHour,
             Integer workEndHour,
-            Set<UserRole> targetRoles,
+            Set<String> targetRoles,
             String deliveryManagerName,
             String deliveryManagerEmail
     ) {

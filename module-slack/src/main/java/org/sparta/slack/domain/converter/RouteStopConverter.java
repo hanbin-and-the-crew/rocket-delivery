@@ -6,7 +6,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.error.BusinessException;
 import org.sparta.slack.domain.vo.RouteStopSnapshot;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,7 +32,12 @@ public class RouteStopConverter implements AttributeConverter<List<RouteStopSnap
             return OBJECT_MAPPER.writeValueAsString(attribute);
         } catch (Exception ex) {
             log.error("RouteStopSnapshot 직렬화 실패", ex);
-            throw new IllegalStateException("경로 지점 정보를 직렬화할 수 없습니다", ex);
+            BusinessException exception = new BusinessException(
+                    SlackErrorType.SLACK_INVALID_STATE,
+                    "경로 지점 정보를 직렬화할 수 없습니다"
+            );
+            exception.initCause(ex);
+            throw exception;
         }
     }
 

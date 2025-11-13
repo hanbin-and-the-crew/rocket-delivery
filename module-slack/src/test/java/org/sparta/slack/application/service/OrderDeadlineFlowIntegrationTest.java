@@ -2,7 +2,7 @@ package org.sparta.slack.application.service;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.sparta.slack.shared.event.OrderDeadlineRequestedEvent;
+import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
 import org.sparta.slack.application.port.out.SlackNotificationSender;
 import org.sparta.slack.application.port.out.SlackRecipientFinder;
 import org.sparta.slack.application.port.out.SlackTemplateRepository;
@@ -11,18 +11,15 @@ import org.sparta.slack.domain.entity.Template;
 import org.sparta.slack.domain.enums.Channel;
 import org.sparta.slack.domain.enums.TemplateFormat;
 import org.sparta.slack.domain.repository.MessageRepository;
-import org.sparta.slack.domain.entity.UserSlackView;
 import org.sparta.slack.domain.enums.UserRole;
-import org.sparta.slack.domain.enums.UserStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -46,13 +43,13 @@ class OrderDeadlineFlowIntegrationTest {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    @MockBean
+    @MockitoBean
     private SlackRecipientFinder slackRecipientFinder;
-    @MockBean
+    @MockitoBean
     private SlackTemplateRepository slackTemplateRepository;
-    @MockBean
+    @MockitoBean
     private MessageRepository messageRepository;
-    @MockBean
+    @MockitoBean
     private SlackNotificationSender slackNotificationSender;
 
     @Test

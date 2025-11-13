@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
 import org.sparta.jpa.entity.BaseEntity;
 import org.sparta.slack.domain.enums.PlanningStatus;
 import org.sparta.slack.domain.vo.PayloadSnapshot;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -123,7 +125,7 @@ public class Planning extends BaseEntity {
 
     private static void validateOrderId(UUID orderId) {
         if (orderId == null) {
-            throw new IllegalArgumentException("주문 ID는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "주문 ID는 필수입니다");
         }
     }
 
@@ -137,7 +139,7 @@ public class Planning extends BaseEntity {
             String aiRawOutput
     ) {
         if (this.status != PlanningStatus.REQUESTED) {
-            throw new IllegalStateException("REQUESTED 상태에서만 완료 처리가 가능합니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "REQUESTED 상태에서만 완료 처리가 가능합니다");
         }
 
         this.response = PlanningResponse.create(
@@ -156,7 +158,7 @@ public class Planning extends BaseEntity {
      */
     public void markAsFailed(String errorMessage) {
         if (this.status != PlanningStatus.REQUESTED) {
-            throw new IllegalStateException("REQUESTED 상태에서만 실패 처리가 가능합니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "REQUESTED 상태에서만 실패 처리가 가능합니다");
         }
 
         this.status = PlanningStatus.FAILED;
@@ -176,7 +178,7 @@ public class Planning extends BaseEntity {
      */
     public void retry() {
         if (!canRetry()) {
-            throw new IllegalStateException("재요청할 수 없는 상태입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "재요청할 수 없는 상태입니다");
         }
         this.status = PlanningStatus.REQUESTED;
         this.requestedAt = LocalDateTime.now();
@@ -204,7 +206,7 @@ public class Planning extends BaseEntity {
      */
     public LocalDateTime getDeadline() {
         if (!isCompleted() || this.response == null) {
-            throw new IllegalStateException("완료된 Planning이 아니거나 응답이 없습니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "완료된 Planning이 아니거나 응답이 없습니다");
         }
         return this.response.getDeadline().getValue();
     }

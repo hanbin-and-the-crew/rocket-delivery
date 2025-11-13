@@ -2,7 +2,7 @@ package org.sparta.slack.application.event;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.sparta.slack.shared.event.UserDomainEvent;
+import org.sparta.common.event.slack.UserDomainEvent;
 import org.sparta.slack.domain.entity.UserSlackView;
 import org.sparta.slack.domain.enums.UserRole;
 import org.sparta.slack.domain.enums.UserStatus;
@@ -86,8 +86,8 @@ class UserEventListenerIntegrationTest {
                 "user-" + userId.toString().substring(0, 8),
                 "홍길동",
                 slackId,
-                UserRole.MASTER,
-                UserStatus.APPROVE,
+                UserRole.MASTER.name(),
+                UserStatus.APPROVE.name(),
                 UUID.randomUUID()
         );
 

@@ -1,16 +1,13 @@
-package org.sparta.slack.shared.event;
+package org.sparta.common.event.slack;
 
 import org.sparta.common.event.DomainEvent;
-import org.sparta.slack.domain.enums.UserRole;
-import org.sparta.slack.domain.enums.UserStatus;
-
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
 
 /**
- * Kafka user-events 토픽 역직렬화용 이벤트 DTO
+ * user-events 토픽 이벤트 DTO
  */
 public record UserDomainEvent(
         UUID eventId,
@@ -24,8 +21,8 @@ public record UserDomainEvent(
             String userName,
             String realName,
             String slackId,
-            UserRole role,
-            UserStatus status,
+            String role,
+            String status,
             UUID hubId
     ) {
     }

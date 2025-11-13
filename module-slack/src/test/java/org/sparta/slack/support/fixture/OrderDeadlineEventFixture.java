@@ -1,10 +1,11 @@
 package org.sparta.slack.support.fixture;
 
-import org.sparta.slack.shared.event.OrderDeadlineRequestedEvent;
+import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
 import org.sparta.slack.domain.enums.UserRole;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 /**
@@ -21,6 +22,12 @@ public final class OrderDeadlineEventFixture {
             UUID destinationCompanyId,
             Set<UserRole> targetRoles
     ) {
+        Set<String> targetRoleNames = targetRoles == null
+                ? null
+                : targetRoles.stream()
+                .map(UserRole::name)
+                .collect(Collectors.toSet());
+
         return new OrderDeadlineRequestedEvent.Payload(
                 orderId,
                 "ORD-" + orderId.toString().substring(0, 4),
@@ -42,7 +49,7 @@ public final class OrderDeadlineEventFixture {
                 LocalDateTime.of(2024, 7, 3, 18, 0),
                 9,
                 18,
-                targetRoles,
+                targetRoleNames,
                 "김매니저",
                 "manager@test.com"
         );

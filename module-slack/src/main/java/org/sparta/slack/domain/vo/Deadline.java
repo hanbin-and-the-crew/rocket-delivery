@@ -5,6 +5,8 @@ import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.time.LocalDateTime;
 
@@ -21,7 +23,7 @@ public class Deadline {
 
     private Deadline(LocalDateTime value) {
         if (value == null) {
-            throw new IllegalArgumentException("발송 시한은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "발송 시한은 필수입니다");
         }
         this.value = value;
     }

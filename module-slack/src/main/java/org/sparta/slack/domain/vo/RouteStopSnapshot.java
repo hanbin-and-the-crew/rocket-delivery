@@ -2,6 +2,8 @@ package org.sparta.slack.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
+import org.sparta.common.error.BusinessException;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.util.UUID;
 
@@ -21,10 +23,10 @@ public record RouteStopSnapshot(
 
     public RouteStopSnapshot {
         if (label == null || label.isBlank()) {
-            throw new IllegalArgumentException("경로 지점 라벨은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "경로 지점 라벨은 필수입니다");
         }
         if (address == null || address.isBlank()) {
-            throw new IllegalArgumentException("경로 지점 주소는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "경로 지점 주소는 필수입니다");
         }
     }
 

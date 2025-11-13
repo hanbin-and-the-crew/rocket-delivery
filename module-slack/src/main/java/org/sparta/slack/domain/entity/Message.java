@@ -4,11 +4,13 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
 import org.sparta.jpa.entity.BaseEntity;
 import org.sparta.slack.domain.enums.Channel;
 import org.sparta.slack.domain.enums.MessageStatus;
 import org.sparta.slack.domain.vo.DeliveryResult;
 import org.sparta.slack.domain.vo.Recipient;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -97,13 +99,13 @@ public class Message extends BaseEntity {
 
     private static void validateTemplateCode(String templateCode) {
         if (templateCode == null || templateCode.isBlank()) {
-            throw new IllegalArgumentException("템플릿 코드는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "템플릿 코드는 필수입니다");
         }
     }
 
     private static void validatePayload(String payload) {
         if (payload == null || payload.isBlank()) {
-            throw new IllegalArgumentException("페이로드는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "페이로드는 필수입니다");
         }
     }
 
@@ -129,7 +131,7 @@ public class Message extends BaseEntity {
      */
     public void updateSlackThreadTs(String threadTs) {
         if (this.channel != Channel.SLACK) {
-            throw new IllegalStateException("Slack 채널이 아닙니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "Slack 채널이 아닙니다");
         }
         if (this.slackDetail != null) {
             this.slackDetail.updateThreadTs(threadTs);
@@ -148,7 +150,7 @@ public class Message extends BaseEntity {
      */
     public void resend() {
         if (!canResend()) {
-            throw new IllegalStateException("재발송할 수 없는 상태입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "재발송할 수 없는 상태입니다");
         }
         this.status = MessageStatus.PENDING;
         this.sentAt = null;
@@ -163,7 +165,7 @@ public class Message extends BaseEntity {
         validateTemplateCode(templateCode);
         validatePayload(payload);
         if (messageBody == null || messageBody.isBlank()) {
-            throw new IllegalArgumentException("메시지 본문은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "메시지 본문은 필수입니다");
         }
         this.templateCode = templateCode;
         this.payload = payload;

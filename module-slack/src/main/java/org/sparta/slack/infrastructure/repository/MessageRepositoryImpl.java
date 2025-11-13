@@ -6,7 +6,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.sparta.slack.domain.entity.Message;
 import org.sparta.slack.domain.repository.MessageRepository;
-import org.sparta.slack.application.service.message.MessageSearchCondition;
+import org.sparta.slack.application.dto.message.MessageSearchCondition;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;

@@ -47,6 +47,7 @@ public class SlackMessageCommandService {
         );
 
         messageRepository.save(message);
+
         sendAndMark(message);
         messageRepository.save(message);
 

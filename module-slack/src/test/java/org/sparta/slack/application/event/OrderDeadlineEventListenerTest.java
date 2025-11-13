@@ -7,9 +7,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.slack.application.command.OrderDeadlineCommand;
-import org.sparta.slack.shared.event.OrderDeadlineRequestedEvent;
+import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
 import org.sparta.slack.application.service.notification.OrderDeadlineFacade;
-import org.sparta.slack.domain.enums.UserRole;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.time.Instant;
@@ -54,7 +53,7 @@ class OrderDeadlineEventListenerTest {
                 LocalDateTime.of(2024, 7, 2, 18, 0),
                 9,
                 18,
-                Set.of(UserRole.HUB_MANAGER),
+                Set.of("HUB_MANAGER"),
                 "김매니저",
                 "manager@test.com"
         );

@@ -19,8 +19,8 @@ import org.sparta.slack.domain.enums.UserStatus;
 import org.sparta.slack.domain.repository.UserSlackViewRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,7 +48,7 @@ class RouteDispatchIntegrationTest {
     @Autowired
     private DailyRouteDispatchService dailyRouteDispatchService;
 
-    @MockBean
+    @MockitoBean
     private SlackNotificationSender slackNotificationSender;
 
     @Test

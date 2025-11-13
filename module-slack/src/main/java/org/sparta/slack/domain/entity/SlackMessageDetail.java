@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.util.UUID;
 
@@ -50,10 +52,10 @@ public class SlackMessageDetail {
             String messageBody
     ) {
         if (receiverSlackId == null || receiverSlackId.isBlank()) {
-            throw new IllegalArgumentException("수신자 Slack ID는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "수신자 Slack ID는 필수입니다");
         }
         if (messageBody == null || messageBody.isBlank()) {
-            throw new IllegalArgumentException("메시지 본문은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "메시지 본문은 필수입니다");
         }
 
         return new SlackMessageDetail(receiverSlackId, messageBody, null, null);
@@ -66,10 +68,10 @@ public class SlackMessageDetail {
             String threadTs
     ) {
         if (receiverSlackId == null || receiverSlackId.isBlank()) {
-            throw new IllegalArgumentException("수신자 Slack ID는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "수신자 Slack ID는 필수입니다");
         }
         if (messageBody == null || messageBody.isBlank()) {
-            throw new IllegalArgumentException("메시지 본문은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "메시지 본문은 필수입니다");
         }
 
         return new SlackMessageDetail(receiverSlackId, messageBody, channelName, threadTs);
@@ -81,7 +83,7 @@ public class SlackMessageDetail {
 
     public void updateMessageBody(String messageBody) {
         if (messageBody == null || messageBody.isBlank()) {
-            throw new IllegalArgumentException("메시지 본문은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "메시지 본문은 필수입니다");
         }
         this.messageBody = messageBody;
     }

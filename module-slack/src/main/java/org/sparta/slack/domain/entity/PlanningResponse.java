@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
 import org.sparta.slack.domain.vo.Deadline;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -64,10 +66,10 @@ public class PlanningResponse {
             String aiRawOutput
     ) {
         if (planningRequestId == null) {
-            throw new IllegalArgumentException("Planning 요청 ID는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "Planning 요청 ID는 필수입니다");
         }
         if (deadline == null) {
-            throw new IllegalArgumentException("최종 발송 시한은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "최종 발송 시한은 필수입니다");
         }
 
         return new PlanningResponse(

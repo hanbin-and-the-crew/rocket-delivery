@@ -5,6 +5,8 @@ import jakarta.persistence.Embeddable;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
+import org.sparta.slack.error.SlackErrorType;
 
 /**
  * 발송 결과 Value Object
@@ -31,7 +33,7 @@ public class DeliveryResult {
 
     public static DeliveryResult failure(String errorCode, String errorMessage) {
         if (errorCode == null || errorCode.isBlank()) {
-            throw new IllegalArgumentException("에러 코드는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "에러 코드는 필수입니다");
         }
         return new DeliveryResult(errorCode, errorMessage);
     }

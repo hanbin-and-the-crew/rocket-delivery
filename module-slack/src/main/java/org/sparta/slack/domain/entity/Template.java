@@ -8,9 +8,11 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
 import org.sparta.jpa.entity.BaseEntity;
 import org.sparta.slack.domain.enums.Channel;
 import org.sparta.slack.domain.enums.TemplateFormat;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -90,28 +92,28 @@ public class Template extends BaseEntity {
 
     private static void validateTemplateCode(String templateCode) {
         if (templateCode == null || templateCode.isBlank()) {
-            throw new IllegalArgumentException("템플릿 코드는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "템플릿 코드는 필수입니다");
         }
         if (templateCode.length() > 100) {
-            throw new IllegalArgumentException("템플릿 코드는 100자를 초과할 수 없습니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "템플릿 코드는 100자를 초과할 수 없습니다");
         }
     }
 
     private static void validateFormat(TemplateFormat format) {
         if (format == null) {
-            throw new IllegalArgumentException("템플릿 포맷은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "템플릿 포맷은 필수입니다");
         }
     }
 
     private static void validateContent(String content) {
         if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("템플릿 내용은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "템플릿 내용은 필수입니다");
         }
     }
 
     private static void validateChannel(Channel channel) {
         if (channel == null) {
-            throw new IllegalArgumentException("채널은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "채널은 필수입니다");
         }
     }
 

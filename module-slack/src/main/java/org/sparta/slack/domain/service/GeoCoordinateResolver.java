@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.error.BusinessException;
 import org.sparta.slack.config.properties.AiPlanningProperties;
 import org.sparta.slack.domain.vo.GeoPoint;
+import org.sparta.slack.error.SlackErrorType;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -33,7 +35,7 @@ public class GeoCoordinateResolver {
 
     public GeoPoint resolve(String address) {
         if (address == null || address.isBlank()) {
-            throw new IllegalArgumentException("주소는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "주소는 필수입니다");
         }
 
         return requestViaAi(address)

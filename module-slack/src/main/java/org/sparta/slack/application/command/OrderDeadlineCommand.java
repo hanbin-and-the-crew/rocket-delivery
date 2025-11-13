@@ -1,10 +1,11 @@
 package org.sparta.slack.application.command;
 
+import org.sparta.common.error.BusinessException;
 import org.sparta.slack.domain.enums.UserRole;
+import org.sparta.slack.error.SlackErrorType;
 
 import java.time.LocalDateTime;
 import java.util.EnumSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -35,31 +36,31 @@ public record OrderDeadlineCommand(
 ) {
 
     public OrderDeadlineCommand {
-        Objects.requireNonNull(orderId, "orderId는 필수입니다");
-        Objects.requireNonNull(orderNumber, "orderNumber는 필수입니다");
-        Objects.requireNonNull(customerName, "customerName은 필수입니다");
-        Objects.requireNonNull(orderTime, "orderTime은 필수입니다");
-        Objects.requireNonNull(productInfo, "productInfo는 필수입니다");
-        Objects.requireNonNull(quantity, "quantity는 필수입니다");
-        Objects.requireNonNull(originHubId, "originHubId는 필수입니다");
-        Objects.requireNonNull(destinationHubId, "destinationHubId는 필수입니다");
-        Objects.requireNonNull(deliveryDeadline, "deliveryDeadline은 필수입니다");
+        orderId = requireNonNull(orderId, "orderId는 필수입니다");
+        orderNumber = requireNonNull(orderNumber, "orderNumber는 필수입니다");
+        customerName = requireNonNull(customerName, "customerName은 필수입니다");
+        orderTime = requireNonNull(orderTime, "orderTime은 필수입니다");
+        productInfo = requireNonNull(productInfo, "productInfo는 필수입니다");
+        quantity = requireNonNull(quantity, "quantity는 필수입니다");
+        originHubId = requireNonNull(originHubId, "originHubId는 필수입니다");
+        destinationHubId = requireNonNull(destinationHubId, "destinationHubId는 필수입니다");
+        deliveryDeadline = requireNonNull(deliveryDeadline, "deliveryDeadline은 필수입니다");
 
         if (quantity <= 0) {
-            throw new IllegalArgumentException("quantity는 1 이상이어야 합니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "quantity는 1 이상이어야 합니다");
         }
 
         workStartHour = defaultHour(workStartHour, 9);
         workEndHour = defaultHour(workEndHour, 18);
 
         if (workStartHour < 0 || workStartHour > 23) {
-            throw new IllegalArgumentException("workStartHour는 0~23 사이여야 합니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "workStartHour는 0~23 사이여야 합니다");
         }
         if (workEndHour < 0 || workEndHour > 23) {
-            throw new IllegalArgumentException("workEndHour는 0~23 사이여야 합니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "workEndHour는 0~23 사이여야 합니다");
         }
         if (workStartHour >= workEndHour) {
-            throw new IllegalArgumentException("workStartHour는 workEndHour보다 작아야 합니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "workStartHour는 workEndHour보다 작아야 합니다");
         }
 
         targetRoles = (targetRoles == null || targetRoles.isEmpty())
@@ -69,6 +70,13 @@ public record OrderDeadlineCommand(
 
     private static int defaultHour(Integer value, int fallback) {
         return value == null ? fallback : value;
+    }
+
+    private static <T> T requireNonNull(T value, String message) {
+        if (value == null) {
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, message);
+        }
+        return value;
     }
 
     /**

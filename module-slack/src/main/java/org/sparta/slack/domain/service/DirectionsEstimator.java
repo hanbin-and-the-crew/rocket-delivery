@@ -3,9 +3,11 @@ package org.sparta.slack.domain.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.error.BusinessException;
 import org.sparta.slack.config.properties.NaverDirectionsProperties;
 import org.sparta.slack.domain.vo.RouteMetrics;
 import org.sparta.slack.domain.vo.RouteStopSnapshot;
+import org.sparta.slack.error.SlackErrorType;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -74,7 +76,7 @@ public class DirectionsEstimator {
                 .body(JsonNode.class);
 
         if (response == null) {
-            throw new IllegalStateException("Directions 응답이 없습니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "Directions 응답이 없습니다");
         }
 
         JsonNode routeNode = selectRouteNode(response.path("route"));
@@ -82,7 +84,7 @@ public class DirectionsEstimator {
         JsonNode path = routeNode.path("path");
 
         if (summary.isMissingNode() || summary.isNull()) {
-            throw new IllegalStateException("Directions 응답에 summary 정보가 없습니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "Directions 응답에 summary 정보가 없습니다");
         }
 
         long distance = summary.path("distance").asLong();
@@ -97,7 +99,7 @@ public class DirectionsEstimator {
 
     private JsonNode selectRouteNode(JsonNode routeNode) {
         if (routeNode == null || routeNode.isMissingNode()) {
-            throw new IllegalStateException("Directions 응답에 route 노드가 없습니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "Directions 응답에 route 노드가 없습니다");
         }
         List<String> preferredOrders = List.of("trafast", "traoptimal", "tracomfort", "traavoidtoll", "traavoidcaronly");
         for (String key : preferredOrders) {
@@ -106,7 +108,7 @@ public class DirectionsEstimator {
                 return optionArray.get(0);
             }
         }
-        throw new IllegalStateException("Directions 응답에서 사용할 경로 옵션을 찾을 수 없습니다");
+        throw new BusinessException(SlackErrorType.SLACK_INVALID_STATE, "Directions 응답에서 사용할 경로 옵션을 찾을 수 없습니다");
     }
 
     private RouteMetrics fallback(List<RouteStopSnapshot> stops) {

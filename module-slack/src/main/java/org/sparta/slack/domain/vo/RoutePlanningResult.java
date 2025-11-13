@@ -1,5 +1,8 @@
 package org.sparta.slack.domain.vo;
 
+import org.sparta.common.error.BusinessException;
+import org.sparta.slack.error.SlackErrorType;
+
 import java.util.List;
 
 /**
@@ -17,7 +20,7 @@ public record RoutePlanningResult(
 
     public RoutePlanningResult {
         if (orderedStops == null || orderedStops.isEmpty()) {
-            throw new IllegalArgumentException("경로 지점 목록은 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "경로 지점 목록은 필수입니다");
         }
     }
 }

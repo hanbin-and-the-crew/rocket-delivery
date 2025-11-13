@@ -1,7 +1,14 @@
-package org.sparta.slack.application.service;
+package org.sparta.slack.application.mapper;
 
+import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
 import org.sparta.slack.application.command.OrderDeadlineCommand;
-import org.sparta.slack.shared.event.OrderDeadlineRequestedEvent;
+import org.sparta.slack.domain.enums.UserRole;
+import org.sparta.slack.error.SlackErrorType;
+
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
 
 /**
  * 주문 이벤트 payload를 Slack 알림 Command로 변환하는 매퍼.
@@ -13,7 +20,7 @@ public final class OrderDeadlineCommandMapper {
 
     public static OrderDeadlineCommand from(OrderDeadlineRequestedEvent.Payload payload) {
         if (payload == null) {
-            throw new IllegalArgumentException("payload는 필수입니다");
+            throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "payload는 필수입니다");
         }
 
         return new OrderDeadlineCommand(
@@ -33,9 +40,27 @@ public final class OrderDeadlineCommandMapper {
                 payload.deliveryDeadline(),
                 payload.workStartHour(),
                 payload.workEndHour(),
-                payload.targetRoles(),
+                mapTargetRoles(payload.targetRoles()),
                 payload.deliveryManagerName(),
                 payload.deliveryManagerEmail()
         );
+    }
+
+    private static Set<UserRole> mapTargetRoles(Set<String> roleNames) {
+        if (roleNames == null || roleNames.isEmpty()) {
+            return Collections.emptySet();
+        }
+        EnumSet<UserRole> roles = EnumSet.noneOf(UserRole.class);
+        for (String name : roleNames) {
+            if (name == null || name.isBlank()) {
+                continue;
+            }
+            try {
+                roles.add(UserRole.valueOf(name));
+            } catch (IllegalArgumentException ex) {
+                throw new BusinessException(SlackErrorType.SLACK_INVALID_ARGUMENT, "지원하지 않는 사용자 역할입니다: " + name);
+            }
+        }
+        return roles;
     }
 }

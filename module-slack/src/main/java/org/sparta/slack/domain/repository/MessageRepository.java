@@ -1,6 +1,6 @@
 package org.sparta.slack.domain.repository;
 
-import org.sparta.slack.application.service.message.MessageSearchCondition;
+import org.sparta.slack.application.dto.message.MessageSearchCondition;
 import org.sparta.slack.domain.entity.Message;
 
 import java.util.Optional;

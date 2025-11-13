@@ -2,9 +2,9 @@ package org.sparta.slack.application.service.user;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.common.error.BusinessException;
-import org.sparta.slack.error.SlackErrorType;
-import org.sparta.slack.shared.event.UserDomainEvent;
+import org.sparta.common.event.slack.UserDomainEvent;
+import org.sparta.slack.application.mapper.UserEventPayloadMapper;
+import org.sparta.slack.application.mapper.UserEventPayloadMapper.UserEventPayload;
 import org.sparta.slack.domain.entity.UserSlackView;
 import org.sparta.slack.domain.repository.UserSlackViewRepository;
 import org.springframework.stereotype.Service;
@@ -19,14 +19,12 @@ import java.util.UUID;
 public class UserSlackViewService {
 
     private final UserSlackViewRepository userSlackViewRepository;
+    private final UserEventPayloadMapper userEventPayloadMapper;
 
     @Transactional
     public void sync(UserDomainEvent event) {
-        if (!event.hasPayload()) {
-            throw new BusinessException(SlackErrorType.USER_SLACK_VIEW_PAYLOAD_MISSING);
-        }
+        UserEventPayload payload = userEventPayloadMapper.map(event);
 
-        UserDomainEvent.Payload payload = event.payload();
         userSlackViewRepository.findById(payload.userId())
                 .ifPresentOrElse(
                         entity -> entity.apply(
@@ -55,11 +53,8 @@ public class UserSlackViewService {
 
     @Transactional
     public void delete(UserDomainEvent event) {
-        if (!event.hasPayload()) {
-            throw new BusinessException(SlackErrorType.USER_SLACK_VIEW_PAYLOAD_MISSING);
-        }
-
-        UUID userId = event.payload().userId();
+        UserEventPayload payload = userEventPayloadMapper.map(event);
+        UUID userId = payload.userId();
         userSlackViewRepository.findById(userId)
                 .ifPresentOrElse(
                         entity -> entity.markDeleted(event.eventTime()),

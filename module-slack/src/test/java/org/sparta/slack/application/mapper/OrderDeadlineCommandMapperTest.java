@@ -1,9 +1,9 @@
-package org.sparta.slack.application.service;
+package org.sparta.slack.application.mapper;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.sparta.common.event.slack.OrderDeadlineRequestedEvent;
 import org.sparta.slack.application.command.OrderDeadlineCommand;
-import org.sparta.slack.shared.event.OrderDeadlineRequestedEvent;
 import org.sparta.slack.domain.enums.UserRole;
 
 import java.time.LocalDateTime;
@@ -39,7 +39,7 @@ class OrderDeadlineCommandMapperTest {
                 LocalDateTime.of(2024, 7, 2, 18, 0),
                 9,
                 18,
-                Set.of(UserRole.HUB_MANAGER),
+                Set.of("HUB_MANAGER"),
                 "매니저",
                 "manager@test.com"
         );
