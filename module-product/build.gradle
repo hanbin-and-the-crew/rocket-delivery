@@ -27,6 +27,10 @@ dependencies {
     testImplementation 'org.testcontainers:postgresql:1.19.3'
     testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
     testRuntimeOnly 'org.postgresql:postgresql'
+
+    // API 문서화 (Swagger/OpenAPI) 나중에 빼셔도 되는데 API 테스트가 안되서 잠시
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
 }
 
 // Jacoco

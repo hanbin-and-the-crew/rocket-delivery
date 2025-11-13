@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.sparta.order.application.dto.request.OrderRequest;
 import org.sparta.order.application.service.OrderService;
 import org.sparta.order.application.event.PaymentEventListener;
-import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;
+import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
 import org.sparta.order.infrastructure.repository.OrderJpaRepository;
 import org.sparta.order.support.fixtures.OrderFixture;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +72,7 @@ class TransactionalEventTest {
 
         // 이벤트 리스너도 실행되지 않습니다.
         verify(paymentEventListener, never())
-                .handleOrderCreated(any(OrderCreatedEvent.class));
+                .handleOrderCreated(any(OrderCreatedSpringEvent.class));
     }
 
     @Test
@@ -91,6 +91,6 @@ class TransactionalEventTest {
 
         // 이벤트 리스너도 실행됩니다.
         verify(paymentEventListener, timeout(1000).times(1))
-                .handleOrderCreated(any(OrderCreatedEvent.class));
+                .handleOrderCreated(any(OrderCreatedSpringEvent.class));
     }
 }

@@ -1,11 +1,22 @@
 package org.sparta.order.application.event;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.order.infrastructure.event.dto.*;
+import org.sparta.order.domain.entity.Order;
+import org.sparta.order.domain.entity.ProcessedEvent;
+import org.sparta.order.domain.repository.ProcessedEventRepository;
+import org.sparta.order.infrastructure.event.StockConfirmedEvent;
+import org.sparta.order.infrastructure.event.StockReservationCancelledEvent;
+import org.sparta.order.infrastructure.event.StockReservationFailedEvent;
+import org.sparta.order.infrastructure.event.StockReservedEvent;
+import org.sparta.order.infrastructure.event.publisher.*;
+import org.sparta.order.infrastructure.repository.OrderJpaRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import org.sparta.order.application.service.OrderService;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 /**
  * Product => Order 이벤트 발행
@@ -24,38 +35,116 @@ import org.sparta.order.application.service.OrderService;
 @Component("orderStockEventListener")
 public class StockEventListener {
 
-    private final OrderService orderService;
+    private final OrderJpaRepository orderRepository;
+    private final ProcessedEventRepository processedEventRepository;
 
     @KafkaListener(topics = "stock-reserved", groupId = "order-service")
-    public void handleStockReserved(StockEventDto.StockReserved event) {
-        //
+    @Transactional
+    public void handleStockReserved(StockReservedEvent event) {
+        // 1. 멱등성 체크 (eventId로 중복 처리 방지)
+        if (processedEventRepository.existsByEventId(event.eventId())) {
+            log.warn("이미 처리된 이벤트 - eventId: {}", event.eventId());
+            return;
+        }
+
+        // 2. 주문 상태 변경
+        Order order = orderRepository.findById(event.orderId())
+                .orElseThrow(() -> new EntityNotFoundException("주문을 찾을 수 없습니다. id=" + event.orderId()));
+        order.markAsStockReserved();  // PENDING → STOCK_RESERVED
+
+        // 3. 결제 대기 상태로 전환 (타임아웃 설정 권장)
+        // 예: 10분 내 미결제 시 자동 취소
+
+        // 4. 처리 완료 기록
+        processedEventRepository.save(
+                ProcessedEvent.of(event.eventId(), "StockReservedEvent")
+        );
+
+        log.info("재고 예약 성공 처리 완료 - orderId: {}", event.orderId());
     }
 
     @KafkaListener(topics = "stock-reservation-failed", groupId = "order-service")
-    public void handleStockReservationFailed(StockEventDto.StockReservationFailed event) {
-        orderService.handleStockReservationFailed(event.orderId(), event.message());
+    @Transactional
+    public void handleStockReservationFailed(StockReservationFailedEvent event) {
+        // 1. 멱등성 체크
+        if (processedEventRepository.existsByEventId(event.eventId())) {
+            log.warn("이미 처리된 이벤트 - eventId: {}", event.eventId());
+            return;
+        }
+
+        // 2. 주문 취소 처리
+        UUID userId = UUID.randomUUID(); // UserId를 Order에서 어떻게 관리해야할 것인가
+
+        Order order = orderRepository.findById(event.orderId())
+                .orElseThrow(() -> new EntityNotFoundException("주문을 찾을 수 없습니다. id=" + event.orderId()));
+        order.cancel(order.getId(), userId, order.getCanceledReasonCode() ,event.reason());  // PENDING → CANCELLED
+
+        // 3. 사용자에게 실패 알림 (재고 부족 안내)
+//        notificationService.sendOrderFailedNotification(
+//                userId,
+//                event.reason()
+//        );
+
+        // 4. 처리 완료 기록
+        processedEventRepository.save(
+                ProcessedEvent.of(event.eventId(), "StockReservationFailedEvent")
+        );
+
+        log.info("재고 예약 실패 처리 완료 - orderId: {}, reason: {}",
+                event.orderId(), event.reason());
     }
 
-    @KafkaListener(topics = "order.quantity.changed", groupId = "order-group")
-    public void handleOrderQuantityChanged(OrderQuantityChangedEvent event) {
-        log.info("수량 변경 이벤트 수신 - orderId: {}, productId: {}, quantity: {}", event.orderId(), event.productId(), event.quantity());
+    @KafkaListener(topics = "stock-confirmed", groupId = "order-service")
+    @Transactional
+    public void handleStockConfirmed(StockConfirmedEvent event) {
+        // 1. 멱등성 체크
+        if (processedEventRepository.existsByEventId(event.eventId())) {
+            log.warn("이미 처리된 이벤트 - eventId: {}", event.eventId());
+            return;
+        }
 
-        // 재고 예약 변경 처리 
-        // product 쪽에서는 따로 예약 변경이 없음 => 이거는 재고 예약으로 통일해서 사용해야 될듯? 아마도,,
-        // 추후 product 쪽에서 문제가 되는거면 수량 변경 기능은 없애버려도 될듯
+        // 2. 주문 상태 변경
+        Order order = orderRepository.findById(event.orderId())
+                .orElseThrow(() -> new EntityNotFoundException("주문을 찾을 수 없습니다. id=" + event.orderId()));
+        order.confirm();  // STOCK_RESERVED → CONFIRMED
+
+        // 3. 배송 준비 이벤트 발행 (Optional)
+//        kafkaTemplate.send("delivery-requested",
+//                new DeliveryRequestedEvent(order.getId(), order.getDeliveryAddress())
+//        );
+
+        // 4. 처리 완료 기록
+        processedEventRepository.save(
+                ProcessedEvent.of(event.eventId(), "StockConfirmedEvent")
+        );
+
+        log.info("재고 확정 처리 완료 - orderId: {}", event.orderId());
     }
 
-    @KafkaListener(topics = "order.canceled", groupId = "order-group")
-    public void handleOrderCanceled(OrderCanceledEvent event) {
-        log.info("주문 취소 이벤트 수신 - orderId: {}, productId: {}, quantity: {}", event.orderId(), event.productId(), event.quantity());
+    @KafkaListener(topics = "stock-reservation-cancelled", groupId = "order-service")
+    @Transactional
+    public void handleStockReservationCancelled(StockReservationCancelledEvent event) {
+        // 1. 멱등성 체크
+        if (processedEventRepository.existsByEventId(event.eventId())) {
+            log.warn("이미 처리된 이벤트 - eventId: {}", event.eventId());
+            return;
+        }
 
-        // 재고 예약 취소 처리
-    }
+        // 2. 주문 취소 최종 확정
+        Order order = orderRepository.findById(event.orderId())
+                .orElseThrow(() -> new EntityNotFoundException("주문을 찾을 수 없습니다. id=" + event.orderId()));
+        order.cancel();  // CANCELLING → CANCELLED
 
-    @KafkaListener(topics = "order.dispatched", groupId = "order-group")
-    public void handleOrderDispatched(OrderDispatchedEvent event) {
-        log.info("출고 이벤트 수신 - orderId: {}, productId: {}, quantity: {}", event.orderId(), event.productId(), event.quantity());
+        // 3. 환불 처리 (필요 시)
+//        if (order.isPaid()) {
+//            refundService.processRefund(order.getId());
+//        }
 
-        // 실제 재고 감소 이벤트 발행 (Product Service)
+        // 4. 처리 완료 기록
+        processedEventRepository.save(
+                ProcessedEvent.of(event.eventId(), "StockReservationCancelledEvent")
+        );
+
+        log.info("재고 예약 취소 처리 완료 - orderId: {}", event.orderId());
     }
 }

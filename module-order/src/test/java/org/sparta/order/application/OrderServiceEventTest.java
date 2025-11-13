@@ -15,7 +15,7 @@ import org.sparta.order.domain.vo.Quantity;
 import org.sparta.order.infrastructure.client.ProductClient;
 import org.sparta.order.infrastructure.client.UserClient;
 import org.sparta.order.application.event.OrderEventListener;
-import org.sparta.order.infrastructure.event.dto.OrderCreatedEvent;
+import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
 import org.sparta.order.infrastructure.repository.OrderJpaRepository;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -92,6 +92,6 @@ public class OrderServiceEventTest {
         // then
         // 이벤트 리스너가 호출되었는지 검증
         verify(springOrderEventPublisher, times(1))
-                .publishLocal(any(OrderCreatedEvent.class));
+                .publishLocal(any(OrderCreatedSpringEvent.class));
     }
 }
