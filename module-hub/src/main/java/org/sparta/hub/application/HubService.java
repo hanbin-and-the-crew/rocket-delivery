@@ -114,6 +114,7 @@ public class HubService {
     /**
      * 허브 수정 - updateHub
      */
+    //@CacheEvict(cacheNames = "routePlan", allEntries = true)
     @Transactional
     public HubResponse updateHub(UUID hubId, HubUpdateRequest request) {
         Hub hub = hubRepository.findById(hubId)
@@ -132,6 +133,7 @@ public class HubService {
     /**
      * 허브 삭제(비활성화) - deleteHub
      */
+    //@CacheEvict(cacheNames = "routePlan", allEntries = true)
     @Transactional
     public HubResponse deleteHub(UUID hubId) {
         Hub hub = hubRepository.findById(hubId)

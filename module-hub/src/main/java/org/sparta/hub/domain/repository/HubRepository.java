@@ -10,4 +10,8 @@ import java.util.UUID;
 public interface HubRepository extends JpaRepository<Hub, UUID> {
     boolean existsByName(String name);
     List<Hub> findAllByStatus(HubStatus status);
+
+    default List<Hub> findAllActive() {
+        return findAllByStatus(HubStatus.ACTIVE);
+    }
 }

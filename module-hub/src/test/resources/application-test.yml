@@ -25,6 +25,11 @@ spring:
           time_zone: Asia/Seoul
     defer-datasource-initialization: true
 
+  data:
+    redis:
+      host: localhost
+      port: 6378
+
   # SQL 스크립트를 자동으로 실행하지 않음
   sql:
     init:
@@ -66,4 +71,6 @@ eureka:
     enabled: false
 
 
-
+hub:
+  redis:
+    enabled: true
