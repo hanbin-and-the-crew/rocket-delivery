@@ -2,9 +2,9 @@
 
 ---
 
-Spring Event를 활용해 주문 → 결제 → 재고 차감으로 이어지는 흐름을
-트랜잭션 안전성과 비동기 처리, 이벤트 체인 방식으로 설계·구현하여
-서비스 간 결합도를 낮추고 유지보수성과 확장성을 높이는 구조를 학습합니다.
+Spring Event를 활용해 주문 → 결제 → 재고 차감으로 이어지는 흐름을 구현합니다.
+안정적인 트랜잭션 처리와 비동기 이벤트 흐름을 기반으로
+서비스 간 결합도를 줄이고 유지보수성과 확장성을 높이는 아키텍처를 학습합니다.
 
 ---
 
@@ -12,7 +12,7 @@ Spring Event를 활용해 주문 → 결제 → 재고 차감으로 이어지는
 - [이벤트 플로우 다이어그램](#이벤트-플로우-다이어그램)
 - [실행 방법](#실행-방법)
 - [회고](#회고)
-- [EVENT_GUIDE.md](#event-guidemd)
+- [EVENT_GUIDE](#event_guide)
 - [필수 테스트](#필수-테스트)
 
 ---
@@ -332,6 +332,7 @@ public class OrderServiceEventTest {
 ```
 
 </details>
+
 
 ### 3. 전체 플로우 테스트
 <details> <summary><strong>OrderFlowIntegrationTest 코드 보기</strong></summary>
