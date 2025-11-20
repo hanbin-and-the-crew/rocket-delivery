@@ -3,27 +3,20 @@ package org.sparta.order.infrastructure.repository;
 import lombok.RequiredArgsConstructor;
 import org.sparta.order.domain.entity.Payment;
 import org.sparta.order.domain.repository.PaymentRepository;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Payment Repository 구현체
+ * QueryDSL을 활용한 동적 쿼리 처리
  */
-@Repository  // ✅ 추가
+
 @RequiredArgsConstructor
-public class PaymentRepositoryImpl implements PaymentRepository {  // ✅ abstract 제거
+public abstract class PaymentRepositoryImpl implements PaymentRepository {
 
     private final PaymentJpaRepository paymentJpaRepository;
 
     @Override
-    public Payment save(Payment payment) {
-        return paymentJpaRepository.save(payment);
+    public Payment save(Payment order) {
+        return paymentJpaRepository.save(order);
     }
 
-    @Override
-    public List<Payment> findByOrderId(UUID orderId) {
-        return paymentJpaRepository.findByOrderId(orderId);
-    }
 }
