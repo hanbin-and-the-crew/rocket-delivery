@@ -232,7 +232,7 @@ public class Order extends BaseEntity {
         this.requestedMemo = normalizeBlankToNull(newMemo);
     }
 
-    // 요청사항 변경 (PLACED 상태에서만)
+    // 주소 변경
     public void changeAddress(String newAddress, UUID userId) {
         requireUserId(userId);
 
@@ -242,8 +242,10 @@ public class Order extends BaseEntity {
             );
         }
 
-        this.requestedMemo = normalizeBlankToNull(newAddress);
+        this.addressSnapshot = newAddress;
+        this.updatedAt = LocalDateTime.now();
     }
+
 
     // 주문 출고 처리
     public void dispatch(UUID orderId, UUID userId, LocalDateTime dispatchedAt) {

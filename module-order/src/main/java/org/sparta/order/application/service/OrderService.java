@@ -1,5 +1,6 @@
 package org.sparta.order.application.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,8 @@ public class OrderService {
 
     private final EventPublisher orderEventPublisher; // Kafka 이벤트 퍼블리셔
     // 이것도 코드 안정화되면 이벤트 퍼블리셔 합칠 예정
+
+    private final ObjectMapper objectMapper;    // kafka 직렬화 문제 때문에 생성
 
     /**
      * 주문 생성
@@ -218,7 +221,7 @@ public class OrderService {
             throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
         }
         // TODO: 마스터 / 허브 관리자(본인담당) 가능 / 권한 체크 메서드 생성하기
-        UserResponse userResponse = getUser(userId);
+//        UserResponse userResponse = getUser(userId);
 
         order.changeAddress(request.addressSnapshot(), userId);
         orderRepository.save(order);
@@ -252,7 +255,7 @@ public class OrderService {
         // 출고 완료, Product 서비스에 재고 감소 이벤트 발행
         // 현재 주문 생성에도 똑같이 되어 있어서 나중에 정리되면 둘 중 하나는 제거할 것
         orderEventPublisher.publishExternal(PaymentCompletedEvent.of(savedOrder));
-
+        
         log.info("주문 출고 처리 완료 - orderId: {}", orderId);
 
         return OrderResponse.Update.of(order, "주문이 출고되었습니다");
