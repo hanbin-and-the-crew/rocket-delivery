@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.sparta.order.application.dto.request.PaymentRequest;
 import org.sparta.order.application.service.PaymentService;
 import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
@@ -20,7 +21,8 @@ public class PaymentEventListener {
     // @TransactionalEventListener: 트랜잭션의 특정 단계에 이벤트를 처리합니다.
     // phase = AFTER_COMMIT: 트랜잭션이 성공적으로 커밋된 후에만 실행됩니다.
     // 만약 주문 생성 중 예외가 발생해 트랜잭션이 롤백되면, 이 리스너는 실행되지 않습니다.
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    //@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @EventListener
     public void handleOrderCreated(OrderCreatedSpringEvent event) {
         log.info("결제 처리 시작 - 주문 ID: {}", event.orderId());
 
@@ -43,7 +45,11 @@ public class PaymentEventListener {
     @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleOrderCreatedAsync(OrderCreatedSpringEvent event) {
-        log.info("결제 처리 시작 - 주문 ID: {}", event.orderId());
+        // 로그로 현재 스레드 이름을 출력하여 비동기 실행을 확인합니다.
+        log.info("비동기 결제 처리 시작 - Thread: {}, 주문 ID: {}",
+                Thread.currentThread().getName(),
+                event.orderId()
+        );
 
         // 결제 처리 로직
         paymentService.processPayment(
@@ -55,6 +61,6 @@ public class PaymentEventListener {
                 event.userId()
         );
 
-        log.info("결제 처리 완료 - 주문 ID: {}", event.orderId());
+        log.info("비동기 결제 처리 완료 - 주문 ID: {}", event.orderId());
     }
 }
