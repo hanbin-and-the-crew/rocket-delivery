@@ -6,6 +6,9 @@ dependencies {
     implementation project(':module-common')
     implementation project(':module-jpa')
 
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
