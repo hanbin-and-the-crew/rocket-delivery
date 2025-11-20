@@ -55,3 +55,7 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+
+app:
+  eventpublisher:
+    enabled: true

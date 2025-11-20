@@ -1,6 +1,7 @@
 package org.sparta.order.presentation;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
@@ -39,18 +40,15 @@ public interface OrderApiSpec {
             @RequestHeader("X-User-Id") UUID userId
     );
 
-//    @Operation(
-//            summary = "주문 목록 조회",
-//            description = "주문 목록을 검색 조건에 따라 조회합니다"
-//    )
-//    ApiResponse<Page<OrderResponse.Summary>> searchOrders(
-//            @RequestParam(required = false) UUID supplierId,
-//            @RequestParam(required = false) UUID receiptCompanyId,
-//            @RequestParam(required = false) UUID productId,
-//            @RequestParam(required = false) String status,
-//            @RequestHeader("X-User-Id") UUID userId,
-//            Pageable pageable
-//    );
+    /**
+     * 주문 목록 조회
+     */
+    @Operation(summary = "주문 목록 조회", description = "주문 목록을 페이징하여 조회합니다")
+    ApiResponse<Page<OrderResponse.Summary>> searchOrders(
+            Pageable pageable,
+            UUID userId
+    );
+
 
     @Operation(
             summary = "납품 기한 변경",

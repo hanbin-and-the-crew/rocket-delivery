@@ -12,6 +12,7 @@ import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
 import org.sparta.order.domain.enumeration.OrderStatus;
 import org.sparta.order.domain.error.OrderErrorType;
+import org.sparta.order.domain.repository.OrderRepository;
 import org.sparta.order.domain.vo.Money;
 import org.sparta.order.domain.vo.Quantity;
 import org.sparta.order.infrastructure.client.*;
@@ -20,7 +21,8 @@ import org.sparta.order.infrastructure.client.dto.response.*;
 import org.sparta.order.infrastructure.event.publisher.OrderCanceledEvent;
 import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
 import org.sparta.order.infrastructure.event.publisher.PaymentCompletedEvent;
-import org.sparta.order.infrastructure.repository.OrderJpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,7 +41,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class OrderService {
 
-    private final OrderJpaRepository orderRepository;
+    private final OrderRepository orderRepository;
 
     private final ProductClient productClient;
     private final HubClient hubClient;
@@ -108,18 +110,27 @@ public class OrderService {
         return OrderResponse.Detail.of(order);
     }
 
-    /**
-     * 주문 목록 조회 (검색)
-     */
 //    //TODO: 작성자 본인 / 배송 담당자 -> 본인담당 주문건만 / 모든 사용자 가능
 //    //TODO: repo 수정
-//    public Page<OrderResponse.Summary> searchOrders(
-//            OrderSearchCondition condition,
-//            Pageable pageable
-//    ) {
-//        Page<Order> orders = orderRepository.searchOrders(condition, pageable);
-//        return orders.map(OrderResponse.Summary::of);
-//    }
+    /**
+     * 주문 목록 조회 (페이징만)
+     */
+    @Transactional(readOnly = true)
+    public Page<OrderResponse.Summary> searchOrders(
+            Pageable pageable,
+            UUID userId
+    ) {
+        log.info("주문 목록 조회 시작 - userId: {}", userId);
+
+        // TODO: 권한별 필터링 추가 필요
+        // - 작성자 본인: 본인 주문만
+        // - 배송 담당자: 본인 담당 주문만
+        // - 마스터/허브 관리자: 전체 or 담당 허브
+
+        Page<Order> orders = orderRepository.searchOrders(null, pageable);
+        return orders.map(OrderResponse.Summary::of);
+    }
+
 
     /**
      * 납품 기한 변경
@@ -184,8 +195,8 @@ public class OrderService {
         log.info("요청사항 변경 완료 - orderId: {}", orderId);
 
         return OrderResponse.Update.of(order, "요청사항이 변경되었습니다");
-    } 
-    
+    }
+
     /**
      * 주소 변경
      * - PLACED 상태에서만 가능
@@ -270,7 +281,7 @@ public class OrderService {
         CanceledReasonCode reasonCode = CanceledReasonCode.valueOf(request.reasonCode());
         order.cancel(orderId, userId, reasonCode, request.reasonMemo());
         Order canceledOrder = orderRepository.save(order);
-        
+
         // TODO : 배송, 배송 로그 삭제 처리 이벤트
 
         // 재고 예약 취소 이벤트 발행
