@@ -365,9 +365,4 @@ public class Order extends BaseEntity {
     public void cancel() {
         this.orderStatus = OrderStatus.CANCELED;
     }
-
-    // 삭제
-    public void delete(LocalDateTime deletedAt) {
-        this.deletedAt = deletedAt;
-    }
 }

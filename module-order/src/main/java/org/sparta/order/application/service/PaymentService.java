@@ -27,7 +27,7 @@ public class PaymentService {
 
     @Transactional
     public void processPayment(PaymentRequest.Create request, UUID userId) {
-        log.info("결제 생성 시작 - userId: {}", userId);
+
         // 간단한 결제 처리 로직
         // product로부터 가져와서 계산하는 Logic은 다음에 작성!!!!!!!!!!!!!!!
         BigDecimal totalAmount = new BigDecimal("5000.00"); // calculateAmount(request.productId(), request.quantity());
@@ -42,7 +42,6 @@ public class PaymentService {
             // Spring Event랑 Kafka 둘 다
             eventPublisher.publishLocal(PaymentCompletedSpringEvent.of(savedPayment, userId));
             //eventPublisher.publishExternal(PaymentCompletedEvent.of(savedPayment));
-
 
             log.info("결제 생성 완료 - paymentId: {}", savedPayment.getId());
         } else {

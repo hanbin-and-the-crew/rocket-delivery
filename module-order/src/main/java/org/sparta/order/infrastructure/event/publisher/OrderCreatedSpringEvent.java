@@ -17,10 +17,6 @@ public record OrderCreatedSpringEvent(
         int quantity,
         UUID userId
 ) implements DomainEvent {
-    @Override
-    public String eventType() {
-        return "OrderCreated";
-    }
     public static OrderCreatedSpringEvent of(Order order, UUID userId) {
         return new OrderCreatedSpringEvent(
                 UUID.randomUUID(),              // eventId (멱등성 보장용)

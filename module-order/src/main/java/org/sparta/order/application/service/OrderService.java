@@ -12,7 +12,6 @@ import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
 import org.sparta.order.domain.enumeration.OrderStatus;
 import org.sparta.order.domain.error.OrderErrorType;
-import org.sparta.order.domain.repository.OrderRepository;
 import org.sparta.order.domain.vo.Money;
 import org.sparta.order.domain.vo.Quantity;
 import org.sparta.order.infrastructure.client.*;
@@ -21,8 +20,7 @@ import org.sparta.order.infrastructure.client.dto.response.*;
 import org.sparta.order.infrastructure.event.publisher.OrderCanceledEvent;
 import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
 import org.sparta.order.infrastructure.event.publisher.PaymentCompletedEvent;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.sparta.order.infrastructure.repository.OrderJpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +39,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class OrderService {
 
-    private final OrderRepository orderRepository;
+    private final OrderJpaRepository orderRepository;
 
     private final ProductClient productClient;
     private final HubClient hubClient;
@@ -50,6 +48,7 @@ public class OrderService {
     private final DeliveryLogClient deliveryLogClient;
 
     private final EventPublisher orderEventPublisher; // Kafka 이벤트 퍼블리셔
+    private final EventPublisher springOrderEventPublisher; // Spring 이벤트 퍼블리셔
     // 이것도 코드 안정화되면 이벤트 퍼블리셔 합칠 예정
 
     /**
@@ -64,6 +63,23 @@ public class OrderService {
     public OrderResponse.Create createOrder(OrderRequest.Create request, UUID userId) {
         log.info("주문 생성 시작 - productId: {}, quantity: {}, userId: {}",
                 request.productId(), request.quantity(), userId);
+
+//        // 0. supplierId와 현재 userId 동일 검증
+//        ApiResponse<UserResponse> supplierResponse = userClient.getSpecificUserInfo(request.supplierId());
+//        UserResponse supplier = supplierResponse.data();
+//        if (supplier == null) {
+//            throw new BusinessException(OrderErrorType.SUPPLIER_NOT_FOUND);
+//        }
+//        if (!request.supplierId().equals(userId)) {
+//            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
+//        }
+//
+//        // 1. 상품 정보 조회
+//        ProductDetailResponse product = getProductOrThrow(request.productId());
+//
+//        // 2. 허브 정보 검증
+//        validateHub(request.supplierHubId());
+//        validateHub(request.receiptHubId());
 
         // 3. 주문 생성
         Order order = Order.create(
@@ -86,13 +102,55 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
+//        // 4. 재고 예약 이벤트 발행 (Kafka)
+//        orderEventPublisher.publishOrderCreated(
+//                savedOrder.getId(),
+//                request.productId(),
+//                request.quantity(),
+//                userId
+//        );
+//
+//        // 5. 배송 생성
+//        try {
+//            DeliveryCreateResponse delivery = createDelivery(savedOrder);
+//            savedOrder.setDeliveryId(delivery.deliveryId());
+//            orderRepository.save(savedOrder);
+//            log.info("배송 생성 완료 - orderId: {}, deliveryId: {}", savedOrder.getId(), delivery.deliveryId());
+//        } catch (Exception e) {
+//            log.error("배송 생성 실패 - orderId: {}", savedOrder.getId(), e);
+//            // 주문 삭제
+//            savedOrder.delete(userId);
+//            orderRepository.delete(savedOrder);
+//            throw new BusinessException(OrderErrorType.DELIVERY_CREATE_FAILED);
+//        }
+//
+//        // 6. 배송로그 생성
+//        try {
+//            DeliveryLogCreateResponse deliveryLog = createDeliveryLog(savedOrder);
+//
+//            // 7. 배송로그 ID를 배송에 저장
+//            saveDeliveryLog(savedOrder, deliveryLog.deliveryLogId(), userId);
+//
+//        } catch (Exception e) {
+//            log.error("배송로그 생성 실패 - orderId: {}", savedOrder.getId(), e);
+//
+//            // 실패 시, 주문과 배송 모두 삭제
+//            deleteDelivery(order.getDeliveryId(), userId);
+//            savedOrder.delete(userId);
+//            orderRepository.delete(savedOrder);
+//            throw new BusinessException(OrderErrorType.DELIVERY_LOG_CREATE_FAILED);
+//        }
+        
+       // TODO: Slack에 "주문 완료" 이벤트 발행
         /**
          *
          * EventListener STEP1. 주문 생성 이후 OrderCreatedEvent를 발행
          *
          */
-        orderEventPublisher.publishLocal(OrderCreatedSpringEvent.of(savedOrder, userId));
-
+        springOrderEventPublisher.publishLocal(OrderCreatedSpringEvent.of(savedOrder, userId));
+        //orderEventPublisher.publishLocal(OrderCreatedEvent.of(savedOrder, userId));
+        // 아래 주문 출고쪽으로
+        
         log.info("주문 생성 완료 - orderId: {}", savedOrder.getId());
         return OrderResponse.Create.of(savedOrder);
     }
@@ -110,27 +168,18 @@ public class OrderService {
         return OrderResponse.Detail.of(order);
     }
 
+    /**
+     * 주문 목록 조회 (검색)
+     */
 //    //TODO: 작성자 본인 / 배송 담당자 -> 본인담당 주문건만 / 모든 사용자 가능
 //    //TODO: repo 수정
-    /**
-     * 주문 목록 조회 (페이징만)
-     */
-    @Transactional(readOnly = true)
-    public Page<OrderResponse.Summary> searchOrders(
-            Pageable pageable,
-            UUID userId
-    ) {
-        log.info("주문 목록 조회 시작 - userId: {}", userId);
-
-        // TODO: 권한별 필터링 추가 필요
-        // - 작성자 본인: 본인 주문만
-        // - 배송 담당자: 본인 담당 주문만
-        // - 마스터/허브 관리자: 전체 or 담당 허브
-
-        Page<Order> orders = orderRepository.searchOrders(null, pageable);
-        return orders.map(OrderResponse.Summary::of);
-    }
-
+//    public Page<OrderResponse.Summary> searchOrders(
+//            OrderSearchCondition condition,
+//            Pageable pageable
+//    ) {
+//        Page<Order> orders = orderRepository.searchOrders(condition, pageable);
+//        return orders.map(OrderResponse.Summary::of);
+//    }
 
     /**
      * 납품 기한 변경
@@ -195,8 +244,8 @@ public class OrderService {
         log.info("요청사항 변경 완료 - orderId: {}", orderId);
 
         return OrderResponse.Update.of(order, "요청사항이 변경되었습니다");
-    }
-
+    } 
+    
     /**
      * 주소 변경
      * - PLACED 상태에서만 가능
@@ -281,7 +330,7 @@ public class OrderService {
         CanceledReasonCode reasonCode = CanceledReasonCode.valueOf(request.reasonCode());
         order.cancel(orderId, userId, reasonCode, request.reasonMemo());
         Order canceledOrder = orderRepository.save(order);
-
+        
         // TODO : 배송, 배송 로그 삭제 처리 이벤트
 
         // 재고 예약 취소 이벤트 발행

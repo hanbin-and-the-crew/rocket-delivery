@@ -14,8 +14,7 @@ public class Quantity {
 
     private Quantity (int value) {
 
-        // if(value < 1) {throw new IllegalArgumentException("주문 수량은 최소 1개 이상이어야 합니다.");}
-        // 해당 branch에선 오류를 일부러 발생시키기 위해 닫아놓음
+        if(value < 1) {throw new IllegalArgumentException("주문 수량은 최소 1개 이상이어야 합니다.");}
 
         this.value = value;
     }
