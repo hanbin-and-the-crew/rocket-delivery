@@ -15,16 +15,12 @@ public class OrderRequest {
 
     @Schema(description = "주문 생성 요청")
     public record Create(
-            @Schema(description = "공급자 ID", example = "550e8400-e29b-41d4-a716-446655440000")
-            @NotNull(message = "공급자 ID는 필수입니다")
-            UUID supplierId,
-
-            @Schema(description = "요청업체 ID", example = "550e8400-e29b-41d4-a716-446655440001")
-            @NotNull(message = "요청업체 ID는 필수입니다")
+            @Schema(description = "공급업체 ID", example = "550e8400-e29b-41d4-a716-446655440001")
+            @NotNull(message = "공급업체 ID는 필수입니다")
             UUID supplierCompanyId,
 
-            @Schema(description = "요청업체 허브 ID", example = "550e8400-e29b-41d4-a716-446655440002")
-            @NotNull(message = "요청업체 허브 ID는 필수입니다")
+            @Schema(description = "공급업체 허브 ID", example = "550e8400-e29b-41d4-a716-446655440002")
+            @NotNull(message = "공급업체 허브 ID는 필수입니다")
             UUID supplierHubId,
 
             @Schema(description = "수령업체 ID", example = "550e8400-e29b-41d4-a716-446655440003")
@@ -44,11 +40,16 @@ public class OrderRequest {
             @Min(value = 1, message = "주문 수량은 최소 1개 이상이어야 합니다")
             Integer quantity,
 
+            @Schema(description = "상품 가격", example = "10000")
+            @NotNull(message = "상품 가격은 필수입니다")
+            @Min(value = 1, message = "상품 가격은 최소 1 이상이어야 합니다")
+            Integer productPrice,
+
             @Schema(description = "배송지 주소", example = "서울특별시 강남구 테헤란로 123")
             @NotBlank(message = "배송지 주소는 필수입니다")
-            String deliveryAddress,
+            String address,
 
-            @Schema(description = "주문자 실명", example = "최원철")
+            @Schema(description = "주문자 실명", example = "김손님")
             @NotBlank(message = "주문자 실명은 필수입니다")
             String userName,
 
@@ -65,18 +66,10 @@ public class OrderRequest {
             LocalDateTime dueAt,
 
             @Schema(description = "요청사항", example = "빠른 배송 부탁드립니다")
-            String requestedMemo
+            String requestMemo
     ) {
     }
 
-//    @Schema(description = "주문 수량 변경 요청")
-//    public record ChangeQuantity(
-//            @Schema(description = "변경할 수량", example = "15")
-//            @NotNull(message = "수량은 필수입니다")
-//            @Min(value = 1, message = "수량은 최소 1개 이상이어야 합니다")
-//            Integer quantity
-//    ) {
-//    }
 
     @Schema(description = "납품 기한 변경 요청")
     public record ChangeDueAt(
@@ -102,6 +95,11 @@ public class OrderRequest {
 
     @Schema(description = "주문 취소 요청")
     public record Cancel(
+
+            @Schema(description = "취소할 주문 id", example = "550e8400-e29b-41d4-a716-446655440005")
+            @NotNull(message = "취소할 주문 id는 필수입니다")
+            UUID orderId,
+
             @Schema(description = "취소 사유 코드", example = "CUSTOMER_REQUEST")
             @NotNull(message = "취소 사유 코드는 필수입니다")
             String reasonCode,
@@ -112,11 +110,29 @@ public class OrderRequest {
     ) {
     }
 
-    @Schema(description = "주문 출고 처리 요청")
-    public record Dispatch(
-            @Schema(description = "출고 처리 시간", example = "2025-11-10T10:00:00")
-            @NotNull(message = "출고 처리 시간은 필수입니다")
-            LocalDateTime dispatchedAt
+    @Schema(description = "주문 배송출발/출고 처리 요청")
+    public record ShipOrder(
+            @Schema(description = "처리할 주문 id", example = "550e8400-e29b-41d4-a716-446655440005")
+            @NotNull(message = "처리할 주문 id는 필수입니다.")
+            UUID orderId
     ) {
     }
+
+    @Schema(description = "주문 배송완료 처리 요청")
+    public record DeliverOrder(
+            @Schema(description = "처리할 주문 id", example = "550e8400-e29b-41d4-a716-446655440005")
+            @NotNull(message = "처리할 주문 id는 필수입니다.")
+            UUID orderId
+    ) {
+    }
+
+    @Schema(description = "주문 삭제 처리 요청")
+    public record DeleteOrder(
+            @Schema(description = "처리할 주문 id", example = "550e8400-e29b-41d4-a716-446655440005")
+            @NotNull(message = "처리할 주문 id는 필수입니다.")
+            UUID orderId
+    ) {
+    }
+
+
 }
