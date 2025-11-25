@@ -1,0 +1,6 @@
+language: ko
+
+review:
+  enabled: true
+  target_branches:
+    - "*"
