@@ -3,6 +3,7 @@ package org.sparta.product.support.fixtures;
 import org.sparta.product.domain.entity.Product;
 import org.sparta.product.domain.vo.Money;
 
+import java.lang.reflect.Field;
 import java.util.UUID;
 
 /**
@@ -25,7 +26,7 @@ public final class ProductFixture {
      * 기본 상품 생성
      */
     public static Product defaultProduct() {
-        return Product.create(
+        Product product = Product.create(
                 "테스트 상품",
                 Money.of(10000L),
                 DEFAULT_CATEGORY_ID,
@@ -33,13 +34,29 @@ public final class ProductFixture {
                 DEFAULT_HUB_ID,
                 100  // initialQuantity
         );
+        setId(product, UUID.randomUUID());
+        return product;
+    }
+
+    /**
+     * 리플렉션을 사용하여 Product ID 설정
+     * - Mock 테스트용으로 ID를 설정하기 위한 헬퍼 메서드
+     */
+    private static void setId(Product product, UUID id) {
+        try {
+            Field idField = Product.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(product, id);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("ID 설정 실패", e);
+        }
     }
 
     /**
      * 특정 재고량을 가진 상품 생성
      */
     public static Product withStock(Integer quantity) {
-        return Product.create(
+        Product product = Product.create(
                 "재고 테스트 상품",
                 Money.of(10000L),
                 DEFAULT_CATEGORY_ID,
@@ -47,13 +64,15 @@ public final class ProductFixture {
                 DEFAULT_HUB_ID,
                 quantity
         );
+        setId(product, UUID.randomUUID());
+        return product;
     }
 
     /**
      * 특정 가격을 가진 상품 생성
      */
     public static Product withPrice(Long price) {
-        return Product.create(
+        Product product = Product.create(
                 "가격 테스트 상품",
                 Money.of(price),
                 DEFAULT_CATEGORY_ID,
@@ -61,13 +80,15 @@ public final class ProductFixture {
                 DEFAULT_HUB_ID,
                 100
         );
+        setId(product, UUID.randomUUID());
+        return product;
     }
 
     /**
      * 특정 업체의 상품 생성
      */
     public static Product withCompany(UUID companyId) {
-        return Product.create(
+        Product product = Product.create(
                 "업체 테스트 상품",
                 Money.of(10000L),
                 DEFAULT_CATEGORY_ID,
@@ -75,13 +96,15 @@ public final class ProductFixture {
                 DEFAULT_HUB_ID,
                 100
         );
+        setId(product, UUID.randomUUID());
+        return product;
     }
 
     /**
      * 특정 허브의 상품 생성
      */
     public static Product withHub(UUID hubId) {
-        return Product.create(
+        Product product = Product.create(
                 "허브 테스트 상품",
                 Money.of(10000L),
                 DEFAULT_CATEGORY_ID,
@@ -89,13 +112,15 @@ public final class ProductFixture {
                 hubId,
                 100
         );
+        setId(product, UUID.randomUUID());
+        return product;
     }
 
     /**
      * 특정 카테고리의 상품 생성
      */
     public static Product withCategory(UUID categoryId) {
-        return Product.create(
+        Product product = Product.create(
                 "카테고리 테스트 상품",
                 Money.of(10000L),
                 categoryId,
@@ -103,6 +128,8 @@ public final class ProductFixture {
                 DEFAULT_HUB_ID,
                 100
         );
+        setId(product, UUID.randomUUID());
+        return product;
     }
 
     /**
