@@ -9,7 +9,7 @@ public class AuthRequest {
 
     @Schema(description = "로그인 요청")
     public record Login(
-            @Schema(description = "로그인 ID", example = "user1107")
+            @Schema(description = "로그인 ID", example = "user3000")
             @NotBlank
             String userName,
 
@@ -17,7 +17,7 @@ public class AuthRequest {
             @NotBlank
             String password,
 
-            @Schema(description = "권한", example = "DELIVERY_MANAGER")
+            @Schema(description = "권한", example = "MASTER")
             @NotNull
             UserRoleEnum role,
 
