@@ -6,18 +6,15 @@ import org.junit.jupiter.api.Test;
 import org.sparta.product.application.service.StockService;
 import org.sparta.product.domain.entity.Category;
 import org.sparta.product.domain.entity.Product;
+import org.sparta.product.domain.entity.Stock;
 import org.sparta.product.domain.repository.CategoryRepository;
 import org.sparta.product.domain.repository.ProductRepository;
+import org.sparta.product.domain.repository.StockRepository;
 import org.sparta.product.support.fixtures.ProductFixture;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -27,33 +24,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Testcontainers
 @SpringBootTest
 @ActiveProfiles("test")
 @DisplayName("재고 동시성 처리 통합 테스트 (Fixture 적용)")
 class StockConcurrencyTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("test_db")
-            .withUsername("test")
-            .withPassword("test");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
 
     @Autowired
     private StockService stockService;
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private StockRepository stockRepository;
 
     @Autowired
     private CategoryRepository categoryRepository;
@@ -70,19 +53,36 @@ class StockConcurrencyTest {
         });
     }
 
-    private UUID saveProduct(Product product) {
+    private UUID saveProductWithStock(int initialQuantity) {
+        Product product = ProductFixture.withStock(initialQuantity);
         return transactionTemplate.execute(status -> {
-            if (!categoryRepository.existsById(ProductFixture.defaultProduct().getCategoryId())) {
-                categoryRepository.save(Category.create("전자제품", "테스트 카테고리"));
-            }
-            return productRepository.save(product).getId();
+            Category category = categoryRepository.save(Category.create("전자제품", "테스트 카테고리"));
+            Product savedProduct = productRepository.save(
+                    Product.create(
+                            product.getProductName(),
+                            product.getPrice(),
+                            category.getId(),
+                            product.getCompanyId(),
+                            product.getHubId(),
+                            initialQuantity
+                    )
+            );
+            stockRepository.save(
+                    Stock.create(
+                            savedProduct.getId(),
+                            savedProduct.getCompanyId(),
+                            savedProduct.getHubId(),
+                            initialQuantity
+                    )
+            );
+            return savedProduct.getId();
         });
     }
 
     @Test
     @DisplayName("동시에 100개 예약 요청이 들어와도 재고가 정확히 차감된다")
     void concurrentReservation_ShouldMaintainDataConsistency() throws InterruptedException {
-        UUID productId = saveProduct(ProductFixture.withStock(100));
+        UUID productId = saveProductWithStock(100);
 
         int numberOfThreads = 100;
         int reserveQuantityPerThread = 1;
@@ -107,17 +107,17 @@ class StockConcurrencyTest {
         latch.await();
         executorService.shutdown();
 
-        Product product = productRepository.findById(productId).orElseThrow();
+        Stock stock = stockRepository.findByProductId(productId).orElseThrow();
         assertThat(successCount.get()).isEqualTo(100);
         assertThat(failCount.get()).isEqualTo(0);
-        assertThat(product.getStock().getReservedQuantity()).isEqualTo(100);
-        assertThat(product.getStock().getAvailableQuantity()).isEqualTo(0);
+        assertThat(stock.getReservedQuantity()).isEqualTo(100);
+        assertThat(stock.getAvailableQuantity()).isEqualTo(0);
     }
 
     @Test
     @DisplayName("재고보다 많은 동시 예약 요청이 들어오면 일부만 성공한다")
     void concurrentReservation_WithInsufficientStock_ShouldPartiallySucceed() throws InterruptedException {
-        UUID productId = saveProduct(ProductFixture.withStock(50));
+        UUID productId = saveProductWithStock(50);
 
         int numberOfThreads = 100;
         int reserveQuantityPerThread = 1;
@@ -142,25 +142,25 @@ class StockConcurrencyTest {
         latch.await();
         executorService.shutdown();
 
-        Product product = productRepository.findById(productId).orElseThrow();
+        Stock stock = stockRepository.findByProductId(productId).orElseThrow();
         assertThat(successCount.get()).isEqualTo(50);
         assertThat(failCount.get()).isEqualTo(50);
-        assertThat(product.getStock().getReservedQuantity()).isEqualTo(50);
-        assertThat(product.getStock().getAvailableQuantity()).isEqualTo(0);
+        assertThat(stock.getReservedQuantity()).isEqualTo(50);
+        assertThat(stock.getAvailableQuantity()).isEqualTo(0);
     }
 
     @Test
     @DisplayName("동시 예약 확정 요청도 정확히 처리된다")
     void concurrentConfirmation_ShouldMaintainDataConsistency() throws InterruptedException {
-        UUID productId = saveProduct(ProductFixture.withStock(100));
+        UUID productId = saveProductWithStock(100);
 
         // 100개 예약
         transactionTemplate.execute(status -> {
-            Product product = productRepository.findById(productId).orElseThrow();
+            Stock stock = stockRepository.findByProductId(productId).orElseThrow();
             for (int i = 0; i < 100; i++) {
-                product.getStock().reserve(1);
+                stock.reserve(1);
             }
-            productRepository.save(product);
+            stockRepository.save(stock);
             return null;
         });
 
@@ -187,11 +187,11 @@ class StockConcurrencyTest {
         latch.await();
         executorService.shutdown();
 
-        Product product = productRepository.findById(productId).orElseThrow();
+        Stock stock = stockRepository.findByProductId(productId).orElseThrow();
         assertThat(successCount.get()).isEqualTo(100);
         assertThat(failCount.get()).isEqualTo(0);
-        assertThat(product.getStock().getQuantity()).isEqualTo(0);
-        assertThat(product.getStock().getReservedQuantity()).isEqualTo(0);
+        assertThat(stock.getQuantity()).isEqualTo(0);
+        assertThat(stock.getReservedQuantity()).isEqualTo(0);
     }
 
     private void retryOnOptimisticLock(Runnable task, int maxRetries) {
