@@ -51,4 +51,9 @@ public class UserRepositoryImpl implements UserRepository {
     public int softDeleteByUserId(UUID userId, LocalDateTime deletedAt) {
         return userJpaRepository.softDeleteByUserId(userId, deletedAt);
     }
+
+    @Override
+    public void deleteAll() {
+        userJpaRepository.deleteAll();
+    }
 }

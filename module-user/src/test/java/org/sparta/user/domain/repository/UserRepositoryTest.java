@@ -109,7 +109,7 @@ class UserRepositoryTest {
 
         // then
         assertThat(updated).isEqualTo(1);
-        User deletedUser = userRepository.findById(user.getUserId()).get();
+        User deletedUser = userRepository.findByUserId(user.getUserId()).get();
         assertThat(deletedUser.getDeletedAt()).isNotNull();
     }
 

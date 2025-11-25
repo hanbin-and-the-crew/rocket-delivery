@@ -15,6 +15,7 @@ public interface UserRepository  {
     Optional<User> findByUserName(String userName);
     Optional<User> findByEmail(String email);
     Optional<User> findBySlackId(String slackId);
+    void deleteAll();
 
     int softDeleteByUserId(@Param("userId") UUID userId,
                            @Param("deletedAt") LocalDateTime deletedAt);
