@@ -4,8 +4,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.user.domain.entity.User;
 import org.sparta.user.domain.enums.UserRoleEnum;
+import org.sparta.user.infrastructure.UserRepositoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - findAll()은 삭제되지 않은 유저를 반환한다
  */
 @DataJpaTest
+@Import(UserRepositoryImpl.class)
 class UserRepositoryTest {
 
     @Autowired

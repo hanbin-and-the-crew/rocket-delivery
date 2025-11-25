@@ -69,7 +69,7 @@ class UserControllerTest {
         );
 
         // when & then
-        mockMvc.perform(post("/users/signup")
+        mockMvc.perform(post("/api/users/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -87,7 +87,7 @@ class UserControllerTest {
         );
 
         // when & then
-        mockMvc.perform(post("/users/signup")
+        mockMvc.perform(post("/api/users/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
@@ -105,7 +105,7 @@ class UserControllerTest {
         given(userService.getSpecificUserInfo(userId)).willReturn(response);
 
         // when & then
-        mockMvc.perform(get("/users/bos/{userId}", userId))
+        mockMvc.perform(get("/api/users/bos/{userId}", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.userName").value("tester"))
                 .andExpect(jsonPath("$.data.email").value("test@ex.com"));
@@ -119,7 +119,7 @@ class UserControllerTest {
         Mockito.doNothing().when(userService).updateUserStatus(userId, UserStatusEnum.APPROVE);
 
         // when & then
-        mockMvc.perform(patch("/users/bos/{userId}/approve", userId))
+        mockMvc.perform(patch("/api/users/bos/{userId}/approve", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("회원가입이 승인되었습니다."));
     }
@@ -132,7 +132,7 @@ class UserControllerTest {
         Mockito.doNothing().when(userService).updateUserStatus(userId, UserStatusEnum.REJECTED);
 
         // when & then
-        mockMvc.perform(patch("/users/bos/{userId}/reject", userId))
+        mockMvc.perform(patch("/api/users/bos/{userId}/reject", userId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value("회원가입이 거절되었습니다."));
     }
