@@ -8,7 +8,6 @@ import org.springframework.retry.annotation.EnableRetry;
 
 @SpringBootApplication(scanBasePackages = "org.sparta")
 @EnableFeignClients
-@EnableRetry
 @Import(org.sparta.jpa.config.RedisConfig.class)
 public class UserApplication {
     public static void main(String[] args) {

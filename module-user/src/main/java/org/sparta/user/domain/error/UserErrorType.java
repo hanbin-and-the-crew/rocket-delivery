@@ -38,7 +38,7 @@ public enum UserErrorType implements ErrorType {
 
     UserErrorType(HttpStatus status, String message) {
         this.status = status;
-        this.code = "product:" + name().toLowerCase(Locale.ROOT);
+        this.code = "user:" + name().toLowerCase(Locale.ROOT);
         this.message = message;
     }
 
