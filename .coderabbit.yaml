@@ -1,0 +1,7 @@
+language: ko
+
+review:
+  enabled: true
+  trigger:
+    target_branches:
+      - "*"
