@@ -255,10 +255,6 @@ public class Order extends BaseEntity {
         if (orderStatus == OrderStatus.DELIVERED) {
             throw new BusinessException(OrderErrorType.CANNOT_CANCEL_DELIVERED_ORDER);
         }
-        if (!(orderStatus == OrderStatus.CREATED || orderStatus == OrderStatus.APPROVED)) {
-            // 혹시 다른 상태가 들어올 수 있을 때 방어
-            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_NOT_CREATED_ORDER);
-        }
 
         // 사유 코드/메모 검증
         if (code == null) {
@@ -294,9 +290,6 @@ public class Order extends BaseEntity {
     }
 
     public void changeAddress(String newAddress) {
-        if (orderStatus == OrderStatus.SHIPPED || orderStatus == OrderStatus.DELIVERED) {
-            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_ADDRESS_AFTER_SHIPPED);
-        }
         if (orderStatus != OrderStatus.CREATED) {
             throw new BusinessException(OrderErrorType.CANNOT_CHANGE_NOT_CREATED_ORDER);
         }
