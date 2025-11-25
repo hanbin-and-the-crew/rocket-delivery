@@ -295,7 +295,7 @@ public class Order extends BaseEntity {
 
     public void changeAddress(String newAddress) {
         if (orderStatus == OrderStatus.SHIPPED || orderStatus == OrderStatus.DELIVERED) {
-            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_MEMO_AFTER_SHIPPED);
+            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_ADDRESS_AFTER_SHIPPED);
         }
         if (orderStatus != OrderStatus.CREATED) {
             throw new BusinessException(OrderErrorType.CANNOT_CHANGE_NOT_CREATED_ORDER);

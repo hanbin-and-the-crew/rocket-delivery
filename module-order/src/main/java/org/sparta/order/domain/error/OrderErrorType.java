@@ -41,9 +41,9 @@ public enum OrderErrorType implements ErrorType {
 
     // 상태 충돌 - 수정 관련
     CANNOT_CHANGE_NOT_CREATED_ORDER(HttpStatus.CONFLICT, "주문 상태가 CREATED일 때만 수정할 수 있습니다"),
-    CANNOT_CHANGE_QUANTITY_AFTER_SHIPPED(HttpStatus.CONFLICT, "출고 후에는 수량을 변경할 수 없습니다"),
     CANNOT_CHANGE_DUE_AT_AFTER_SHIPPED(HttpStatus.CONFLICT, "출고 후에는 납기일을 변경할 수 없습니다"),
     CANNOT_CHANGE_MEMO_AFTER_SHIPPED(HttpStatus.CONFLICT, "출고 후에는 요청사항을 변경할 수 없습니다"),
+    CANNOT_CHANGE_ADDRESS_AFTER_SHIPPED(HttpStatus.CONFLICT, "출고 후에는 주소를 변경할 수 없습니다."),
 
     // 비즈니스 규칙 위반
     INVALID_QUANTITY_RANGE(HttpStatus.BAD_REQUEST, "주문 수량은 최소 1개 이상이어야 합니다"),
