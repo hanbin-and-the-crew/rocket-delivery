@@ -19,7 +19,6 @@ import org.sparta.product.infrastructure.event.publisher.StockReservationCancell
 import org.sparta.product.infrastructure.event.publisher.StockReservationFailedEvent;
 import org.sparta.product.infrastructure.event.publisher.StockReservedEvent;
 import org.sparta.product.support.fixtures.StockFixture;
-import org.sparta.product.domain.entity.Stock;
 
 import java.util.UUID;
 

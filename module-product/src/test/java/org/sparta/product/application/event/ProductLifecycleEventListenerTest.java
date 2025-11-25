@@ -19,6 +19,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -83,18 +84,19 @@ class ProductLifecycleEventListenerTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 Product의 삭제 이벤트를 받으면 예외가 발생한다")
-    void handleProductDeleted_WithNonExistentProduct_ShouldThrowException() {
+    @DisplayName("존재하지 않는 Product의 삭제 이벤트를 받으면 로그만 남기고 정상 처리된다")
+    void handleProductDeleted_WithNonExistentProduct_ShouldLogAndContinue() {
         // given: 존재하지 않는 Product의 삭제 이벤트
         UUID nonExistentProductId = UUID.randomUUID();
         ProductDeletedEvent event = ProductDeletedEvent.of(nonExistentProductId);
 
         given(stockRepository.findByProductId(nonExistentProductId)).willReturn(Optional.empty());
 
-        // when & then: 예외 발생
-        assertThatThrownBy(() -> eventListener.handleProductDeleted(event))
-                .hasMessageContaining("재고 정보를 찾을 수 없습니다");
+        // when: 이벤트 처리
+        eventListener.handleProductDeleted(event);
 
+        // then: 예외를 던지지 않고 정상 처리됨
         verify(stockRepository).findByProductId(nonExistentProductId);
+        verify(stockRepository, never()).save(any());
     }
 }
