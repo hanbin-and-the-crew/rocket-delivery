@@ -2,5 +2,6 @@ language: ko
 
 review:
   enabled: true
-  target_branches:
-    - "*"
+  trigger:
+    target_branches:
+      - "*"
