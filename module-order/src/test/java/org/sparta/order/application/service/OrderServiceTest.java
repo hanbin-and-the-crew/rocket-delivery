@@ -15,7 +15,6 @@ import org.sparta.order.infrastructure.event.publisher.OrderCreatedEvent;
 import org.sparta.order.OrderApplication;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.*;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
