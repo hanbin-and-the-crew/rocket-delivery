@@ -7,24 +7,25 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
+ * order event 발행
  * 주문 생성 Kafka 이벤트
  */
 public record OrderCreatedEvent(
-        UUID eventId,
+        UUID eventId,       // 멱등성 보장용
         UUID orderId,
         UUID productId,
-        int quantity,
+        Integer quantity,
         UUID userId,
         Instant occurredAt
 ) implements DomainEvent {
-    public static OrderCreatedEvent of(Order order, UUID userId) {
+    public static OrderCreatedEvent of(Order order) {
         return new OrderCreatedEvent(
                 UUID.randomUUID(),              // eventId (멱등성 보장용)
                 order.getId(),
                 order.getProductId(),
                 order.getQuantity().getValue(),
-                userId,
-                java.time.Instant.now()
+                order.getCustomerId(),
+                Instant.now()
         );
     }
 }
