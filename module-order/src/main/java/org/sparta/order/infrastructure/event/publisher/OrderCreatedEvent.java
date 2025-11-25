@@ -18,6 +18,12 @@ public record OrderCreatedEvent(
         UUID userId,
         Instant occurredAt
 ) implements DomainEvent {
+    /**
+     * Create an OrderCreatedEvent from the given Order.
+     *
+     * @param order the source Order whose id, productId, quantity value, and customerId populate the event
+     * @return the created OrderCreatedEvent; `eventId` is newly generated for idempotence and `occurredAt` is set to the current time
+     */
     public static OrderCreatedEvent of(Order order) {
         return new OrderCreatedEvent(
                 UUID.randomUUID(),              // eventId (멱등성 보장용)

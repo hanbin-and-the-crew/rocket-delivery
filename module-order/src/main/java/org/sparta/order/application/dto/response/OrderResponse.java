@@ -83,6 +83,12 @@ public class OrderResponse {
             LocalDateTime updatedAt
     ) {
 
+        /**
+         * Create a Detail response DTO representing the given Order.
+         *
+         * @param o the Order to convert into a Detail response
+         * @return a Detail populated with the Order's fields (identifiers, status, product and pricing snapshots, delivery and user information, timing fields, and cancellation details)
+         */
         public static Detail from(Order o) {
             return new Detail(
                     o.getId(),
@@ -145,6 +151,12 @@ public class OrderResponse {
             LocalDateTime createdAt
     ) {
 
+        /**
+         * Create a Summary DTO by extracting the order's summary fields.
+         *
+         * @param o the Order to map from
+         * @return a Summary populated with the order's id, status, supplier and receive company ids, product id, quantity, total price, due date, address, and creation time
+         */
         public static Summary from(Order o) {
             return new Summary(
                     o.getId(),
@@ -172,6 +184,13 @@ public class OrderResponse {
             @Schema(description = "수정 시간")
             LocalDateTime updatedAt
     ) {
+        /**
+         * Create an Update response for the given order with the provided message.
+         *
+         * @param order   the source Order whose id and updatedAt will be used
+         * @param message the message to include in the update response
+         * @return the Update containing the order id, the provided message, and the order's updatedAt
+         */
         public static Update of(Order order, String message) {
             return new Update(
                     order.getId(),

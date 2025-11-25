@@ -15,7 +15,20 @@ import java.util.UUID;
  */
 public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 
-    Optional<Order> findByIdAndDeletedAtIsNull(UUID id);
+    /**
+ * Finds the Order with the given id only if it has not been soft-deleted.
+ *
+ * @param id the Order's UUID
+ * @return an Optional containing the Order when found and its `deletedAt` is null, otherwise an empty Optional
+ */
+Optional<Order> findByIdAndDeletedAtIsNull(UUID id);
 
-    Page<Order> findByCustomerIdAndDeletedAtIsNull(UUID customerId, Pageable pageable);
+    /**
+ * Finds orders for a given customer that have not been soft-deleted.
+ *
+ * @param customerId the UUID of the customer whose orders to retrieve
+ * @param pageable   pagination and sorting information
+ * @return           a page of Order entities for the specified customer where `deletedAt` is null
+ */
+Page<Order> findByCustomerIdAndDeletedAtIsNull(UUID customerId, Pageable pageable);
 }

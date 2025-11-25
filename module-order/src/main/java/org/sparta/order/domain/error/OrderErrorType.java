@@ -75,6 +75,14 @@ public enum OrderErrorType implements ErrorType {
     private final String code;
     private final String message;
 
+    /**
+     * Constructs an OrderErrorType constant with the given HTTP status and message.
+     *
+     * The `code` field is initialized automatically as "order:" followed by the enum name in lowercase.
+     *
+     * @param status  the HTTP status associated with this error type
+     * @param message the human-readable error message
+     */
     OrderErrorType(HttpStatus status, String message) {
         this.status = status;
         this.code = "order:" + name().toLowerCase(Locale.ROOT);

@@ -9,9 +9,28 @@ import java.util.UUID;
 
 public interface OrderRepository {
 
-    Order save(Order order);
+    /**
+ * Persists the provided Order and returns the saved instance.
+ *
+ * @param order the Order to persist
+ * @return the persisted Order, potentially including generated identifiers or updated audit fields
+ */
+Order save(Order order);
 
-    Optional<Order> findByIdAndDeletedAtIsNull(UUID id);
+    /**
+ * Finds an Order by its id when the Order has not been deleted (deletedAt is null).
+ *
+ * @param id the UUID of the Order
+ * @return an Optional containing the Order if found and not deleted, or an empty Optional otherwise
+ */
+Optional<Order> findByIdAndDeletedAtIsNull(UUID id);
 
-    Page<Order> findByCustomerIdAndDeletedAtIsNull(UUID customerId, Pageable pageable);
+    /**
+ * Retrieves a page of orders for the specified customer that are not deleted.
+ *
+ * @param customerId the UUID of the customer whose orders to retrieve
+ * @param pageable   pagination and sorting information
+ * @return a page of orders for the specified customer where `deletedAt` is null
+ */
+Page<Order> findByCustomerIdAndDeletedAtIsNull(UUID customerId, Pageable pageable);
 }

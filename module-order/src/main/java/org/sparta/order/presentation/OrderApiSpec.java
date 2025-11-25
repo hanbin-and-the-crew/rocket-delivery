@@ -14,6 +14,16 @@ import org.springframework.data.domain.Pageable;
 @Tag(name = "Order API", description = "주문 생성/조회/수정/취소/배송 처리 API")
 public interface OrderApiSpec {
 
+    /**
+     * Create a new order using the X-USER-ID header value as the customer identifier.
+     *
+     * The created order is initialized with state CREATED. Subsequent inventory, payment,
+     * and shipping processing are handled asynchronously by other services or events.
+     *
+     * @param userIdHeader UUID string taken from the `X-USER-ID` header representing the customer ID
+     * @param request      order creation payload
+     * @return             an ApiResponse containing the created order details as OrderResponse.Detail
+     */
     @Operation(
             summary = "주문 생성",
             description = """
@@ -41,6 +51,12 @@ public interface OrderApiSpec {
             OrderRequest.Create request
     );
 
+    /**
+     * Retrieve detailed information for a specific order.
+     *
+     * @param orderId the UUID of the order to retrieve
+     * @return the order detail wrapped in an ApiResponse
+     */
     @Operation(
             summary = "주문 단건 조회",
             description = "주문 ID로 주문 상세 정보를 조회합니다."
@@ -50,6 +66,17 @@ public interface OrderApiSpec {
             java.util.UUID orderId
     );
 
+    /**
+     * Retrieve a paginated list of orders for the caller.
+     *
+     * Uses the X-USER-ID header value as the customer ID to filter orders. Supports
+     * standard paging and sorting parameters (page, size, sort). Allowed page sizes:
+     * 10, 30, 50.
+     *
+     * @param userIdHeader the caller's user ID as a UUID string (from the X-USER-ID header)
+     * @param pageable pagination and sorting information
+     * @return a page of OrderResponse.Summary objects for the specified user
+     */
     @Operation(
             summary = "내 주문 목록 조회",
             description = """
@@ -68,6 +95,15 @@ public interface OrderApiSpec {
             Pageable pageable
     );
 
+    /**
+     * Change the delivery due date of an order.
+     *
+     * Only orders in the CREATED state can have their due date changed.
+     *
+     * @param orderId the UUID of the order to modify
+     * @param request the change request containing the new due date
+     * @return an ApiResponse containing the updated order information (OrderResponse.Update)
+     */
     @Operation(
             summary = "주문 납기일 변경",
             description = "CREATED 상태의 주문에 대해서만 납품 기한을 변경할 수 있습니다."
@@ -78,6 +114,15 @@ public interface OrderApiSpec {
             OrderRequest.ChangeDueAt request
     );
 
+    /**
+     * Change the shipping address for the specified order.
+     *
+     * This operation is permitted only when the order is in the CREATED state.
+     *
+     * @param orderId the UUID of the order to update
+     * @param request the new shipping address information
+     * @return an ApiResponse containing the updated order information after the address change
+     */
     @Operation(
             summary = "주문 주소 변경",
             description = "CREATED 상태의 주문에 대해서만 배송지 주소를 변경할 수 있습니다."
@@ -88,6 +133,15 @@ public interface OrderApiSpec {
             OrderRequest.ChangeAddress request
     );
 
+    /**
+     * Updates the customer's request memo for an order.
+     *
+     * Only orders in the CREATED state can have their memo updated.
+     *
+     * @param orderId the UUID of the order to update
+     * @param request the memo change payload
+     * @return an ApiResponse containing the updated order representation (OrderResponse.Update)
+     */
     @Operation(
             summary = "주문 요청사항 변경",
             description = "CREATED 상태의 주문에 대해서만 요청사항(메모)을 변경할 수 있습니다."
@@ -98,6 +152,15 @@ public interface OrderApiSpec {
             OrderRequest.ChangeMemo request
     );
 
+    /**
+     * Cancel an order.
+     *
+     * Only orders in the CREATED or APPROVED state can be canceled. Cancellation requires a reason code and a detailed memo; orders in SHIPPED or DELIVERED state cannot be canceled.
+     *
+     * @param orderId the UUID of the order to cancel
+     * @param request cancellation details, including required reason code and detailed memo
+     * @return the updated order information after cancellation
+     */
     @Operation(
             summary = "주문 취소",
             description = """
@@ -112,6 +175,14 @@ public interface OrderApiSpec {
             OrderRequest.Cancel request
     );
 
+    /**
+     * Mark an approved order as shipped.
+     *
+     * Transitions the order's status from APPROVED to SHIPPED and returns the updated order information.
+     *
+     * @param orderId the UUID of the order to mark as shipped
+     * @return an ApiResponse containing an OrderResponse.Update reflecting the order after it transitions to SHIPPED
+     */
     @Operation(
             summary = "주문 출고(배송 시작)",
             description = "APPROVED 상태의 주문을 SHIPPED 상태로 변경합니다."
@@ -121,6 +192,14 @@ public interface OrderApiSpec {
             java.util.UUID orderId
     );
 
+    /**
+     * Mark an order as delivered.
+     *
+     * Transitions an order that is currently in the SHIPPED state to the DELIVERED state.
+     *
+     * @param orderId the UUID of the order to mark as delivered
+     * @return the updated order information with its state set to DELIVERED
+     */
     @Operation(
             summary = "주문 배송 완료 처리",
             description = "SHIPPED 상태의 주문을 DELIVERED 상태로 변경합니다."
@@ -130,6 +209,14 @@ public interface OrderApiSpec {
             java.util.UUID orderId
     );
 
+    /**
+     * Soft-delete the specified order.
+     *
+     * Only orders not in SHIPPED or DELIVERED states can be deleted; the order's `deletedAt` timestamp is set.
+     *
+     * @param orderId the ID of the order to soft-delete
+     * @return the updated order information reflecting the deletion
+     */
     @Operation(
             summary = "주문 논리 삭제",
             description = """

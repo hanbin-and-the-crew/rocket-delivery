@@ -19,6 +19,15 @@ public class Quantity {
         this.value = value;
     }
 
+    /**
+     * Create a Quantity with the specified numeric amount.
+     *
+     * <p>The value must be greater than or equal to 1; otherwise an {@link IllegalArgumentException} is thrown.</p>
+     *
+     * @param value the desired quantity amount (must be >= 1)
+     * @return the created {@code Quantity} instance
+     * @throws IllegalArgumentException if {@code value} is less than 1
+     */
     public static Quantity of(int value) {
         return new Quantity(value);
     }

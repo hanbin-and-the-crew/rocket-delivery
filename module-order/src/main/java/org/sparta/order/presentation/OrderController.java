@@ -22,7 +22,11 @@ public class OrderController implements OrderApiSpec {
     // TODO: 현재는 헤더로 X-USER-ID를 받아옴 => security가 공통 모듈에 추가 되면 바꿀 예정
     
     /**
-     * 주문 생성
+     * Create a new order for the authenticated customer.
+     *
+     * @param userIdHeader the value of the `X-USER-ID` request header (UUID string identifying the customer)
+     * @param request the order creation payload
+     * @return the created order details wrapped in an API response
      */
     @Override
     @PostMapping
@@ -36,7 +40,10 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 주문 단건 조회
+     * Retrieve a single order by its identifier.
+     *
+     * @param orderId the UUID of the order
+     * @return the detailed representation of the order
      */
     @Override
     @GetMapping("/{orderId}")
@@ -48,9 +55,11 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 내 주문 목록 조회
-     * - X-USER-ID 헤더 기준
-     * - page, size(10/30/50), sort 파라미터 사용
+     * Retrieve the customer's orders identified by the X-USER-ID header as a pageable list.
+     *
+     * @param userIdHeader the UUID string from the X-USER-ID request header identifying the customer
+     * @param pageable     paging and sorting parameters (e.g., page, size — 10/30/50, sort)
+     * @return             a page of OrderResponse.Summary representing the customer's orders
      */
     @Override
     @GetMapping
@@ -64,7 +73,11 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 주문 납기일 변경
+     * Change the due date of the specified order.
+     *
+     * @param orderId the UUID of the order to update
+     * @param request the change request containing the new due date
+     * @return an OrderResponse.Update containing the order's updated information after the due date change
      */
     @Override
     @PatchMapping("/{orderId}/due-at")
@@ -77,7 +90,11 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 주문 주소 변경
+     * Change the delivery address for the specified order.
+     *
+     * @param orderId the UUID of the order to update
+     * @param request DTO containing the new delivery address details
+     * @return the updated order information as an OrderResponse.Update wrapped in ApiResponse
      */
     @Override
     @PatchMapping("/{orderId}/address")
@@ -90,8 +107,12 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 주문 요청사항 변경
-     */
+         * Updates the customer request memo for the specified order.
+         *
+         * @param orderId the UUID of the order to update
+         * @param request the request containing the new memo text
+         * @return an OrderResponse.Update describing the order after the memo change
+         */
     @Override
     @PatchMapping("/{orderId}/memo")
     public ApiResponse<OrderResponse.Update> changeRequestMemo(
@@ -103,9 +124,13 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 주문 취소
-     * - path의 orderId와 body의 orderId가 다를 수 있어서,
-     *   path 값을 우선시해서 새로운 Cancel DTO를 만들어 넘긴다.
+     * Cancel an order and return the updated order information.
+     *
+     * The order identifier provided in the path takes precedence over any orderId present in the request body.
+     *
+     * @param orderId the order ID from the request path (used as the authoritative order identifier)
+     * @param request cancellation details (reason code and memo); any orderId inside this DTO is ignored
+     * @return the updated order information after cancellation
      */
     @Override
     @PostMapping("/{orderId}/cancel")
@@ -123,7 +148,9 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 주문 출고(배송 시작)
+     * Marks the specified order as shipped and initiates its delivery.
+     *
+     * @return the updated order information reflecting the shipment state
      */
     @Override
     @PostMapping("/{orderId}/ship")
@@ -136,7 +163,10 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 주문 배송 완료 처리
+     * Mark an order as delivered.
+     *
+     * @param orderId the UUID of the order to mark as delivered
+     * @return an OrderResponse.Update containing the updated order state after delivery
      */
     @Override
     @PostMapping("/{orderId}/deliver")
@@ -149,7 +179,10 @@ public class OrderController implements OrderApiSpec {
     }
 
     /**
-     * 주문 논리 삭제
+     * Logically delete the order identified by the given ID.
+     *
+     * @param orderId the UUID of the order to delete
+     * @return the update response containing the order's state after the logical deletion
      */
     @Override
     @DeleteMapping("/{orderId}")

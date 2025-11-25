@@ -13,7 +13,14 @@ public class StockConfirmedEventListener {
 
     private final OrderService orderService;
 
-    // TODO: 실제 토픽명 확인 필요
+    /**
+     * Handle a stock confirmation event and approve the associated order.
+     *
+     * Listens for stock confirmation messages and transitions the order identified by the provided
+     * event to the approved state.
+     *
+     * @param event the stock confirmation event containing the order identifier
+     */
     @KafkaListener(topics = "stock-events", groupId = "order-service")
     public void handleStockConfirmed(StockConfirmedEvent event) {
         log.info("재고 감소 확정 이벤트 수신 - orderId={}", event.orderId());

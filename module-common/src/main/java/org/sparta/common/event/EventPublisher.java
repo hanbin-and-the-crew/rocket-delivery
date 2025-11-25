@@ -73,7 +73,14 @@ public class EventPublisher {
 
 
     /**
-     * 이벤트 타입에 따라 토픽 이름 결정
+     * Selects the Kafka topic name for a domain event based on its event type.
+     *
+     * Maps event type prefixes and specific event names to topic names (for example: "User*" -> "user-events", "Planning*" -> "planning-events", "Message*" -> "message-events",
+     * "Hub*" -> "hub-events", "Order*" -> "order-events", "OrderCreatedEvent" -> "order-created", "OrderCancelledEvent" -> "order-cancelled", "Stock*" -> "stock-events").
+     * Defaults to "domain-events" when no mapping matches.
+     *
+     * @param event the domain event whose eventType() is used to determine the topic
+     * @return the Kafka topic name for the given event
      */
     private String determineTopicName(DomainEvent event) {
         String eventType = event.eventType();

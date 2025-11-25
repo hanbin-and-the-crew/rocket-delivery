@@ -26,12 +26,21 @@ public class Money {
         return new Money(amount);
     }
 
+    /**
+     * Creates a Money instance representing an amount of zero.
+     *
+     * @return a Money whose amount is 0
+     */
     public static Money zero() {
         return new Money(0L);
     }
 
     /**
-     * 단일 수량(int)과 곱해서 총 금액 계산
+     * Calculates the total amount by multiplying this Money's amount by the specified quantity.
+     *
+     * @param quantity the number of units to multiply; must be greater than or equal to 0
+     * @return a new Money equal to this amount multiplied by the given quantity
+     * @throws IllegalArgumentException if {@code quantity} is negative
      */
     public Money multiply(int quantity) {
         if (quantity < 0) {
@@ -42,7 +51,11 @@ public class Money {
     }
 
     /**
-     * Quantity VO와 곱해서 총 금액 계산
+     * Compute total money by multiplying this Money by a Quantity.
+     *
+     * @param quantity the quantity to multiply with; must not be null
+     * @return a Money representing this amount multiplied by the quantity's value
+     * @throws IllegalArgumentException if {@code quantity} is null
      */
     public Money multiply(Quantity quantity) {
         if (quantity == null) {
@@ -52,7 +65,11 @@ public class Money {
     }
 
     /**
-     * 다른 Money와 더하기 (필요하면 사용)
+     * Adds the specified Money amount to this Money.
+     *
+     * @param other the Money to add
+     * @return a Money representing the sum of this Money and {@code other}
+     * @throws IllegalArgumentException if {@code other} is {@code null}
      */
     public Money add(Money other) {
         if (other == null) {
