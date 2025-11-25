@@ -7,17 +7,18 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
+ * order event 발행
  * 주문 취소 Kafka 이벤트
  */
-public record OrderCanceledEvent(
+public record OrderCancelledEvent(
         UUID eventId,
         UUID orderId,
         UUID productId,
         int quantity,
         Instant occurredAt
 ) implements DomainEvent {
-    public static OrderCanceledEvent of(Order order) {
-        return new OrderCanceledEvent(
+    public static OrderCancelledEvent of(Order order) {
+        return new OrderCancelledEvent(
                 UUID.randomUUID(),              // eventId (멱등성 보장용)
                 order.getId(),
                 order.getProductId(),
