@@ -280,4 +280,40 @@ public class Order extends BaseEntity {
             throw new BusinessException(OrderErrorType.CANNOT_DELETE_SHIPPED_OR_DELIVERED_ORDER);
         }
     }
+
+    // ======== 수정 기능 ========
+
+    public void changeDueAt(LocalDateTime newDueAt) {
+        if (orderStatus == OrderStatus.SHIPPED || orderStatus == OrderStatus.DELIVERED) {
+            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_DUE_AT_AFTER_SHIPPED);
+        }
+        if (orderStatus != OrderStatus.CREATED) {
+            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_NOT_CREATED_ORDER);
+        }
+        this.dueAt = DueAtValue.of(newDueAt);
+    }
+
+    public void changeAddress(String newAddress) {
+        if (orderStatus == OrderStatus.SHIPPED || orderStatus == OrderStatus.DELIVERED) {
+            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_MEMO_AFTER_SHIPPED);
+        }
+        if (orderStatus != OrderStatus.CREATED) {
+            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_NOT_CREATED_ORDER);
+        }
+        if (newAddress == null || newAddress.isBlank()) {
+            throw new BusinessException(OrderErrorType.ADDRESS_SNAPSHOT_REQUIRED);
+        }
+        this.address = newAddress;
+    }
+
+    public void changeRequestMemo(String newMemo) {
+        if (orderStatus == OrderStatus.SHIPPED || orderStatus == OrderStatus.DELIVERED) {
+            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_MEMO_AFTER_SHIPPED);
+        }
+        if (orderStatus != OrderStatus.CREATED) {
+            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_NOT_CREATED_ORDER);
+        }
+        this.requestMemo = newMemo;
+    }
+
 }
