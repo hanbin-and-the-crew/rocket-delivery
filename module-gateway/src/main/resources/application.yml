@@ -30,6 +30,12 @@ spring:
           uri: lb://COMMON-SERVICE
           predicates:
             - Path=/common/**, /commons/**
+        - id: company-service-swagger   # Company Swagger용
+          uri: lb://COMPANY-SERVICE
+          predicates:
+            - Path=/company/api-docs
+          filters:
+            - RewritePath=/company/api-docs, /api-docs
         - id: company-service
           uri: lb://COMPANY-SERVICE
           predicates:
@@ -38,12 +44,24 @@ spring:
             - RewritePath=/company/(?<segment>.*), /api/company/${segment}
             - RewritePath=/companies/(?<segment>.*), /api/companies/${segment}
             - RewritePath=/admin/companies/(?<segment>.*), /api/admin/companies/${segment}
+        - id: delivery-log-service-swagger  # Delivery Log Swagger용
+          uri: lb://DELIVERY-LOG-SERVICE
+          predicates:
+            - Path=/delivery-logs/api-docs, /delivery-log/api-docs
+          filters:
+            - RewritePath=/(?:delivery-logs|delivery-log)/api-docs, /api-docs
         - id: delivery-log-service
           uri: lb://DELIVERY-LOG-SERVICE
           predicates:
             - Path=/delivery-logs/**, /delivery-log/**
           filters:
             - RewritePath=/delivery-logs/(?<segment>.*), /$\{segment}
+        - id: delivery-service-swagger      # Delivery Swagger용
+          uri: lb://DELIVERY-SERVICE
+          predicates:
+            - Path=/delivery/api-docs
+          filters:
+            - RewritePath=/delivery/api-docs, /api-docs
         - id: delivery-service
           uri: lb://DELIVERY-SERVICE
           predicates:
@@ -51,6 +69,12 @@ spring:
           filters:
             - RewritePath=/delivery/(?<segment>.*), /api/delivery/${segment}
             - RewritePath=/deliveries/(?<segment>.*), /api/deliveries/${segment}
+        - id: hub-service-swagger           # Hub Swagger용
+          uri: lb://HUB-SERVICE
+          predicates:
+            - Path=/hub/api-docs
+          filters:
+            - RewritePath=/hub/api-docs, /api-docs
         - id: hub-service
           uri: lb://HUB-SERVICE
           predicates:
@@ -60,6 +84,12 @@ spring:
             - RewritePath=/hubs/(?<segment>.*), /api/hubs/${segment}
             - RewritePath=/admin/hubs/(?<segment>.*), /api/admin/hubs/${segment}
             - RewritePath=/hub-routes/(?<segment>.*), /api/hub-routes/${segment}
+        - id: order-service-swagger         # Order Swagger용
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/order/api-docs
+          filters:
+            - RewritePath=/order/api-docs, /api-docs
         - id: order-service
           uri: lb://ORDER-SERVICE
           predicates:
@@ -67,6 +97,12 @@ spring:
           filters:
             - RewritePath=/order/(?<segment>.*), /api/order/${segment}
             - RewritePath=/orders/(?<segment>.*), /api/orders/${segment}
+        - id: product-service-swagger       # Product Swagger용
+          uri: lb://PRODUCT-SERVICE
+          predicates:
+            - Path=/product/api-docs
+          filters:
+            - RewritePath=/product/api-docs, /api-docs
         - id: product-service
           uri: lb://PRODUCT-SERVICE
           predicates:
@@ -74,6 +110,12 @@ spring:
           filters:
             - RewritePath=/product/(?<segment>.*), /api/product/${segment}
             - RewritePath=/products/(?<segment>.*), /api/products/${segment}
+        - id: slack-service-swagger         # Slack Swagger용
+          uri: lb://SLACK-SERVICE
+          predicates:
+            - Path=/slack/api-docs
+          filters:
+            - RewritePath=/slack/api-docs, /api-docs
         - id: slack-service
           uri: lb://SLACK-SERVICE
           predicates:
