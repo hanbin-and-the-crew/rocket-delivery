@@ -1,10 +1,7 @@
 package org.sparta.user.infrastructure.config;
 
-
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.sparta.user.infrastructure.security.JwtAuthenticationFilter;
-import org.sparta.user.infrastructure.security.JwtAuthorizationFilter;
 import org.sparta.user.infrastructure.security.JwtUtil;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,7 +19,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.util.ContentCachingRequestWrapper;
 
 @Configuration
 @EnableWebSecurity
@@ -32,7 +28,6 @@ import org.springframework.web.util.ContentCachingRequestWrapper;
 public class SecurityConfig {
     private final JwtUtil jwtUtil;
     private final AuthenticationConfiguration authenticationConfiguration;
-    private final UserDetailsService userDetailsService;
 
     @Bean
     public AuthenticationManager authenticationManager() throws Exception {
@@ -46,10 +41,10 @@ public class SecurityConfig {
         return filter;
     }
 
-    @Bean
-    public JwtAuthorizationFilter jwtAuthorizationFilter() {
-        return new JwtAuthorizationFilter(jwtUtil, userDetailsService);
-    }
+//    @Bean
+//    public JwtAuthorizationFilter jwtAuthorizationFilter() {
+//        return new JwtAuthorizationFilter(jwtUtil, userDetailsService);
+//    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -62,13 +57,12 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/users/signup").permitAll()
-                        .requestMatchers("/auth/**").permitAll()
-                        .anyRequest().permitAll()
-                        //.anyRequest().authenticated() // 개발이 끝나면 이걸로 바꾸도록
+                        //.requestMatchers("/users/signup").permitAll()
+                        //.requestMatchers("/auth/**").permitAll()
+                        .anyRequest().permitAll() // 어차피 Gateway에서 다 걸러주므로 여기선 다 열어둠
                 )
-                .addFilterAt(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtAuthorizationFilter(), JwtAuthenticationFilter.class);
+                .addFilterAt(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+                //.addFilterBefore(jwtAuthorizationFilter(), JwtAuthenticationFilter.class);
 
         return http.build();
     }

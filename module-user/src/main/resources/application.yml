@@ -67,6 +67,8 @@ logging:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
     org.springframework.data.redis: DEBUG
+    org.springdoc: DEBUG
+    org.springframework.web: DEBUG
 
 # JWT
 jwt:
