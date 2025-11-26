@@ -13,6 +13,13 @@ spring:
     name: api-gateway
   cloud:
     gateway:
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            key-resolver: "#{@userKeyResolver}"
+            redis-rate-limiter.replenishRate: 5
+            redis-rate-limiter.burstCapacity: 10
+            redis-rate-limiter.requestedTokens: 1
       discovery:
         locator:
           enabled: true
@@ -25,9 +32,10 @@ spring:
         - id: company-service
           uri: lb://COMPANY-SERVICE
           predicates:
-            - Path=/company/**, /companies/**
+            - Path=/admin/companies/**, /companies/**
           filters:
-            - RewritePath=/company/(?<segment>.*), /$\{segment}
+            - RewritePath=/companies/(?<segment>.*), /api/companies/${segment}
+            - RewritePath=/admin/companies/(?<segment>.*), /api/admin/companies/${segment}
         - id: delivery-log-service
           uri: lb://DELIVERY-LOG-SERVICE
           predicates:
@@ -37,45 +45,51 @@ spring:
         - id: delivery-service
           uri: lb://DELIVERY-SERVICE
           predicates:
-            - Path=/delivery/**, /deliveries/**, /deliveries/**
+            - Path=/deliveries/**
           filters:
-            - RewritePath=/delivery/(?<segment>.*), /$\{segment}
+            - RewritePath=/deliveries/(?<segment>.*), /api/deliveries/${segment}
         - id: hub-service
           uri: lb://HUB-SERVICE
           predicates:
-            - Path=/hub/**, /hubs/**
+            - Path=/hubs/**, /admin/hubs/**, /hub-routes/**
           filters:
-            - RewritePath=/hub/(?<segment>.*), /$\{segment}
+            - RewritePath=/hubs/(?<segment>.*), /api/hubs/${segment}
+            - RewritePath=/admin/hubs/(?<segment>.*), /api/admin/hubs/${segment}
+            - RewritePath=/hub-routes/(?<segment>.*), /api/hub-routes/${segment}
         - id: order-service
           uri: lb://ORDER-SERVICE
           predicates:
-            - Path=/order/**, /orders/**
+            - Path=/orders/**
           filters:
-            - RewritePath=/order/(?<segment>.*), /$\{segment}
+            - RewritePath=/orders/(?<segment>.*), /api/orders/${segment}
         - id: product-service
           uri: lb://PRODUCT-SERVICE
           predicates:
-            - Path=/product/**, /products/**
+            - Path=/products/**
           filters:
-            - RewritePath=/product/(?<segment>.*), /$\{segment}
+            - RewritePath=/products/(?<segment>.*), /api/products/${segment}
         - id: slack-service
           uri: lb://SLACK-SERVICE
           predicates:
             - Path=/slack/**, /slacks/**
           filters:
-            - RewritePath=/slack/(?<segment>.*), /$\{segment}
+            - RewritePath=/slack/(?<segment>.*), /api/slack/${segment}
+            - RewritePath=/slacks/(?<segment>.*), /api/slacks/${segment}
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/user/**, /users/**, /auth/**
+            - Path=/users/**, /auth/**
           filters:
-            - RewritePath=/user/(?<segment>.*), /$\{segment}
-            - RewritePath=/users/(?<segment>.*), /$\{segment}
-            - RewritePath=/auth/(?<segment>.*), /$\{segment}
+            - RewritePath=/users/(?<segment>.*), /api/users/${segment}
+            - RewritePath=/auth/(?<segment>.*), /api/auth/${segment}
         - id: jpa-service
           uri: lb://JPA-SERVICE
           predicates:
             - Path=/jpa/**
+  data:
+    redis:
+      host: localhost
+      port: 6378
 
 
 springdoc:
@@ -107,3 +121,5 @@ logging:
   level:
     org.springframework.cloud.gateway: DEBUG
     org.springframework.web: DEBUG
+    org.springframework.cloud.gateway.filter.ratelimit: DEBUG
+    org.springframework.data.redis: DEBUG

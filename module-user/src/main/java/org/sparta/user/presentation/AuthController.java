@@ -19,7 +19,7 @@ public class AuthController implements AuthApiSpec {
 
     @GetMapping("/hello")
     public String hello() {
-        return "Hello from Company Service!";
+        return "Hello from Auth Service!";
     }
 
     @Override
