@@ -35,7 +35,10 @@ public enum ProductErrorType implements ErrorType {
 
     // Product 조회 에러
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다"),
-    STOCK_NOT_FOUND(HttpStatus.NOT_FOUND, "재고 정보를 찾을 수 없습니다");
+    STOCK_NOT_FOUND(HttpStatus.NOT_FOUND, "재고 정보를 찾을 수 없습니다"),
+
+    // Stock 생성 에러
+    STOCK_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "재고 생성에 실패했습니다");
 
     private final HttpStatus status;
     private final String code;

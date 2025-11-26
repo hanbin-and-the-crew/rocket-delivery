@@ -1,8 +1,32 @@
 package org.sparta.order.domain.enumeration;
 
 public enum OrderStatus {
-    PLACED, // 주문 완료
-    DISPATCHED, // 출고 완료
-    CANCELED,   // 주문 취소
-    DELIVERED   // 배달 완료
+
+    /**
+     * 주문이 처음 생성된 상태
+     * 재고 예약 / 결제 / 배송 생성 전 or 진행중일 수 있음
+     */
+    CREATED,
+
+    /**
+     * 재고 확정 + 결제까지 모두 성공하여
+     * 비즈니스적으로 유효한 주문이 된 상태
+     */
+    APPROVED,
+
+    /**
+     * 출고 완료 / 배송이 시작된 상태
+     * 이 시점부터는 주문 취소 불가
+     */
+    SHIPPED,
+
+    /**
+     * 고객 혹은 시스템 사유로 취소된 상태
+     */
+    CANCELED,
+
+    /**
+     * 배송까지 모두 완료된 상태
+     */
+    DELIVERED
 }

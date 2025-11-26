@@ -23,6 +23,7 @@ dependencies {
     testImplementation "org.springframework.kafka:spring-kafka-test" // 선택: KafkaListener 테스트용
 
     // test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation project(':module-common')
     testImplementation project(':module-jpa')
     testImplementation 'com.h2database:h2'

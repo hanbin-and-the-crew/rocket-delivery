@@ -7,10 +7,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
-import org.sparta.product.domain.entity.Product;
+import org.sparta.product.domain.entity.Stock;
 import org.sparta.product.domain.error.ProductErrorType;
 import org.sparta.product.domain.repository.StockRepository;
-import org.sparta.product.support.fixtures.ProductFixture;
+import org.sparta.product.support.fixtures.StockFixture;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -48,31 +48,31 @@ class StockServiceTest {
     @DisplayName("재고가 충분하면 차감이 성공한다")
     void decreaseStock_WithSufficientStock_ShouldSucceed() {
         // given: 재고 100개인 상품
-        Product product = ProductFixture.withStock(100);
-        UUID productId = product.getId();
+        Stock stock = StockFixture.withQuantity(100);
+        UUID productId = stock.getProductId();
         int decreaseQuantity = 30;
 
-        given(stockRepository.findById(productId))
-                .willReturn(Optional.of(product.getStock()));
+        given(stockRepository.findByProductId(productId))
+                .willReturn(Optional.of(stock));
 
         // when: 재고 30개 차감
         stockService.decreaseStock(productId, decreaseQuantity);
 
         // then: 재고가 70개로 감소
-        assertThat(product.getStock().getQuantity()).isEqualTo(70);
-        assertThat(product.getStock().getAvailableQuantity()).isEqualTo(70);
+        assertThat(stock.getQuantity()).isEqualTo(70);
+        assertThat(stock.getAvailableQuantity()).isEqualTo(70);
     }
 
     @Test
     @DisplayName("재고가 부족하면 INSUFFICIENT_STOCK 예외가 발생한다")
     void decreaseStock_WithInsufficientStock_ShouldThrowException() {
         // given: 재고 5개인 상품
-        Product product = ProductFixture.withStock(5);
-        UUID productId = product.getId();
+        Stock stock = StockFixture.withQuantity(5);
+        UUID productId = stock.getProductId();
         int decreaseQuantity = 10;
 
-        given(stockRepository.findById(productId))
-                .willReturn(Optional.of(product.getStock()));
+        given(stockRepository.findByProductId(productId))
+                .willReturn(Optional.of(stock));
 
         // when & then: 예외 발생
         assertThatThrownBy(() -> stockService.decreaseStock(productId, decreaseQuantity))
@@ -84,18 +84,18 @@ class StockServiceTest {
     @DisplayName("유효한 수량으로 재고를 복원하면 성공한다")
     void increaseStock_WithValidQuantity_ShouldSucceed() {
         // given: 재고 50개인 상품
-        Product product = ProductFixture.withStock(50);
-        UUID productId = product.getId();
+        Stock stock = StockFixture.withQuantity(50);
+        UUID productId = stock.getProductId();
         int increaseQuantity = 20;
 
-        given(stockRepository.findById(productId))
-                .willReturn(Optional.of(product.getStock()));
+        given(stockRepository.findByProductId(productId))
+                .willReturn(Optional.of(stock));
 
         // when: 재고 20개 복원
         stockService.increaseStock(productId, increaseQuantity);
 
         // then: 재고가 70개로 증가
-        assertThat(product.getStock().getQuantity()).isEqualTo(70);
+        assertThat(stock.getQuantity()).isEqualTo(70);
     }
 
     @Test
@@ -104,7 +104,7 @@ class StockServiceTest {
         // given: 존재하지 않는 상품 ID
         UUID invalidProductId = UUID.randomUUID();
 
-        given(stockRepository.findById(invalidProductId))
+        given(stockRepository.findByProductId(invalidProductId))
                 .willReturn(Optional.empty());
 
         // when & then: 예외 발생
@@ -119,7 +119,7 @@ class StockServiceTest {
         // given: 존재하지 않는 상품 ID
         UUID invalidProductId = UUID.randomUUID();
 
-        given(stockRepository.findById(invalidProductId))
+        given(stockRepository.findByProductId(invalidProductId))
                 .willReturn(Optional.empty());
 
         // when & then: 예외 발생
@@ -132,32 +132,32 @@ class StockServiceTest {
     @DisplayName("가용 재고가 충분하면 예약에 성공한다")
     void reserveStock_WithSufficientStock_ShouldSucceed() {
         // given: 재고 100개인 상품
-        Product product = ProductFixture.withStock(100);
-        UUID productId = product.getId();
+        Stock stock = StockFixture.withQuantity(100);
+        UUID productId = stock.getProductId();
         int reserveQuantity = 30;
 
-        given(stockRepository.findById(productId))
-                .willReturn(Optional.of(product.getStock()));
+        given(stockRepository.findByProductId(productId))
+                .willReturn(Optional.of(stock));
 
         // when: 재고 30개 예약
         stockService.reserveStock(productId, reserveQuantity);
 
         // then: 예약 재고가 30개로 증가
-        assertThat(product.getStock().getReservedQuantity()).isEqualTo(30);
-        assertThat(product.getStock().getQuantity()).isEqualTo(100);
-        assertThat(product.getStock().getAvailableQuantity()).isEqualTo(70);
+        assertThat(stock.getReservedQuantity()).isEqualTo(30);
+        assertThat(stock.getQuantity()).isEqualTo(100);
+        assertThat(stock.getAvailableQuantity()).isEqualTo(70);
     }
 
     @Test
     @DisplayName("가용 재고가 부족하면 예약에 실패한다")
     void reserveStock_WithInsufficientStock_ShouldThrowException() {
         // given: 재고 10개인 상품
-        Product product = ProductFixture.withStock(10);
-        UUID productId = product.getId();
+        Stock stock = StockFixture.withQuantity(10);
+        UUID productId = stock.getProductId();
         int reserveQuantity = 20;
 
-        given(stockRepository.findById(productId))
-                .willReturn(Optional.of(product.getStock()));
+        given(stockRepository.findByProductId(productId))
+                .willReturn(Optional.of(stock));
 
         // when & then: 예외 발생
         assertThatThrownBy(() -> stockService.reserveStock(productId, reserveQuantity))
@@ -169,39 +169,39 @@ class StockServiceTest {
     @DisplayName("예약 확정 시 실제 재고와 예약 재고가 모두 감소한다")
     void confirmReservation_ShouldDecreaseQuantityAndReservedQuantity() {
         // given: 재고 100개, 예약 30개인 상품
-        Product product = ProductFixture.withStock(100);
-        UUID productId = product.getId();
-        product.getStock().reserve(30);
+        Stock stock = StockFixture.withQuantity(100);
+        UUID productId = stock.getProductId();
+        stock.reserve(30);
 
-        given(stockRepository.findById(productId))
-                .willReturn(Optional.of(product.getStock()));
+        given(stockRepository.findByProductId(productId))
+                .willReturn(Optional.of(stock));
 
         // when: 예약 30개 확정
         stockService.confirmReservation(productId, 30);
 
         // then: 실제 재고 70, 예약 재고 0
-        assertThat(product.getStock().getQuantity()).isEqualTo(70);
-        assertThat(product.getStock().getReservedQuantity()).isEqualTo(0);
-        assertThat(product.getStock().getAvailableQuantity()).isEqualTo(70);
+        assertThat(stock.getQuantity()).isEqualTo(70);
+        assertThat(stock.getReservedQuantity()).isEqualTo(0);
+        assertThat(stock.getAvailableQuantity()).isEqualTo(70);
     }
 
     @Test
     @DisplayName("예약 취소 시 예약 재고만 감소한다")
     void cancelReservation_ShouldOnlyDecreaseReservedQuantity() {
         // given: 재고 100개, 예약 30개인 상품
-        Product product = ProductFixture.withStock(100);
-        UUID productId = product.getId();
-        product.getStock().reserve(30);
+        Stock stock = StockFixture.withQuantity(100);
+        UUID productId = stock.getProductId();
+        stock.reserve(30);
 
-        given(stockRepository.findById(productId))
-                .willReturn(Optional.of(product.getStock()));
+        given(stockRepository.findByProductId(productId))
+                .willReturn(Optional.of(stock));
 
         // when: 예약 10개 취소
         stockService.cancelReservation(productId, 10);
 
         // then: 실제 재고는 유지, 예약 재고만 감소
-        assertThat(product.getStock().getQuantity()).isEqualTo(100);
-        assertThat(product.getStock().getReservedQuantity()).isEqualTo(20);
-        assertThat(product.getStock().getAvailableQuantity()).isEqualTo(80);
+        assertThat(stock.getQuantity()).isEqualTo(100);
+        assertThat(stock.getReservedQuantity()).isEqualTo(20);
+        assertThat(stock.getAvailableQuantity()).isEqualTo(80);
     }
 }
