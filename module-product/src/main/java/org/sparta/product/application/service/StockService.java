@@ -18,7 +18,6 @@ import java.util.UUID;
 /**
  * Stock 서비스
  * - Product와 독립적으로 재고를 관리
- * - Product 더티체킹을 방지하기 위해 Stock만 조회/수정
  * - 낙관적 락 충돌 시 @Retryable로 자동 재시도
  */
 @Slf4j
@@ -30,10 +29,12 @@ public class StockService {
     private final StockRepository stockRepository;
 
     /**
-     * 재고 조회
+     * Product ID로 재고 조회
+     * - Stock과 Product는 독립된 ID를 가짐
+     * - productId 필드로 연결
      */
     public Stock getStock(UUID productId) {
-        return stockRepository.findById(productId)
+        return stockRepository.findByProductId(productId)
                 .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
     }
 

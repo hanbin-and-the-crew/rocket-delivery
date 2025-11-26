@@ -23,7 +23,4 @@ public class Quantity {
         return new Quantity(value);
     }
 
-    public static Quantity zero() {
-        return new Quantity(0);
-    }
 }

@@ -12,10 +12,9 @@ import org.sparta.product.domain.error.ProductErrorType;
 import java.util.UUID;
 
 /**
- * 재고 엔티티
- * - Product와 생명주기 공유 (@MapsId)
- * - Product ID와 동일한 ID 사용
- * - 독립적인 수정 가능 (Product 더티체킹 방지)
+ * 재고 애그리거트
+ * - Product와 독립된 생명주기 관리
+ * - Product 이벤트를 통해 생명주기 동기화
  * - 낙관적 락으로 동시성 제어
  */
 @Entity
@@ -25,13 +24,11 @@ import java.util.UUID;
 public class Stock extends BaseEntity {
 
     @Id
-    @Column(name = "product_id")
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @MapsId
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+    @Column(nullable = false)
+    private UUID productId;
 
     @Column(nullable = false)
     private UUID companyId;
@@ -57,34 +54,36 @@ public class Stock extends BaseEntity {
     @Version
     private Long version;
 
-    private Stock(Product product, UUID companyId, UUID hubId,
+    private Stock(UUID productId, UUID companyId, UUID hubId,
                  Integer quantity) {
-        this.product = product;
+        this.productId = productId;
         this.companyId = companyId;
         this.hubId = hubId;
         this.quantity = quantity;
         this.reservedQuantity =  0;
     }
+
     /**
      * Stock 생성 팩토리 메서드
-     * - Product와 생명주기를 공유하므로 Product 필수
+     * - Product 이벤트를 통해 생성됨
+     * - productId로 Product와 연결 (외래키 관계 없음)
      */
     public static Stock create(
-            Product product,
+            UUID productId,
             UUID companyId,
             UUID hubId,
             Integer initialQuantity
     ) {
-        validateProduct(product);
+        validateProductId(productId);
         validateCompanyId(companyId);
         validateHubId(hubId);
         validateInitialQuantity(initialQuantity);
 
-        return new Stock(product, companyId, hubId, initialQuantity);
+        return new Stock(productId, companyId, hubId, initialQuantity);
     }
 
-    private static void validateProduct(Product product) {
-        if (product == null) {
+    private static void validateProductId(UUID productId) {
+        if (productId == null) {
             throw new BusinessException(ProductErrorType.PRODUCT_REQUIRED);
         }
     }
@@ -263,12 +262,3 @@ public class Stock extends BaseEntity {
         }
     }
 }
-
-//주말 동안 해야할 일
-//재고 예약, 이런 처리를 어떻게 할 것 인가 ,, 고민하고 재시도 까지 서비스 적용해서 테스트 5단계 진행해보기..
-//그럼 우선 상품 도메인은 1차 완료
-//권한 처리하기
-//발표 템플릿 제작하기
-//=====
-// 게임 마무리
-// 채호범 프로젝트 멤버 서비스 마무리

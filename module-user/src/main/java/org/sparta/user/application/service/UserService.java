@@ -89,7 +89,7 @@ public class UserService {
      * GET /users/me
      */
     public UserResponse.GetUser getUserInfo(CustomUserDetails userDetailsInfo) {
-        User user = userRepository.findById(userDetailsInfo.getId())
+        User user = userRepository.findByUserId(userDetailsInfo.getId())
                 .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND, "회원이 존재하지 않습니다."));
         return UserResponse.GetUser.from(user);
     }
@@ -103,7 +103,7 @@ public class UserService {
             @CacheEvict(value = "userListCache", allEntries = true)
     })
     public UserResponse.UpdateUser updateSelf(CustomUserDetails user, UserRequest.UpdateUser request) {
-        User userInfo = userRepository.findById(user.getId()).orElseThrow(
+        User userInfo = userRepository.findByUserId(user.getId()).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
         );
         if (userInfo.getDeletedAt() != null) {
@@ -169,7 +169,7 @@ public class UserService {
             @CacheEvict(value = "userListCache", allEntries = true)
     })
     public void deleteSelf(CustomUserDetails userDetails) {
-        User user = userRepository.findById(userDetails.getId())
+        User user = userRepository.findByUserId(userDetails.getId())
                 .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다."));
 
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
@@ -202,7 +202,7 @@ public class UserService {
      */
     @Cacheable(value = "userCache", key = "#userId")
     public UserResponse.GetUser getSpecificUserInfo(UUID userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND, "회원이 존재하지 않습니다."));
         return UserResponse.GetUser.from(user);
     }
@@ -216,7 +216,7 @@ public class UserService {
             @CacheEvict(value = "userListCache", allEntries = true)
     })
     public UserResponse.UpdateUser updateUser(UUID userId, UserRequest.UpdateUser request) {
-        User userInfo = userRepository.findById(userId).orElseThrow(
+        User userInfo = userRepository.findByUserId(userId).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
         );
         if (userInfo.getDeletedAt() != null) {
@@ -273,7 +273,7 @@ public class UserService {
             @CacheEvict(value = "userListCache", allEntries = true)
     })
     public void deleteUser(UUID userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다."));
 
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
@@ -304,7 +304,7 @@ public class UserService {
     @Transactional
     @CacheEvict(value = "userListCache", allEntries = true)
     public void updateUserStatus(UUID userId, UserStatusEnum newStatus) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND, "회원이 존재하지 않습니다."));
 
         if (user.getStatus() != UserStatusEnum.PENDING) {

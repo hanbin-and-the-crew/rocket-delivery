@@ -116,7 +116,7 @@ public class UserServiceTest {
         CustomUserDetails userDetails = mock(CustomUserDetails.class);
 
         given(userDetails.getId()).willReturn(userId);
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(userRepository.findByUserId(userId)).willReturn(Optional.of(user));
         given(user.getUserName()).willReturn("testUser");
 
         // when
@@ -124,7 +124,7 @@ public class UserServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        verify(userRepository).findById(userId);
+        verify(userRepository).findByUserId(userId);
     }
 
     @Test
@@ -138,7 +138,7 @@ public class UserServiceTest {
         User mockUser = mock(User.class);
         given(mockUser.getUserId()).willReturn(userId);
 
-        given(userRepository.findById(userId)).willReturn(Optional.of(mockUser));
+        given(userRepository.findByUserId(userId)).willReturn(Optional.of(mockUser));
         given(userRepository.softDeleteByUserId(eq(userId), any(LocalDateTime.class))).willReturn(1);
 
         // when
@@ -157,7 +157,7 @@ public class UserServiceTest {
         given(userDetails.getId()).willReturn(userId);
 
         // 조회 시 회원 없음
-        given(userRepository.findById(userId)).willReturn(Optional.empty());
+        given(userRepository.findByUserId(userId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> userService.deleteSelf(userDetails))
@@ -171,7 +171,7 @@ public class UserServiceTest {
 
         // given
         User user = mock(User.class);
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(userRepository.findByUserId(userId)).willReturn(Optional.of(user));
         given(user.getStatus()).willReturn(UserStatusEnum.PENDING);
 
         // when
@@ -187,7 +187,7 @@ public class UserServiceTest {
 
         // given
         User user = mock(User.class);
-        given(userRepository.findById(userId)).willReturn(Optional.of(user));
+        given(userRepository.findByUserId(userId)).willReturn(Optional.of(user));
         given(user.getStatus()).willReturn(UserStatusEnum.APPROVE);
 
         // when & then

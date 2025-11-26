@@ -8,7 +8,7 @@ import org.sparta.common.error.BusinessException;
 import org.sparta.product.domain.error.ProductErrorType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 테스트 전략:
  * - @WebMvcTest: Controller 레이어만 로드
  * - MockMvc: HTTP 요청/응답 테스트
- * - @MockBean: ProductService Mock
+ * - @MockitoBean: ProductService Mock (Spring Boot 3.4+)
  * - @Import: ApiControllerAdvice 로드하여 예외 처리 테스트
  *
  */
@@ -42,7 +42,7 @@ class ProductControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private ProductService productService;
 
     @Test

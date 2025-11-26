@@ -1,4 +1,4 @@
-package org.sparta.order.infrastructure.event;
+package org.sparta.order.infrastructure.event.consumer;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -8,7 +8,7 @@ import java.util.UUID;
  *
  * Order/Delivery 모듈로 전달:
  * - 예약된 재고가 실제로 차감되었음을 알림
- * - Order 모듈에서 주문 상태를 'CONFIRMED'로 변경
+ * - Order 모듈에서 주문 상태를 'APPROVED'로 변경
  * - Delivery 모듈에서 배송 준비 시작
  */
 public record StockConfirmedEvent(

@@ -96,6 +96,15 @@ Rocket Delivery는 B2B 물류 서비스로 주문 접수부터 재고 예약, �
             </div>
           </div>
         </td>
+        <td align="center" style="padding: 20px;">
+          <img src="https://avatars.githubusercontent.com/u/175666135?v=4?" width="120px" style="border-radius: 50%;" alt=""/>
+          <div style="margin-top: 10px; font-size: 14px; line-height: 1.2;">
+            <b>팀원</b><br />
+            <a href="https://github.com/minsoo-hub" style="font-size: 16px;">한준희</a>
+            <div style="margin-top: 5px; font-size: 14px;">
+            </div>
+          </div>
+        </td>
       </tr>
     </tbody>
   </table>

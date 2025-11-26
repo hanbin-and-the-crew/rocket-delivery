@@ -6,22 +6,17 @@ import org.sparta.order.domain.entity.Order;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * 주문 취소 Kafka 이벤트
- */
-public record OrderCanceledEvent(
+public record OrderApprovedEvent(
         UUID eventId,
         UUID orderId,
-        UUID productId,
-        int quantity,
+        UUID userId,
         Instant occurredAt
 ) implements DomainEvent {
-    public static OrderCanceledEvent of(Order order) {
-        return new OrderCanceledEvent(
+    public static OrderApprovedEvent of(Order order) {
+        return new OrderApprovedEvent(
                 UUID.randomUUID(),              // eventId (멱등성 보장용)
                 order.getId(),
-                order.getProductId(),
-                order.getQuantity().getValue(),
+                order.getCustomerId(),
                 Instant.now()
         );
     }
