@@ -1,523 +1,199 @@
 package org.sparta.order.application.service;
 
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.sparta.common.api.ApiResponse;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.dto.request.OrderRequest;
 import org.sparta.order.application.dto.response.OrderResponse;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
-import org.sparta.order.domain.enumeration.OrderStatus;
 import org.sparta.order.domain.error.OrderErrorType;
-import org.sparta.order.domain.vo.Money;
-import org.sparta.order.domain.vo.Quantity;
-import org.sparta.order.infrastructure.client.*;
-import org.sparta.order.infrastructure.client.dto.request.*;
-import org.sparta.order.infrastructure.client.dto.response.*;
-import org.sparta.order.infrastructure.event.publisher.OrderCanceledEvent;
-import org.sparta.order.infrastructure.event.publisher.OrderCreatedSpringEvent;
-import org.sparta.order.infrastructure.event.publisher.PaymentCompletedEvent;
-import org.sparta.order.infrastructure.repository.OrderJpaRepository;
+import org.sparta.order.domain.repository.OrderRepository;
+import org.sparta.order.infrastructure.event.publisher.OrderApprovedEvent;
+import org.sparta.order.infrastructure.event.publisher.OrderCancelledEvent;
+import org.sparta.order.infrastructure.event.publisher.OrderCreatedEvent;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 
-/**
- * 주문 서비스
- * - 주문 생성, 수정, 조회, 취소, 삭제 등의 핵심 비즈니스 로직 처리
- * - Feign Client를 통해 다른 서비스와 통신
- * - Kafka를 통해 Product 서비스와 재고 이벤트 주고받기
- */
-@Slf4j
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Transactional
 public class OrderService {
 
-    private final OrderJpaRepository orderRepository;
+    private final OrderRepository orderRepository;
+    private final EventPublisher eventPublisher; // Kafka + Spring Event 래퍼 (이미 common 모듈에 있음)
 
-    private final ProductClient productClient;
-    private final HubClient hubClient;
-    private final UserClient userClient;
-    private final DeliveryClient deliveryClient;
-    private final DeliveryLogClient deliveryLogClient;
+    // ===== 페이지 사이즈 / 정렬 기본값  =====
+    private static final List<Integer> ALLOWED_PAGE_SIZES = List.of(10, 30, 50);
+    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final String DEFAULT_SORT_PROPERTY = "createdAt";
 
-    private final EventPublisher orderEventPublisher; // Kafka 이벤트 퍼블리셔
-    private final EventPublisher springOrderEventPublisher; // Spring 이벤트 퍼블리셔
-    // 이것도 코드 안정화되면 이벤트 퍼블리셔 합칠 예정
+    // 단건 조회 (내부)
+    private Order findOrderOrThrow(UUID orderId) {
+        return orderRepository.findByIdAndDeletedAtIsNull(orderId)
+                .orElseThrow(() -> new BusinessException(OrderErrorType.ORDER_NOT_FOUND));
+    }
+
+    /**
+     * 허용 사이즈 : 10(기본값), 30, 50
+     * - sort 미지정 시: createdAt DESC 기본
+     * */
+    private Pageable normalizePageable(Pageable pageable) {
+        int page = pageable.getPageNumber();
+        int size = pageable.getPageSize();
+
+        if (!ALLOWED_PAGE_SIZES.contains(size)) {
+            size = DEFAULT_PAGE_SIZE;
+        }
+
+        Sort sort = pageable.getSort();
+        if (sort == null || sort.isUnsorted()) {
+            sort = Sort.by(Sort.Direction.DESC, DEFAULT_SORT_PROPERTY);
+        }
+
+        return PageRequest.of(page, size, sort);
+    }
+
+    // ===== 주문 생성 =====
 
     /**
      * 주문 생성
-     * 1. 상품 정보 조회 (Product 서비스)
-     * 2. 허브 정보 검증 (Hub 서비스)
-     * 3. 주문 생성
-     * 4. 재고 예약 이벤트 발행 (Kafka → Product 서비스)
-     * 5. 배송 생성 (Delivery 서비스)
+     * - 상태: CREATED
      */
-    @Transactional
-    public OrderResponse.Create createOrder(OrderRequest.Create request, UUID userId) {
-        log.info("주문 생성 시작 - productId: {}, quantity: {}, userId: {}",
-                request.productId(), request.quantity(), userId);
-
-//        // 0. supplierId와 현재 userId 동일 검증
-//        ApiResponse<UserResponse> supplierResponse = userClient.getSpecificUserInfo(request.supplierId());
-//        UserResponse supplier = supplierResponse.data();
-//        if (supplier == null) {
-//            throw new BusinessException(OrderErrorType.SUPPLIER_NOT_FOUND);
-//        }
-//        if (!request.supplierId().equals(userId)) {
-//            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
-//        }
-//
-//        // 1. 상품 정보 조회
-//        ProductDetailResponse product = getProductOrThrow(request.productId());
-//
-//        // 2. 허브 정보 검증
-//        validateHub(request.supplierHubId());
-//        validateHub(request.receiptHubId());
-
-        // 3. 주문 생성
+    public OrderResponse.Detail createOrder(UUID customerId, OrderRequest.Create request) {
+        // 엔티티 생성
         Order order = Order.create(
-                request.supplierId(),
+                customerId,
                 request.supplierCompanyId(),
                 request.supplierHubId(),
                 request.receiptCompanyId(),
                 request.receiptHubId(),
                 request.productId(),
-                "temp",//product.name(),
-                Money.of(10000L),//Money.of(product.price()),
-                Quantity.of(request.quantity()),
-                request.deliveryAddress(),
+                request.productPrice().longValue(),
+                request.quantity(),
+                request.dueAt(),
+                request.address(),
+                request.requestMemo(),
                 request.userName(),
                 request.userPhoneNumber(),
-                request.slackId(),
-                request.dueAt(),
-                request.requestedMemo()
+                request.slackId()
         );
 
-        Order savedOrder = orderRepository.save(order);
-
-//        // 4. 재고 예약 이벤트 발행 (Kafka)
-//        orderEventPublisher.publishOrderCreated(
-//                savedOrder.getId(),
-//                request.productId(),
-//                request.quantity(),
-//                userId
-//        );
-//
-//        // 5. 배송 생성
-//        try {
-//            DeliveryCreateResponse delivery = createDelivery(savedOrder);
-//            savedOrder.setDeliveryId(delivery.deliveryId());
-//            orderRepository.save(savedOrder);
-//            log.info("배송 생성 완료 - orderId: {}, deliveryId: {}", savedOrder.getId(), delivery.deliveryId());
-//        } catch (Exception e) {
-//            log.error("배송 생성 실패 - orderId: {}", savedOrder.getId(), e);
-//            // 주문 삭제
-//            savedOrder.delete(userId);
-//            orderRepository.delete(savedOrder);
-//            throw new BusinessException(OrderErrorType.DELIVERY_CREATE_FAILED);
-//        }
-//
-//        // 6. 배송로그 생성
-//        try {
-//            DeliveryLogCreateResponse deliveryLog = createDeliveryLog(savedOrder);
-//
-//            // 7. 배송로그 ID를 배송에 저장
-//            saveDeliveryLog(savedOrder, deliveryLog.deliveryLogId(), userId);
-//
-//        } catch (Exception e) {
-//            log.error("배송로그 생성 실패 - orderId: {}", savedOrder.getId(), e);
-//
-//            // 실패 시, 주문과 배송 모두 삭제
-//            deleteDelivery(order.getDeliveryId(), userId);
-//            savedOrder.delete(userId);
-//            orderRepository.delete(savedOrder);
-//            throw new BusinessException(OrderErrorType.DELIVERY_LOG_CREATE_FAILED);
-//        }
-        
-       // TODO: Slack에 "주문 완료" 이벤트 발행
-        /**
-         *
-         * EventListener STEP1. 주문 생성 이후 OrderCreatedEvent를 발행
-         *
-         */
-        springOrderEventPublisher.publishLocal(OrderCreatedSpringEvent.of(savedOrder, userId));
-        //orderEventPublisher.publishLocal(OrderCreatedEvent.of(savedOrder, userId));
-        // 아래 주문 출고쪽으로
-        
-        log.info("주문 생성 완료 - orderId: {}", savedOrder.getId());
-        return OrderResponse.Create.of(savedOrder);
-    }
-
-    /**
-     * 주문 상세 조회
-     */
-    //TODO:배송 담당자 -> 본인담당 주문건만
-    public OrderResponse.Detail getOrder(UUID orderId, UUID userId) {
-        Order order = findByIdActiveOrThrow(orderId);
-        if (!order.getSupplierId().equals(userId)) {
-            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
-        }
-        // TODO: 마스터 / 허브 관리자(본인담당) 가능
-        return OrderResponse.Detail.of(order);
-    }
-
-    /**
-     * 주문 목록 조회 (검색)
-     */
-//    //TODO: 작성자 본인 / 배송 담당자 -> 본인담당 주문건만 / 모든 사용자 가능
-//    //TODO: repo 수정
-//    public Page<OrderResponse.Summary> searchOrders(
-//            OrderSearchCondition condition,
-//            Pageable pageable
-//    ) {
-//        Page<Order> orders = orderRepository.searchOrders(condition, pageable);
-//        return orders.map(OrderResponse.Summary::of);
-//    }
-
-    /**
-     * 납품 기한 변경
-     * - PLACED 상태에서만 가능
-     */
-    @Transactional
-    public OrderResponse.Update changeDueAt(
-            UUID orderId,
-            OrderRequest.ChangeDueAt request,
-            UUID userId
-    ) {
-        log.info("납품 기한 변경 시작 - orderId: {}, newDueAt: {}, userId: {}",
-                orderId, request.dueAt(), userId);
-
-        Order order = findByIdActiveOrThrow(orderId);
-        if (order.getOrderStatus() != OrderStatus.PLACED) {
-            throw new BusinessException(OrderErrorType.CANNOT_MODIFY_NOT_PLACED_ORDER);
-        }
-
-        if (!order.getSupplierId().equals(userId)) {
-            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
-        }
-        // TODO: 마스터 / 허브 관리자(본인담당) 가능
-
-        order.changeDueAt(request.dueAt(), userId);
         orderRepository.save(order);
 
-        log.info("납품 기한 변경 완료 - orderId: {}, newDueAt: {}",
-                orderId, request.dueAt());
+        // OrderCreatedEvent 발행 (재고 예약-> 성공 -> 결제 외부 연동 시작점)
+        eventPublisher.publishExternal(OrderCreatedEvent.of(order));
 
-        return OrderResponse.Update.of(
-                order,
-                String.format("납품 기한이 %s로 변경되었습니다", request.dueAt())
-        );
+        return OrderResponse.Detail.from(order);
     }
 
+    // ===== 주문 상태 변경 처리 =====
+    // 결제 성공 -> 재고 감소 -> 감소 성공 -> approveOrder()
     /**
-     * 요청사항 변경
-     * - PLACED 상태에서만 가능
+     * stock에서 "재고 감소 완료" 이벤트가 온 뒤 호출된다고 가정.
+     * - CREATED → APPROVED
      */
-    @Transactional
-    public OrderResponse.Update changeMemo(
-            UUID orderId,
-            OrderRequest.ChangeMemo request,
-            UUID userId
-    ) {
-        log.info("요청사항 변경 시작 - orderId: {}, userId: {}", orderId, userId);
+    public void approveOrder(UUID orderId) {
+        Order order = findOrderOrThrow(orderId);
 
-        Order order = findByIdActiveOrThrow(orderId);
-        if (order.getOrderStatus() != OrderStatus.PLACED) {
-            throw new BusinessException(OrderErrorType.CANNOT_MODIFY_NOT_PLACED_ORDER);
-        }
+        order.approve();
 
-        if (!order.getSupplierId().equals(userId)) {
-            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
-        }
-        // TODO: 마스터 / 허브 관리자(본인담당) 가능
-
-        order.changeRequestedMemo(request.requestedMemo(), userId);
-        orderRepository.save(order);
-
-        log.info("요청사항 변경 완료 - orderId: {}", orderId);
-
-        return OrderResponse.Update.of(order, "요청사항이 변경되었습니다");
-    } 
-    
-    /**
-     * 주소 변경
-     * - PLACED 상태에서만 가능
-     */
-    @Transactional
-    public OrderResponse.Update changeAddress(
-            UUID orderId,
-            OrderRequest.ChangeAddress request,
-            UUID userId
-    ) {
-        log.info("주소 변경 시작 - orderId: {}, userId: {}", orderId, userId);
-
-        Order order = findByIdActiveOrThrow(orderId);
-        if (order.getOrderStatus() != OrderStatus.PLACED) {
-            throw new BusinessException(OrderErrorType.CANNOT_MODIFY_NOT_PLACED_ORDER);
-        }
-
-        if (!order.getSupplierId().equals(userId)) {
-            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
-        }
-        // TODO: 마스터 / 허브 관리자(본인담당) 가능 / 권한 체크 메서드 생성하기
-        UserResponse userResponse = getUser(userId);
-
-        order.changeAddress(request.addressSnapshot(), userId);
-        orderRepository.save(order);
-
-        log.info("주소 변경 완료 - orderId: {}", orderId);
-
-        return OrderResponse.Update.of(order, "주소가 변경되었습니다");
+        // OrderApprovedEvent 발행 (배송/Slack 모듈 사용)
+        // TODO: 필요한 정보 확인 후 추가
+        eventPublisher.publishExternal(OrderApprovedEvent.of(order));
     }
 
-    /**
-     * 주문 출고 처리
-     */
-    @Transactional
-    public OrderResponse.Update dispatchOrder(
-            UUID orderId,
-            OrderRequest.Dispatch request,
-            UUID userId
-    ) {
-        log.info("주문 출고 처리 시작 - orderId: {}, userId: {}", orderId, userId);
+    // 주문 취소 처리
+    public OrderResponse.Update cancelOrder(OrderRequest.Cancel request) {
+        Order order = findOrderOrThrow(request.orderId());
 
-        // TODO: 마스터 / 허브 관리자(담당)만 가능
-
-        Order order = findByIdActiveOrThrow(orderId);
-        if (order.getOrderStatus() != OrderStatus.PLACED) {
-            throw new BusinessException(OrderErrorType.CANNOT_MODIFY_NOT_PLACED_ORDER);
+        // String → Enum 변환
+        CanceledReasonCode reasonCode;
+        try {
+            reasonCode = CanceledReasonCode.valueOf(request.reasonCode());
+        } catch (IllegalArgumentException ex) {
+            throw new BusinessException(OrderErrorType.CANCELED_REASON_CODE_REQUIRED);
         }
-
-        order.dispatch(orderId, userId, request.dispatchedAt());
-        Order savedOrder = orderRepository.save(order);
-
-        // 출고 완료, Product 서비스에 재고 감소 이벤트 발행
-        // 현재 주문 생성에도 똑같이 되어 있어서 나중에 정리되면 둘 중 하나는 제거할 것
-        orderEventPublisher.publishExternal(PaymentCompletedEvent.of(savedOrder));
-
-        log.info("주문 출고 처리 완료 - orderId: {}", orderId);
-
-        return OrderResponse.Update.of(order, "주문이 출고되었습니다");
-    }
-
-    /**
-     * 주문 취소
-     * - 재고 예약 취소 이벤트 발행
-     */
-    @Transactional
-    public OrderResponse.Update cancelOrder(
-            UUID orderId,
-            OrderRequest.Cancel request,
-            UUID userId
-    ) {
-        log.info("주문 취소 시작 - orderId: {}, userId: {}, reason: {}",
-                orderId, userId, request.reasonCode());
-
-        Order order = findByIdActiveOrThrow(orderId);
-        if (!order.getSupplierId().equals(userId)) {
-            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
-        }
-        // TODO: 마스터 / 허브 관리자(본인담당) 가능
 
         // 주문 취소 처리
-        CanceledReasonCode reasonCode = CanceledReasonCode.valueOf(request.reasonCode());
-        order.cancel(orderId, userId, reasonCode, request.reasonMemo());
-        Order canceledOrder = orderRepository.save(order);
-        
-        // TODO : 배송, 배송 로그 삭제 처리 이벤트
+        order.cancel(reasonCode, request.reasonMemo());
 
-        // 재고 예약 취소 이벤트 발행
-        orderEventPublisher.publishExternal(OrderCanceledEvent.of(canceledOrder));
+        // 재고/예약 취소, 결제 취소를 위한 이벤트 발행
+        eventPublisher.publishExternal(OrderCancelledEvent.of(order));
 
-        order.delete(userId);
-        orderRepository.delete(order);
+        return OrderResponse.Update.of(order, "주문이 취소되었습니다.");
+    }
 
-        log.info("주문 취소 완료 - orderId: {}", orderId);
+    // 배송 시작/출고 처리
+    // TODO: 배송 시작 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
+    public OrderResponse.Update shipOrder(OrderRequest.ShipOrder request) {
+        Order order = findOrderOrThrow(request.orderId());
+        order.markShipped();
+        return OrderResponse.Update.of(order, "주문이 출고(배송 시작) 처리되었습니다.");
+    }
 
-        return OrderResponse.Update.of(order, "주문이 취소되었습니다");
+    // 배송 완료 처리
+    // TODO: 배송 완료 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
+    public OrderResponse.Update deliverOrder(OrderRequest.DeliverOrder request) {
+        Order order = findOrderOrThrow(request.orderId());
+        order.markDelivered();
+        return OrderResponse.Update.of(order, "주문이 배송 완료 처리되었습니다.");
+    }
+
+    // 삭제
+    public OrderResponse.Update deleteOrder(OrderRequest.DeleteOrder request) {
+        Order order = findOrderOrThrow(request.orderId());
+        order.validateDeletable();
+        order.markAsDeleted();
+        return OrderResponse.Update.of(order, "주문이 삭제되었습니다.");
+    }
+
+    // ===== 주문 조회 =====
+
+    // 주문 단건(상세) 조회
+    @Transactional(readOnly = true)
+    public OrderResponse.Detail getOrder(UUID orderId) {
+        Order order = findOrderOrThrow(orderId);
+        return OrderResponse.Detail.from(order);
     }
 
     /**
-     * 주문 삭제 (Soft Delete)
+     * 고객 자신의 주문 목록 조회
+     * - 페이지 사이즈: 10/30/50만 허용, 그 외 값은 10으로 보정
+     * - 기본 정렬: createdAt DESC (요청에 sort가 없으면)
      */
-    @Transactional
-    public void deleteOrder(UUID orderId, UUID userId) {
-        log.info("주문 삭제 시작 - orderId: {}, deletedBy: {}", orderId, userId);
-
-        Order order = findByIdOrThrow(orderId);
-
-        if (!order.getSupplierId().equals(userId)) {
-            throw new BusinessException(OrderErrorType.UNAUTHORIZED_USER_SUPPLIER_ID);
-        }
-        // TODO: 마스터 / 허브 관리자(본인담당) 가능
-
-        order.delete(userId);
-        orderRepository.delete(order);
-
-        log.info("주문 삭제 완료 - orderId: {}", orderId);
+    // TODO: 역할 분리 추가 예정
+    @Transactional(readOnly = true)
+    public Page<OrderResponse.Summary> getOrdersByCustomer(UUID customerId, Pageable pageable) {
+        Pageable normalized = normalizePageable(pageable);
+        return orderRepository.findByCustomerIdAndDeletedAtIsNull(customerId, normalized)
+                .map(OrderResponse.Summary::from);
     }
 
-    /**
-     * 재고 예약 실패 처리 (Kafka 이벤트 수신 시 호출)
-     */
-    @Transactional
-    public void handleStockReservationFailed(UUID orderId, String reason) {
-        log.warn("재고 예약 실패 처리 - orderId: {}, reason: {}", orderId, reason);
+    // ===== 주문 수정 메소드 =====
 
-        Order order = findByIdOrThrow(orderId);
-
-        // 주문을 자동으로 취소 처리
-        if (order.isCancelable()) {
-            order.cancel(
-                    orderId,
-                    null, // 시스템에 의한 자동 취소
-                    CanceledReasonCode.OUT_OF_STOCK,
-                    "재고 부족으로 인한 자동 취소: " + reason
-            );
-            orderRepository.save(order);
-            log.info("재고 부족으로 주문 자동 취소 완료 - orderId: {}", orderId);
-        }
+    public OrderResponse.Update changeDueAt(UUID orderId, OrderRequest.ChangeDueAt request) {
+        Order order = findOrderOrThrow(orderId);
+        order.changeDueAt(request.dueAt());
+        return OrderResponse.Update.of(order, "납기일이 변경되었습니다.");
     }
 
-    // ========== Private 헬퍼 메서드 ==========
-
-    private Order findByIdOrThrow(UUID orderId) {
-        return orderRepository.findById(orderId)
-                .orElseThrow(() -> new BusinessException(OrderErrorType.ORDER_NOT_FOUND));
+    public OrderResponse.Update changeAddress(UUID orderId, OrderRequest.ChangeAddress request) {
+        Order order = findOrderOrThrow(orderId);
+        order.changeAddress(request.addressSnapshot());
+        return OrderResponse.Update.of(order, "주소가 변경되었습니다.");
     }
 
-    private Order findByIdActiveOrThrow(UUID orderId) {
-        return orderRepository.findByIdAndDeletedAtIsNull(orderId)
-                .orElseThrow(() -> new BusinessException(OrderErrorType.ORDER_NOT_FOUND));
-    }
-
-    private ProductDetailResponse getProductOrThrow(UUID productId) {
-        try {
-            ApiResponse<ProductDetailResponse> response = productClient.getProduct(productId);
-            if (response.data() == null) {
-                throw new BusinessException(OrderErrorType.PRODUCT_NOT_FOUND);
-            }
-            return response.data();
-        } catch (FeignException.NotFound e) {
-            throw new BusinessException(OrderErrorType.PRODUCT_NOT_FOUND);
-        } catch (Exception e) {
-            log.error("상품 조회 실패 - productId: {}", productId, e);
-            throw new BusinessException(OrderErrorType.PRODUCT_NOT_FOUND);
-        }
-    }
-
-    private void validateHub(UUID hubId) {
-        try {
-            ApiResponse<HubResponse> response = hubClient.getHub(hubId);
-            if (response.data() == null) {
-                throw new BusinessException(OrderErrorType.HUB_NOT_FOUND);
-            }
-        } catch (FeignException.NotFound e) {
-            throw new BusinessException(OrderErrorType.HUB_NOT_FOUND);
-        } catch (Exception e) {
-            log.error("허브 조회 실패 - hubId: {}", hubId, e);
-            throw new BusinessException(OrderErrorType.HUB_NOT_FOUND);
-        }
-    }
-
-    // 배송 생성
-    private DeliveryCreateResponse createDelivery(Order order) {
-        try {
-            DeliveryCreateRequest request = new DeliveryCreateRequest(
-                    order.getId(),
-                    order.getSupplierHubId(),
-                    order.getReceiptHubId(),
-                    order.getAddressSnapshot()
-            );
-            ApiResponse<DeliveryCreateResponse> response = deliveryClient.createDelivery(request);
-            if (response.data() == null) {
-                throw new BusinessException(OrderErrorType.DELIVERY_CREATE_FAILED);
-            }
-            return response.data();
-        } catch (Exception e) {
-            log.error("배송 생성 실패 - orderId: {}", order.getId(), e);
-            throw new BusinessException(OrderErrorType.DELIVERY_CREATE_FAILED);
-        }
-    }
-
-
-    /**
-     * 배송로그 생성
-     */
-    private DeliveryLogCreateResponse createDeliveryLog(Order order) {
-        try {
-            DeliveryLogCreateRequest logRequest = new DeliveryLogCreateRequest(
-                    order.getId(),
-                    order.getSupplierHubId(),
-                    order.getReceiptHubId(),
-                    order.getAddressSnapshot()
-            );
-            ApiResponse<DeliveryLogCreateResponse> logResponse = deliveryLogClient.createDeliveryLog(logRequest);
-            if (logResponse == null || logResponse.data() == null) {
-                throw new BusinessException(OrderErrorType.DELIVERY_LOG_CREATE_FAILED);
-            }
-            return logResponse.data();
-        } catch (Exception e) {
-            log.error("배송로그 생성 실패 - orderId: {}", order.getId(), e);
-            throw new BusinessException(OrderErrorType.DELIVERY_LOG_CREATE_FAILED);
-        }
-    }
-
-    /**
-     * 배송에 배송로그 ID 저장
-     */
-    private void saveDeliveryLog(Order order, UUID deliveryLogId, UUID userId) {
-        try {
-            DeliveryCreateRequest request = new DeliveryCreateRequest(
-                    order.getId(),
-                    order.getSupplierHubId(),
-                    order.getReceiptHubId(),
-                    order.getAddressSnapshot()
-            );
-            ApiResponse<DeliveryCreateResponse> response = deliveryClient.saveDeliveryLog(deliveryLogId, request);
-            if (response.data() == null) {
-                throw new BusinessException(OrderErrorType.DELIVERY_LOG_SAVE_FAILED);
-            }
-        } catch (Exception e) {
-            log.error("배송에 배송로그 ID 저장 실패 - orderId: {}, deliveryLogId: {}", order.getId(), deliveryLogId, e);
-            throw new BusinessException(OrderErrorType.DELIVERY_LOG_SAVE_FAILED);
-        }
-    }
-
-    /**
-     * 배송 삭제
-     */
-    private void deleteDelivery(UUID deliveryId, UUID userId) {
-        try {
-            Map<String, UUID> requestMap = Map.of("userId", userId);
-            ApiResponse<Void> response = deliveryClient.deleteDelivery(
-                    deliveryId,
-                    requestMap
-            );
-            if (response == null || response.data() == null) {
-                throw new BusinessException(OrderErrorType.DELIVERY_DELETE_FAILED);
-            }
-        } catch (Exception e) {
-            log.error("배송 삭제 실패 - deliveryId: {}, userId: {}", deliveryId, userId, e);
-            throw new BusinessException(OrderErrorType.DELIVERY_DELETE_FAILED);
-        }
-    }
-
-    /**
-     * 사용자 권한 확인
-     * */
-    private UserResponse getUser(UUID userId) {
-        ApiResponse<UserResponse> response = userClient.getSpecificUserInfo(userId);
-        if (response.data() == null) {
-            throw new BusinessException(OrderErrorType.USER_NOT_FOUND);
-        }
-        return response.data();
+    public OrderResponse.Update changeRequestMemo(UUID orderId, OrderRequest.ChangeMemo request) {
+        Order order = findOrderOrThrow(orderId);
+        order.changeRequestMemo(request.requestedMemo());
+        return OrderResponse.Update.of(order, "요청사항이 변경되었습니다.");
     }
 }
