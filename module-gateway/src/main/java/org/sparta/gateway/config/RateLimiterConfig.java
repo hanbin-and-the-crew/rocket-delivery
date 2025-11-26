@@ -1,5 +1,6 @@
 package org.sparta.gateway.config;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.ratelimit.KeyResolver;
 import org.springframework.cloud.gateway.filter.ratelimit.RedisRateLimiter;
@@ -11,49 +12,44 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class RateLimiterConfig {
 
-    /** 초당 버킷에 추가되는 토큰 개수 */
-    private static final int REPLENISH_RATE = 1;
+    private final RateLimitProperties props;
 
-    /** 버킷에 담을 수 있는 최대 토큰 개수 */
-    private static final int BURST_CAPACITY = 1;
-
-    /** API 요청 시 소비되는 토큰 개수 */
-    private static final int REQUESTED_TOKENS = 1;
-
-    /**
-     * RedisRateLimiter Bean 생성
-     * @return RedisRateLimiter Bean
-     */
+    /** RedisRateLimiter를 properties 기반으로 생성 */
     @Bean
     public RedisRateLimiter redisRateLimiter() {
-        return new RedisRateLimiter(REPLENISH_RATE, BURST_CAPACITY, REQUESTED_TOKENS);
+        return new RedisRateLimiter(
+                props.getReplenishRate(),
+                props.getBurstCapacity(),
+                props.getRequestedTokens()
+        );
     }
 
     /**
-     * RequestRateLimiter Filter 기준 Bean 생성
-     * - 사용자 ID 기준으로 토큰 키를 세팅한다 .
-     * @return 사용자 ID
+     * KeyResolver: 로그인 사용자면 X-USER-ID 기준,
+     * 비로그인 사용자는 IP 기준으로 키를 생성한다.
      */
     @Bean
     public KeyResolver userKeyResolver() {
         return exchange -> {
             ServerHttpRequest request = exchange.getRequest();
 
-            String userId = String.valueOf(request.getHeaders().get("X-USER-ID"));
-            log.debug("request userId : {}", userId);
+            // 헤더에서 첫 번째 값 가져오기
+            String userId = request.getHeaders().getFirst("X-USER-ID");
+            log.debug("request header X-USER-ID : {}", userId);
 
-            // 로그인 사용자: userId 기준
             if (StringUtils.hasText(userId)) {
-                return Mono.just(userId);
+                return Mono.just("USER_" + userId);
             }
 
-            // 비로그인 사용자: IP 기준
-            String ip = request.getRemoteAddress().getAddress().getHostAddress();
+            // RemoteAddress가 null일 가능성 대비 안전하게 처리
+            String ip = "UNKNOWN";
+            if (request.getRemoteAddress() != null && request.getRemoteAddress().getAddress() != null) {
+                ip = request.getRemoteAddress().getAddress().getHostAddress();
+            }
             return Mono.just("IP_" + ip);
-
         };
     }
-
 }

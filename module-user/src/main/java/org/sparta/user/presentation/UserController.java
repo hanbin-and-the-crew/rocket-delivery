@@ -29,6 +29,11 @@ public class UserController implements UserApiSpec {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @GetMapping("/health")
+    public String hello() {
+        return "User OK";
+    }
+
     @Override
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<Object>> signup(@Valid @RequestBody UserRequest.SignUpUser request, BindingResult bindingResult) {

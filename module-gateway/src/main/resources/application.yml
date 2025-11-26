@@ -8,18 +8,16 @@ eureka:
     service-url:
       defaultZone: http://localhost:9090/eureka/
 
+rate-limit:
+  replenish-rate: 5
+  burst-capacity: 10
+  requested-tokens: 1
+
 spring:
   application:
     name: api-gateway
   cloud:
     gateway:
-      default-filters:
-        - name: RequestRateLimiter
-          args:
-            key-resolver: "#{@userKeyResolver}"
-            redis-rate-limiter.replenishRate: 5
-            redis-rate-limiter.burstCapacity: 10
-            redis-rate-limiter.requestedTokens: 1
       discovery:
         locator:
           enabled: true
@@ -78,10 +76,21 @@ spring:
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/users/**, /auth/**
+            - Path=/users/**
           filters:
             - RewritePath=/users/(?<segment>.*), /api/users/${segment}
+        - id: auth-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/auth/**
+          filters:
             - RewritePath=/auth/(?<segment>.*), /api/auth/${segment}
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 2
+                redis-rate-limiter.requestedTokens: 1
         - id: jpa-service
           uri: lb://JPA-SERVICE
           predicates:
