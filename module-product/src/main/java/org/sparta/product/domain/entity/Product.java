@@ -12,10 +12,10 @@ import org.sparta.product.domain.vo.Money;
 import java.util.UUID;
 
 /**
- * 상품 Aggregate Root
+ * 상품 애그리거트
  * - 상품 메타데이터 관리
- * - Stock과 생명주기 공유
- * - Stock의 @MapsId로 ID 공유
+ * - Stock과 독립된 생명주기
+ * - 생명주기 이벤트를 통해 Stock과 동기화
  */
 @Entity
 @Getter
@@ -46,15 +46,6 @@ public class Product extends BaseEntity {
     @Column(nullable = false)
     private Boolean isActive = true;
 
-    /**
-     * Stock과 1:1 관계
-     * - mappedBy: Stock의 product 필드와 매핑
-     * - cascade: Product 저장/삭제 시 Stock도 함께
-     * - orphanRemoval: Product에서 Stock 제거 시 자동 삭제
-     */
-    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Stock stock;
-
     private Product(
             String productName,
             Money price,
@@ -74,7 +65,7 @@ public class Product extends BaseEntity {
     /**
      * 상품 생성 팩토리 메서드
      * - 필수 검증 수행
-     * - Stock 생성 및 연결
+     * - Stock은 이벤트를 통해 별도로 생성됨
      */
     public static Product create(
             String productName,
@@ -91,7 +82,7 @@ public class Product extends BaseEntity {
         validateHubId(hubId);
         validateInitialQuantity(initialQuantity);
 
-        Product product = new Product(
+        return new Product(
                 productName,
                 price,
                 categoryId,
@@ -99,17 +90,6 @@ public class Product extends BaseEntity {
                 hubId,
                 true
         );
-
-        Stock stock = Stock.create(
-                product,
-                companyId,
-                hubId,
-                initialQuantity
-        );
-
-        product.stock = stock;
-
-        return product;
     }
 
     private static void validateProductName(String productName) {
@@ -165,13 +145,10 @@ public class Product extends BaseEntity {
     /**
      * 상품 논리적 삭제
      * - isActive를 false로 설정
-     * - 연관된 재고도 판매 불가 상태로 변경
+     * - 재고는 이벤트를 통해 판매 불가 상태로 변경됨
      */
     public void delete() {
         this.isActive = false;
-        if (this.stock != null) {
-            this.stock.markAsUnavailable();
-        }
     }
 
 

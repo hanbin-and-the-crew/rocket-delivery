@@ -68,10 +68,8 @@ class ProductJpaRepositoryTest {
         entityManager.flush();
         entityManager.clear();
 
-        // then: ID가 생성되고 Stock도 함께 저장됨
+        // then: ID가 생성됨 (Stock은 이벤트를 통해 별도로 생성)
         assertThat(savedProduct.getId()).isNotNull();
-        assertThat(savedProduct.getStock()).isNotNull();
-        assertThat(savedProduct.getStock().getQuantity()).isEqualTo(100);
     }
 
     @Test
@@ -180,8 +178,7 @@ class ProductJpaRepositoryTest {
         // then: Product는 비활성화되고 Stock은 UNAVAILABLE 상태가 됨
         Product deletedProduct = productJpaRepository.findById(productId).orElseThrow();
         assertThat(deletedProduct.getIsActive()).isFalse();
-        assertThat(deletedProduct.getStock()).isNotNull();
-        assertThat(deletedProduct.getStock().getStatus().name()).isEqualTo("UNAVAILABLE");
+        // Stock은 이벤트를 통해 UNAVAILABLE 상태로 변경됨 (별도 검증 필요)
     }
 
     @Test

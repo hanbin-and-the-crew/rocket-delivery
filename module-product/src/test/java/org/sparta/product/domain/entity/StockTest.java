@@ -6,7 +6,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.sparta.common.error.BusinessException;
 import org.sparta.product.domain.enums.StockStatus;
-import org.sparta.product.support.fixtures.ProductFixture;
+import org.sparta.product.support.fixtures.StockFixture;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -30,9 +30,8 @@ class StockTest {
     @Test
     @DisplayName("가용 재고가 충분하면 예약에 성공한다")
     void reserve_WithSufficientStock_ShouldSucceed() {
-        // given: 재고 100개인 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        // given: 재고 100개
+        Stock stock = StockFixture.withQuantity(100);
         int reserveQuantity = 30;
 
         // when: 30개 예약
@@ -48,8 +47,7 @@ class StockTest {
     @DisplayName("가용 재고가 부족하면 예약에 실패한다")
     void reserve_WithInsufficientStock_ShouldThrowException() {
         // given: 재고 10개인 상품
-        Product product = ProductFixture.withStock(10);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(10);
         int reserveQuantity = 20;
 
         // when & then: 20개 예약 시도 시 예외 발생
@@ -62,8 +60,7 @@ class StockTest {
     @DisplayName("예약 후 가용 재고가 0이면 상태가 RESERVED_ONLY로 변경된다")
     void reserve_WhenAvailableBecomesZero_ShouldChangeStatusToReservedOnly() {
         // given: 재고 100개인 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
 
         // when: 100개 모두 예약
         stock.reserve(100);
@@ -79,8 +76,7 @@ class StockTest {
     @DisplayName("가용 재고가 있으면 IN_STOCK 상태가 된다")
     void updateStatus_WithAvailableStock_ShouldBeInStock() {
         // given: 재고 100개, 예약 50개
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
 
         // when: 50개 예약
         stock.reserve(50);
@@ -94,8 +90,7 @@ class StockTest {
     @DisplayName("가용 재고가 0이면 RESERVED_ONLY 상태가 된다")
     void updateStatus_WithZeroAvailable_ShouldBeReservedOnly() {
         // given: 재고 100개
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
 
         // when: 100개 모두 예약
         stock.reserve(100);
@@ -111,8 +106,7 @@ class StockTest {
     @DisplayName("실물 재고가 0이면 OUT_OF_STOCK 상태가 된다")
     void updateStatus_WithZeroQuantity_ShouldBeOutOfStock() {
         // given: 재고 50개, 50개 예약
-        Product product = ProductFixture.withStock(50);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(50);
         stock.reserve(50);
 
         // when: 50개 확정 (실물 재고 0으로)
@@ -128,8 +122,7 @@ class StockTest {
     @DisplayName("예약 확정 시 실제 재고와 예약 재고가 모두 감소한다")
     void confirmReservation_ShouldDecreaseQuantityAndReservedQuantity() {
         // given: 재고 100개, 예약 30개인 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
         stock.reserve(30);
 
         // when: 예약 30개 확정
@@ -146,8 +139,7 @@ class StockTest {
     @DisplayName("예약되지 않은 수량을 확정하려 하면 예외가 발생한다")
     void confirmReservation_WithInvalidAmount_ShouldThrowException() {
         // given: 재고 100개, 예약 10개인 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
         stock.reserve(10);
 
         // when & then: 20개 확정 시도 시 예외 발생
@@ -160,8 +152,7 @@ class StockTest {
     @DisplayName("예약 취소 시 예약 재고만 감소한다")
     void cancelReservation_ShouldOnlyDecreaseReservedQuantity() {
         // given: 재고 100개, 예약 30개인 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
         stock.reserve(30);
 
         // when: 예약 10개 취소
@@ -178,8 +169,7 @@ class StockTest {
     @DisplayName("예약되지 않은 수량을 취소하려 하면 예외가 발생한다")
     void cancelReservation_WithInvalidAmount_ShouldThrowException() {
         // given: 재고 100개, 예약 10개인 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
         stock.reserve(10);
 
         // when & then: 20개 취소 시도 시 예외 발생
@@ -192,8 +182,7 @@ class StockTest {
     @DisplayName("여러 번 예약해도 가용 재고 내에서만 가능하다")
     void reserve_MultipleReservations_ShouldWorkWithinAvailableStock() {
         // given: 재고 100개인 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
 
         // when: 30개, 40개, 20개 순차 예약
         stock.reserve(30);
@@ -214,8 +203,7 @@ class StockTest {
     @DisplayName("예약 확정 후 실제 재고가 0이 되면 OUT_OF_STOCK 상태가 된다")
     void confirmReservation_WhenQuantityBecomesZero_ShouldChangeToOutOfStock() {
         // given: 재고 50개, 50개 예약된 상품
-        Product product = ProductFixture.withStock(50);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(50);
         stock.reserve(50);
 
         // when: 50개 모두 확정
@@ -231,8 +219,7 @@ class StockTest {
     @DisplayName("일부 예약 확정 후 나머지 취소도 정상 동작한다")
     void partialConfirmAndCancel_ShouldWorkCorrectly() {
         // given: 재고 100개, 60개 예약된 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
         stock.reserve(60);
 
         // when: 30개 확정, 20개 취소
@@ -255,8 +242,7 @@ class StockTest {
     @DisplayName("0 이하의 수량으로 예약하려 하면 예외가 발생한다")
     void reserve_WithInvalidQuantity_ShouldThrowException(int invalidQuantity) {
         // given: 재고 100개인 상품
-        Product product = ProductFixture.withStock(100);
-        Stock stock = product.getStock();
+        Stock stock = StockFixture.withQuantity(100);
 
         // when & then: 잘못된 수량으로 예약 시도
         assertThatThrownBy(() -> stock.reserve(invalidQuantity))

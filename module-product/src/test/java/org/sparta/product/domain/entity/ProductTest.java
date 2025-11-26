@@ -15,13 +15,9 @@ import static org.assertj.core.api.Assertions.*;
 
 /**
  * Product 도메인 단위 테스트
- * 생성 시점에 반드시 수행해야하는 점
- * - 상품 업체가 존재하는가.
- * - 상품 관리 허브 ID를 확인하여 존재하는가.
- * - 상품 생성 시 반드시 재고가 생성이 되는가
- * - 등록시 재고가 0 이상인가
- * - 상품 삭제 시 재고가 함께 삭제가 되는가?
- * - 상품 개당 금액이 0원 이상인가?
+ * - Product는 Stock과 독립된 애그리거트
+ * - 생성, 수정, 삭제 등 도메인 로직만 검증
+ * - Stock 생성은 이벤트를 통해 처리되므로 별도 테스트
  */
 class ProductTest {
 
@@ -60,28 +56,6 @@ class ProductTest {
         assertThat(product.getIsActive()).isTrue();
     }
 
-    @Test
-    @DisplayName("상품 생성 시 재고가 함께 생성된다")
-    void create_WithValidInput_ShouldCreateStock() {
-        // given: 유효한 상품 정보와 초기 재고량
-        Integer initialQuantity = 100;
-
-        // when: 상품 생성
-        Product product = Product.create(
-                "테스트 상품",
-                Money.of(10000L),
-                TEST_CATEGORY_ID,
-                TEST_COMPANY_ID,
-                TEST_HUB_ID,
-                initialQuantity
-        );
-
-        // then: 재고가 함께 생성됨
-        assertThat(product.getStock()).isNotNull();
-        assertThat(product.getStock().getQuantity()).isEqualTo(initialQuantity);
-        assertThat(product.getStock().getReservedQuantity()).isEqualTo(0);
-        assertThat(product.getStock().getProduct()).isEqualTo(product);
-    }
 
     @ParameterizedTest
     @NullAndEmptySource
@@ -243,9 +217,8 @@ class ProductTest {
                 zeroQuantity
         );
 
-        // then: 정상적으로 생성됨
+        // then: 정상적으로 생성됨 (Stock은 이벤트로 생성됨)
         assertThat(product).isNotNull();
-        assertThat(product.getStock().getQuantity()).isEqualTo(0);
     }
 
     @Test
@@ -277,25 +250,4 @@ class ProductTest {
         assertThat(product.getDeletedAt()).isNull();
     }
 
-    @Test
-    @DisplayName("상품 생성 시 Stock의 companyId와 hubId가 Product와 동일하다")
-    void create_ShouldCreateStockWithSameCompanyAndHub() {
-        // given: 상품 생성 정보
-        UUID companyId = UUID.fromString("90000000-0000-0000-0000-000000000001");
-        UUID hubId = UUID.fromString("90000000-0000-0000-0000-000000000002");
-
-        // when: 상품 생성
-        Product product = Product.create(
-                "테스트 상품",
-                Money.of(10000L),
-                TEST_CATEGORY_ID,
-                companyId,
-                hubId,
-                100
-        );
-
-        // then: Stock의 companyId, hubId가 Product와 동일
-        assertThat(product.getStock().getCompanyId()).isEqualTo(companyId);
-        assertThat(product.getStock().getHubId()).isEqualTo(hubId);
-    }
 }
