@@ -35,18 +35,15 @@ public class AiRoutePlanner {
 
     public RoutePlanningResult plan(CompanyDeliveryRoute route) {
         List<RouteStopSnapshot> stops = prepareStops(route);
-        log.info("AI planning started routeId={} deliveryId={} stopCount={}", route.getId(), route.getDeliveryId(), stops.size());
 
         List<RouteStopSnapshot> enrichedStops = enrichCoordinates(stops);
-        log.debug("Coordinates enriched routeId={} enrichedStopCount={}", route.getId(), enrichedStops.size());
 
         OrderedResult orderedResult = determineOrder(route, enrichedStops);
-        log.debug("Stop ordering decided routeId={} orderedLabels={}", route.getId(), orderedResult.orderedLabels());
+
 
         List<RouteStopSnapshot> orderedStops = reorder(enrichedStops, orderedResult.orderedLabels());
         RouteMetrics metrics = directionsEstimator.estimate(orderedStops);
-        log.info("Directions estimated routeId={} distanceMeters={} durationMinutes={}",
-                route.getId(), metrics.distanceMeters(), metrics.durationMinutes());
+
 
         return buildResult(route, orderedStops, metrics, orderedResult);
     }

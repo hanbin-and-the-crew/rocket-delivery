@@ -1,4 +1,4 @@
-package org.sparta.deliverylog.config;
+package org.sparta.delivery.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -6,14 +6,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class OpenApiConfig {
+public class DeliveryOpenApiConfig {
 
     @Bean
-    public OpenAPI openAPI() {
+    public OpenAPI deliveryOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("배송 경로 관리 API")
-                        .description("배송 경로 생성, 조회, 관리 API")
-                        .version("1.0.0"));
+                        .title("Delivery Service API")
+                        .description("배송 관리 서비스 API 문서")
+                        .version("v1.0.0"));
     }
 }
