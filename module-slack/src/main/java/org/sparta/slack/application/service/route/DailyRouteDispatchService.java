@@ -34,10 +34,9 @@ public class DailyRouteDispatchService {
 
     @Transactional
     public List<DailyDispatchResult> dispatch(LocalDate date) {
-        log.info("Starting daily route dispatch for date={}", date);
+
         assignmentService.assign(date);
         List<CompanyDeliveryRoute> routes = routeRepository.findAllByScheduledDateAndStatusIn(date, PLANNABLE_STATUSES);
-        log.info("Dispatch candidates fetched count={}", routes.size());
 
         List<DailyDispatchResult> results = new ArrayList<>();
         for (CompanyDeliveryRoute route : routes) {
@@ -52,12 +51,10 @@ public class DailyRouteDispatchService {
             return java.util.Optional.empty();
         }
         try {
-            log.info("Planning route routeId={} deliveryId={} currentStatus={} stopCount={}",
-                    route.getId(), route.getDeliveryId(), route.getStatus(), route.getStops().size());
+
             RoutePlanningResult planningResult = routePlanningService.plan(route);
             UUID messageId = routeNotificationService.notifyManager(route, planningResult);
-            log.info("Slack DM sent routeId={} managerSlackId={} messageId={}",
-                    route.getId(), route.getDeliveryManagerSlackId(), messageId);
+
             route.markDispatched(messageId);
             routeRepository.save(route);
             return java.util.Optional.of(DailyDispatchResult.success(route.getId(), messageId));
