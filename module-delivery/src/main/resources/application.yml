@@ -17,7 +17,7 @@ spring:
     consumer:
       group-id: delivery-service
 
-      
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
