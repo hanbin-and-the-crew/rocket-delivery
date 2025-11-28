@@ -1,4 +1,4 @@
-package org.sparta.user.infrastructure.config;
+package org.sparta.gateway.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;

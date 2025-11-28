@@ -17,9 +17,9 @@ public class AuthController implements AuthApiSpec {
         this.authService = authService;
     }
 
-    @GetMapping("/hello")
+    @GetMapping("/health")
     public String hello() {
-        return "Hello from Company Service!";
+        return "Auth OK";
     }
 
     @Override
