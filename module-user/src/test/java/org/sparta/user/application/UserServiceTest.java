@@ -10,6 +10,7 @@ import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.entity.User;
+import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.domain.repository.UserRepository;
@@ -72,7 +73,7 @@ public class UserServiceTest {
         // given
         UserRequest.SignUpUser request = new UserRequest.SignUpUser(
                 "newUser", "password123", "slackId", "홍길동",
-                "01012341234", "new@ex.com", UserRoleEnum.MASTER, hubId
+                "01012341234", "new@ex.com", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, hubId
         );
 
         given(userRepository.findByUserName("newUser")).willReturn(Optional.empty());
@@ -96,7 +97,7 @@ public class UserServiceTest {
         // given
         UserRequest.SignUpUser request = new UserRequest.SignUpUser(
                 "dupUser", "pw", "slackId", "홍길동",
-                "01012345678", "dup@ex.com", UserRoleEnum.DELIVERY_MANAGER, hubId
+                "01012345678", "dup@ex.com", UserRoleEnum.DELIVERY_MANAGER, DeliveryManagerRoleEnum.COMPANY, hubId
         );
         given(userRepository.findByUserName("dupUser")).willReturn(Optional.of(mock(User.class)));
 
