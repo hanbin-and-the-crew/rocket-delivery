@@ -2,12 +2,12 @@ package org.sparta.delivery.infrastructure.repository;
 
 import lombok.RequiredArgsConstructor;
 import org.sparta.delivery.domain.entity.Delivery;
+import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,13 +23,8 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
     }
 
     @Override
-    public Optional<Delivery> findById(UUID deliveryId) {
-        return deliveryJpaRepository.findById(deliveryId);
-    }
-
-    @Override
-    public Optional<Delivery> findByIdAndDeletedAtIsNull(UUID deliveryId) {
-        return deliveryJpaRepository.findByIdAndDeletedAtIsNull(deliveryId);
+    public Optional<Delivery> findByIdAndDeletedAtIsNull(UUID id) {
+        return deliveryJpaRepository.findByIdAndDeletedAtIsNull(id);
     }
 
     @Override
@@ -38,12 +33,18 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
     }
 
     @Override
-    public Page<Delivery> findAll(Pageable pageable) {
-        return deliveryJpaRepository.findAllNotDeleted(pageable);
+    public boolean existsByOrderIdAndDeletedAtIsNull(UUID orderId) {
+        return deliveryJpaRepository.existsByOrderIdAndDeletedAtIsNull(orderId);
     }
 
     @Override
-    public void delete(Delivery delivery) {
-        deliveryJpaRepository.delete(delivery);
+    public Page<Delivery> findAllByStatusAndDeletedAtIsNull(DeliveryStatus status, Pageable pageable) {
+        return deliveryJpaRepository.findAllByStatusAndDeletedAtIsNull(status, pageable);
     }
+
+    @Override
+    public Page<Delivery> findAllByDeletedAtIsNull(Pageable pageable) {
+        return deliveryJpaRepository.findAllByDeletedAtIsNull(pageable);
+    }
+
 }
