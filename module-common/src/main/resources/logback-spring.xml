@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty scope="context" name="springAppName" source="spring.application.name"/>
+    <springProperty scope="context" name="activeProfile" source="spring.profiles.active" defaultValue="default"/>
+
+    <!-- Console Appender (항상 출력 - IDE/터미널에서 로그 확인) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loki Appender (로그 수집) - Async로 비동기 처리 -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>http://localhost:3100/loki/api/v1/push</url>
+        </http>
+        <format>
+            <label>
+                <pattern>app=${springAppName:-unknown},host=${HOSTNAME:-localhost},level=%level</pattern>
+            </label>
+            <message>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            </message>
+        </format>
+        <!-- Loki 연결 실패 시에도 애플리케이션은 정상 동작 -->
+        <dropRateLimitedBatches>true</dropRateLimitedBatches>
+    </appender>
+
+    <!-- Async Loki Appender (비동기 처리로 성능 향상) -->
+    <appender name="ASYNC_LOKI" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="LOKI" />
+        <!-- Loki 전송 실패해도 애플리케이션 중단 안 됨 -->
+        <neverBlock>true</neverBlock>
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+
+    <!-- Root Logger - Console은 항상, Loki는 monitoring 프로파일에서만 -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+    <!-- monitoring 프로파일 활성화 시에만 Loki 전송 -->
+    <springProfile name="monitoring">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_LOKI" />
+        </root>
+    </springProfile>
+
+    <!-- 상세 로깅이 필요한 패키지 -->
+    <logger name="org.sparta" level="DEBUG" />
+    <logger name="org.hibernate.SQL" level="DEBUG" />
+    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE" />
+</configuration>
