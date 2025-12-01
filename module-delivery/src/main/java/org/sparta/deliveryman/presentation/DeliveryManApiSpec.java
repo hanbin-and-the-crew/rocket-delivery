@@ -1,13 +1,13 @@
-package org.sparta.deliveryapplication.deliveryman.presentation;
+package org.sparta.deliveryman.presentation;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.deliveryapplication.deliveryman.domain.enumeration.DeliveryManStatus;
-import org.sparta.deliveryapplication.deliveryman.domain.enumeration.DeliveryManType;
-import org.sparta.deliveryapplication.deliveryman.presentation.dto.request.DeliveryManRequest;
-import org.sparta.deliveryapplication.deliveryman.presentation.dto.response.DeliveryManResponse;
+import org.sparta.deliveryman.domain.enumeration.DeliveryManStatus;
+import org.sparta.deliveryman.domain.enumeration.DeliveryManType;
+import org.sparta.deliveryman.presentation.dto.request.DeliveryManRequest;
+import org.sparta.deliveryman.presentation.dto.response.DeliveryManResponse;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
