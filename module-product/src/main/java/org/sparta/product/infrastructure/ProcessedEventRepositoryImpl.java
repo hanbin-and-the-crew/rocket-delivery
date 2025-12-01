@@ -1,7 +1,7 @@
 package org.sparta.product.infrastructure;
 
 import lombok.RequiredArgsConstructor;
-import org.sparta.product.domain.entity.ProcessedEvent;
+import org.sparta.product.domain.event.ProcessedEvent;
 import org.sparta.product.domain.repository.ProcessedEventRepository;
 import org.sparta.product.infrastructure.jpa.ProcessedEventJpaRepository;
 import org.springframework.stereotype.Repository;

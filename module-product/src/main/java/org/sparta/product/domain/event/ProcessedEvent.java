@@ -1,4 +1,4 @@
-package org.sparta.product.domain.entity;
+package org.sparta.product.domain.event;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

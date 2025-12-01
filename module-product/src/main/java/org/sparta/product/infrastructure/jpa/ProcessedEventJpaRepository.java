@@ -1,6 +1,6 @@
 package org.sparta.product.infrastructure.jpa;
 
-import org.sparta.product.domain.entity.ProcessedEvent;
+import org.sparta.product.domain.event.ProcessedEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;

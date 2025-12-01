@@ -1,4 +1,4 @@
-package org.sparta.product.domain.entity;
+package org.sparta.product.domain.event;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,7 +21,7 @@ public class ProductOutboxEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private Long id;
+    private UUID id;
 
     // Kafka 발행을 식별하는 고유한 이벤트 ID
     @Column(nullable = false, unique = true)

@@ -1,6 +1,6 @@
 package org.sparta.product.domain.repository;
 
-import org.sparta.product.domain.entity.ProcessedEvent;
+import org.sparta.product.domain.event.ProcessedEvent;
 
 import java.util.UUID;
 

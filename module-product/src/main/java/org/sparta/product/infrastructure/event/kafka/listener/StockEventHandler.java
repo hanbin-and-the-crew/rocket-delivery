@@ -1,22 +1,23 @@
-package org.sparta.product.application.event;
+package org.sparta.product.infrastructure.event.kafka.listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
-import org.sparta.common.event.EventPublisher;
 import org.sparta.product.application.service.StockService;
-import org.sparta.product.domain.entity.ProcessedEvent;
+import org.sparta.product.domain.event.ProcessedEvent;
+import org.sparta.product.domain.event.ProductOutboxEvent;
 import org.sparta.product.domain.entity.Stock;
 import org.sparta.product.domain.repository.ProcessedEventRepository;
-import org.sparta.product.infrastructure.event.*;
-import org.sparta.product.infrastructure.event.publisher.StockConfirmedEvent;
-import org.sparta.product.infrastructure.event.publisher.StockReservationCancelledEvent;
-import org.sparta.product.infrastructure.event.publisher.StockReservationFailedEvent;
-import org.sparta.product.infrastructure.event.publisher.StockReservedEvent;
+import org.sparta.product.infrastructure.event.kafka.dto.*;
+import org.sparta.product.domain.enums.OutboxStatus;
+import org.sparta.product.infrastructure.event.outbox.ProductOutboxEventRepository;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.UUID;
 
 /**
  * Product 모듈 재고 이벤트 핸들러
@@ -38,7 +39,10 @@ public class StockEventHandler {
 
     private final StockService stockService;
     private final ProcessedEventRepository processedEventRepository;
-    private final EventPublisher eventPublisher;
+
+//    private final EventPublisher eventPublisher;
+    private final ProductOutboxEventRepository productOutboxEventRepository;
+    private final ObjectMapper objectMapper;
 
     /**
      *  재고 예약 처리
@@ -74,7 +78,13 @@ public class StockEventHandler {
                     stock.getAvailableQuantity(),
                     stock.getStatus()
             );
-            eventPublisher.publishExternal(successEvent);
+//            eventPublisher.publishExternal(successEvent);
+            saveOutboxEvent(
+                    successEvent,
+                    successEvent.eventId(),
+                    successEvent.productId(),
+                    successEvent.occurredAt()
+            );
 
             log.info("재고 예약 성공 - orderId: {}, productId: {}, reserved: {}, available: {}",
                     event.orderId(), event.productId(), event.quantity(), stock.getAvailableQuantity());
@@ -87,7 +97,13 @@ public class StockEventHandler {
                     event.quantity(),
                     e.getMessage()
             );
-            eventPublisher.publishExternal(failEvent);
+//            eventPublisher.publishExternal(failEvent);
+            saveOutboxEvent(
+                    failEvent,
+                    failEvent.eventId(),
+                    failEvent.productId(),
+                    failEvent.occurredAt()
+            );
 
             // 멱등성 기록
             processedEventRepository.save(
@@ -132,7 +148,13 @@ public class StockEventHandler {
                     event.quantity(),
                     stock.getQuantity()
             );
-            eventPublisher.publishExternal(confirmedEvent);
+//            eventPublisher.publishExternal(confirmedEvent);
+            saveOutboxEvent(
+                    confirmedEvent,
+                    confirmedEvent.eventId(),
+                    confirmedEvent.productId(),
+                    confirmedEvent.occurredAt()
+            );
 
             log.info("재고 확정 완료 - orderId: {}, productId: {}, confirmed: {}, remaining: {}",
                     event.orderId(), event.productId(), event.quantity(), stock.getQuantity());
@@ -180,7 +202,14 @@ public class StockEventHandler {
                     event.productId(),
                     event.quantity()
             );
-            eventPublisher.publishExternal(cancelledEvent);
+//            eventPublisher.publishExternal(cancelledEvent);
+            saveOutboxEvent(
+                    cancelledEvent,
+                    cancelledEvent.eventId(),
+                    cancelledEvent.productId(),
+                    cancelledEvent.occurredAt()
+            );
+
 
             log.info("재고 예약 취소 완료 - orderId: {}, productId: {}, cancelled: {}",
                     event.orderId(), event.productId(), event.quantity());
@@ -195,4 +224,37 @@ public class StockEventHandler {
                     event.orderId(), event.productId(), e.getMessage());
         }
     }
+
+
+
+    private void saveOutboxEvent(Object event, UUID eventId, UUID aggregateId, Instant occurredAt) {
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+
+            ProductOutboxEvent outbox = ProductOutboxEvent.builder()
+                    .eventId(eventId)
+                    .eventType(event.getClass().getSimpleName())
+                    .aggregateId(aggregateId)
+                    .payload(payload)
+                    .status(OutboxStatus.READY)
+                    .occurredAt(occurredAt)
+                    .build();
+
+            productOutboxEventRepository.save(outbox);
+
+        } catch (Exception e) {
+            log.error("[Outbox] 이벤트 직렬화/저장 실패 - eventId={}", eventId, e);
+            // 여기서 비즈니스적으로 어떻게 할지 결정:
+            //  - 런타임 예외 던져서 전체 트랜잭션 롤백
+            //  - 아니면 로그만 남기고 진행 (지금 과제 기준이면 롤백이 더 안전)
+            throw new RuntimeException("Outbox 저장 실패", e);
+        }
+    }
+
+
+
+
+
+
+
 }

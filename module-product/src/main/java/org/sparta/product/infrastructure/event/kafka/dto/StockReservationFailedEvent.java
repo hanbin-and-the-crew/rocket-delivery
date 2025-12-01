@@ -1,4 +1,4 @@
-package org.sparta.product.infrastructure.event.publisher;
+package org.sparta.product.infrastructure.event.kafka.dto;
 
 import org.sparta.common.event.DomainEvent; // ✅ 공통 이벤트 인터페이스 import
 import java.time.Instant;

@@ -1,4 +1,4 @@
-package org.sparta.product.infrastructure.event;
+package org.sparta.product.infrastructure.event.kafka.dto;
 
 import java.time.Instant;
 import java.util.UUID;

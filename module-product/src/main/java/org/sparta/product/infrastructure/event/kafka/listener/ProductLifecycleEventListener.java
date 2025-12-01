@@ -1,4 +1,4 @@
-package org.sparta.product.application.event;
+package org.sparta.product.infrastructure.event.kafka.listener;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,5 @@
-package org.sparta.product.infrastructure.event;
+package org.sparta.product.infrastructure.event.kafka.dto;
 
-import org.sparta.common.event.DomainEvent;
 import java.time.Instant;
 import java.util.UUID;
 

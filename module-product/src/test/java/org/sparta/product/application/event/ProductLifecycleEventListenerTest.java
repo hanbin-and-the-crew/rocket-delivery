@@ -11,6 +11,7 @@ import org.sparta.product.domain.enums.StockStatus;
 import org.sparta.product.domain.event.ProductCreatedEvent;
 import org.sparta.product.domain.event.ProductDeletedEvent;
 import org.sparta.product.domain.repository.StockRepository;
+import org.sparta.product.infrastructure.event.kafka.listener.ProductLifecycleEventListener;
 import org.sparta.product.support.fixtures.StockFixture;
 
 import java.util.Optional;

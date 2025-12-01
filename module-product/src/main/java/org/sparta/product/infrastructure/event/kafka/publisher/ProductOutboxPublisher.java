@@ -1,12 +1,12 @@
-package org.sparta.product.infrastructure.event.publisher;
+package org.sparta.product.infrastructure.event.kafka.publisher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.product.domain.entity.ProductOutboxEvent;
+import org.sparta.product.domain.event.ProductOutboxEvent;
 import org.sparta.product.domain.enums.OutboxStatus;
-import org.sparta.product.domain.repository.ProductOutboxEventRepository;
+import org.sparta.product.infrastructure.event.outbox.ProductOutboxEventRepository;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

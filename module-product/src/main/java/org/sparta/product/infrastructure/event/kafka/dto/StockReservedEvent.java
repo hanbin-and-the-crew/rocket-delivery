@@ -1,4 +1,4 @@
-package org.sparta.product.infrastructure.event.publisher;
+package org.sparta.product.infrastructure.event.kafka.dto;
 
 import org.sparta.common.event.DomainEvent;
 import org.sparta.product.domain.enums.StockStatus;
