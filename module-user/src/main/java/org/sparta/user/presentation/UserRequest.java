@@ -2,6 +2,7 @@ package org.sparta.user.presentation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
+import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 
 import java.util.UUID;
@@ -39,8 +40,10 @@ public class UserRequest {
             @NotNull
             UserRoleEnum role,
 
+            @Schema(description = "배송 담당자 종류", example = "HUB")
+            DeliveryManagerRoleEnum deliveryRole, // DELIVERY_MANAGER일때만 유효
+
             @Schema(description = "허브 ID", example = "61a98cf7-921c-47fb-a802-3ec71f736f74")
-            @NotNull
             UUID hubId
     ) {
     }
@@ -84,8 +87,10 @@ public class UserRequest {
             @NotNull
             UserRoleEnum role,
 
+            @Schema(description = "배송 담당자 종류", example = "HUB")
+            DeliveryManagerRoleEnum deliveryRole, // DELIVERY_MANAGER일때만 유효
+
             @Schema(description = "허브 ID", example = "61a98cf7-921c-47fb-a802-3ec71f736f74")
-            @NotNull
             UUID hubId
     ) {
     }
