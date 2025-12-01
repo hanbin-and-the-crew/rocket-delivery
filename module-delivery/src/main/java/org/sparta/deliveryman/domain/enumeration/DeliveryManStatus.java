@@ -1,4 +1,4 @@
-package org.sparta.deliveryapplication.deliveryman.domain.enumeration;
+package org.sparta.deliveryman.domain.enumeration;
 
 /**
  * 배송 담당자 상태

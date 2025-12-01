@@ -1,8 +1,8 @@
-package org.sparta.deliveryapplication.deliveryman.domain.event;
+package org.sparta.deliveryman.domain.event;
 
 import lombok.Getter;
 import lombok.ToString;
-import org.sparta.deliveryapplication.deliveryman.domain.entity.DeliveryMan;
+import org.sparta.deliveryman.domain.entity.DeliveryMan;
 
 import java.util.UUID;
 
