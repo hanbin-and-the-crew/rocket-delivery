@@ -1,5 +1,7 @@
 <configuration>
 
+    <springProperty scope="context" name="serviceName" source="spring.application.name"/>
+
     <!-- Logstash 로그  -->
     <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
         <destination>localhost:5044</destination>
@@ -7,7 +9,11 @@
         <!-- 재연결 시도 간격(3초) -->
         <reconnectionDelay>3000</reconnectionDelay>
 
-        <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+        <!-- JSON 로그에 serviceName 필드 추가 -->
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <customFields>{"serviceName":"${serviceName}"}</customFields>
+        </encoder>
+
     </appender>
 
     <!-- 비동기 로깅 (ELK 장애가 있어도 절대 block되지 않음) -->
@@ -15,7 +21,7 @@
         <appender-ref ref="LOGSTASH"/>
 
         <!-- 큐 사이즈: 버퍼 -->
-        <queueSize>10000</queueSize>
+        <queueSize>1000</queueSize>
 
         <!-- ELK 죽어도 어플리케이션(모듈)은 돌아가도록 -->
         <neverBlock>true</neverBlock>
