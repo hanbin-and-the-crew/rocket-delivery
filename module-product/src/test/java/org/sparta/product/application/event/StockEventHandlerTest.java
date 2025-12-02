@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.product.application.service.StockService;
 import org.sparta.product.domain.entity.Stock;
 import org.sparta.product.domain.enums.OutboxStatus;
@@ -24,6 +25,7 @@ import org.sparta.product.infrastructure.event.kafka.dto.StockReservationFailedE
 import org.sparta.product.infrastructure.event.kafka.dto.StockReservedEvent;
 import org.sparta.product.infrastructure.event.outbox.ProductOutboxEventRepository;
 import org.sparta.product.support.fixtures.StockFixture;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -38,6 +40,9 @@ class StockEventHandlerTest {
 
     @Mock
     private StockService stockService;
+
+    @MockBean
+    private EventPublisher eventPublisher;
 
     @Mock
     private ProcessedEventRepository processedEventRepository;

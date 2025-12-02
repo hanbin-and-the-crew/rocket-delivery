@@ -5,12 +5,14 @@ import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.product.domain.entity.Category;
 import org.sparta.product.domain.repository.CategoryRepository;
 import org.sparta.product.domain.repository.ProductRepository;
 import org.sparta.product.presentation.ProductRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -37,6 +39,9 @@ import static org.hamcrest.Matchers.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class ProductApiIntegrationTest {
+
+    @MockBean
+    private EventPublisher eventPublisher;
 
     @LocalServerPort
     private int port;
