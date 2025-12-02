@@ -21,6 +21,14 @@ spring:
     console:
       enabled: true
 
+  kafka:
+    listener:
+      missing-topics-fatal: false
+    autoconfigure:
+      exclude:
+        - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+
 # Eureka 클라이언트 비활성화
 eureka:
   client:
