@@ -7,13 +7,9 @@ import lombok.NoArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.sparta.delivery.domain.error.DeliveryErrorType;
-import org.sparta.deliverylog.domain.entity.DeliveryLog;
-import org.sparta.deliverylog.domain.enumeration.DeliveryLogStatus;
 import org.sparta.jpa.entity.BaseEntity;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -26,6 +22,8 @@ public class Delivery extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "UUID")
     private UUID id;
+
+    // ===== 주문/고객/업체/허브 스냅샷 =====
 
     @Column(name = "order_id", nullable = false, columnDefinition = "UUID")
     private UUID orderId;
@@ -45,9 +43,7 @@ public class Delivery extends BaseEntity {
     @Column(name = "receive_hub_id", nullable = false, columnDefinition = "UUID")
     private UUID receiveHubId;
 
-    // ===== 스냅샷 / 배송 정보 =====
-
-    @Column(name = "address", length = 300, nullable = false)
+    @Column(name = "address", length = 255, nullable = false)
     private String address;
 
     @Column(name = "receiver_name", length = 100, nullable = false)
@@ -56,42 +52,36 @@ public class Delivery extends BaseEntity {
     @Column(name = "receiver_slack_id", length = 100)
     private String receiverSlackId;
 
-    @Column(name = "receiver_phone", length = 50, nullable = false)
+    @Column(name = "receiver_phone", length = 30, nullable = false)
     private String receiverPhone;
 
-    @Column(name = "due_at", nullable = false)
+    @Column(name = "due_at")
     private LocalDateTime dueAt;
 
-    @Column(name = "requested_memo", length = 300)
+    @Column(name = "requested_memo", length = 500)
     private String requestedMemo;
+
+    // ===== 진행 상태 =====
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 30, nullable = false)
     private DeliveryStatus status;
 
     @Column(name = "current_log_seq")
-    private Integer currentLogSeq;
+    private Integer currentLogSeq; // 현재 진행 중이거나 마지막으로 도착한 허브 leg 시퀀스 (없으면 null)
 
-    // 허브 전체 구간 담당자 (허브 배송 담당자 10명 중 한 명)
-    @Column(name = "hub_delivery_Man_id")
+    @Column(name = "total_log_seq")
+    private Integer totalLogSeq;   // 전체 허브 leg 개수 (0~N-1 시퀀스 기준 N)
+
+    @Column(name = "hub_delivery_man_id", columnDefinition = "UUID")
     private UUID hubDeliveryManId;
 
-    // 목적지 허브 → 업체 구간 담당자
-    @Column(name = "company_delivery_Man_id")
+    @Column(name = "company_delivery_man_id", columnDefinition = "UUID")
     private UUID companyDeliveryManId;
 
-    // ===== 연관 관계 =====
-
-    @OneToMany(
-            mappedBy = "delivery",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private List<DeliveryLog> logs = new ArrayList<>();
-
     // ===== 생성 메서드 =====
-    // 주문 확정 -> 배송/로그 생성
-    public static Delivery create(
+
+    public static Delivery createFromOrderApproved(
             UUID orderId,
             UUID customerId,
             UUID supplierCompanyId,
@@ -103,33 +93,11 @@ public class Delivery extends BaseEntity {
             String receiverSlackId,
             String receiverPhone,
             LocalDateTime dueAt,
-            String requestedMemo
+            String requestedMemo,
+            Integer totalLogSeq // 허브 leg 전체 개수 (알고 있다면 세팅, 모르면 null)
     ) {
-        // null 검증
-        if (orderId == null) {
-            throw new BusinessException(DeliveryErrorType.ORDER_ID_REQUIRED);
-        }
-        if (customerId == null) {
-            throw new BusinessException(DeliveryErrorType.CUSTOMER_ID_REQUIRED);
-        }
-        if (supplierCompanyId == null || supplierHubId == null) {
-            throw new BusinessException(DeliveryErrorType.SUPPLIER_INFO_REQUIRED);
-        }
-        if (receiveCompanyId == null || receiveHubId == null) {
-            throw new BusinessException(DeliveryErrorType.RECEIVER_INFO_REQUIRED);
-        }
-        if (address == null || address.isBlank()) {
-            throw new BusinessException(DeliveryErrorType.ADDRESS_REQUIRED);
-        }
-        if (receiverName == null || receiverName.isBlank()) {
-            throw new BusinessException(DeliveryErrorType.RECEIVER_NAME_REQUIRED);
-        }
-        if (receiverPhone == null || receiverPhone.isBlank()) {
-            throw new BusinessException(DeliveryErrorType.RECEIVER_PHONE_REQUIRED);
-        }
-        if (dueAt == null) {
-            throw new BusinessException(DeliveryErrorType.DUE_AT_REQUIRED);
-        }
+        validateCreateArgs(orderId, customerId, supplierCompanyId, supplierHubId,
+                receiveCompanyId, receiveHubId, address, receiverName, receiverPhone);
 
         Delivery d = new Delivery();
         d.orderId = orderId;
@@ -146,201 +114,145 @@ public class Delivery extends BaseEntity {
         d.requestedMemo = requestedMemo;
         d.status = DeliveryStatus.CREATED;
         d.currentLogSeq = null;
+        d.totalLogSeq = totalLogSeq;
         d.hubDeliveryManId = null;
         d.companyDeliveryManId = null;
-
         return d;
     }
 
-    // 양방향 연관관계 편의 메서드
-    public void addLog(DeliveryLog log) {
-        if (log == null) {
-            throw new IllegalArgumentException("배송 로그는 빈값일 수 없습니다.");
+    private static void validateCreateArgs(
+            UUID orderId,
+            UUID customerId,
+            UUID supplierCompanyId,
+            UUID supplierHubId,
+            UUID receiveCompanyId,
+            UUID receiveHubId,
+            String address,
+            String receiverName,
+            String receiverPhone
+    ) {
+        if (orderId == null) {
+            throw new BusinessException(DeliveryErrorType.ORDER_ID_REQUIRED);
         }
-        logs.add(log);
-        //TODO :해결 필요
-//        log.setDelivery(this);
+        if (customerId == null) {
+            throw new BusinessException(DeliveryErrorType.CUSTOMER_ID_REQUIRED);
+        }
+        if (supplierCompanyId == null) {
+            throw new BusinessException(DeliveryErrorType.SUPPLIER_COMPANY_ID_REQUIRED);
+        }
+        if (supplierHubId == null) {
+            throw new BusinessException(DeliveryErrorType.SUPPLIER_HUB_ID_REQUIRED);
+        }
+        if (receiveCompanyId == null) {
+            throw new BusinessException(DeliveryErrorType.RECEIVE_COMPANY_ID_REQUIRED);
+        }
+        if (receiveHubId == null) {
+            throw new BusinessException(DeliveryErrorType.RECEIVE_HUB_ID_REQUIRED);
+        }
+        if (address == null || address.isBlank()) {
+            throw new BusinessException(DeliveryErrorType.ADDRESS_REQUIRED);
+        }
+        if (receiverName == null || receiverName.isBlank()) {
+            throw new BusinessException(DeliveryErrorType.RECEIVER_NAME_REQUIRED);
+        }
+        if (receiverPhone == null || receiverPhone.isBlank()) {
+            throw new BusinessException(DeliveryErrorType.RECEIVER_PHONE_REQUIRED);
+        }
     }
 
-    // ====== 비즈니스 메서드 ======
-
-    // 시퀀스로 log 찾기
-    private DeliveryLog getLogBySequenceOrThrow(int sequence) {
-        return logs.stream()
-                .filter(l -> l.getSequence() == sequence)
-                .findFirst()
-                .orElseThrow(() ->
-                        new BusinessException(DeliveryErrorType.LOG_NOT_FOUND_FOR_SEQUENCE));
+    // 필요 시 totalLogSeq를 나중에 세팅/수정하는 도메인 메서드
+    public void updateTotalLogSeq(int totalLogSeq) {
+        if (totalLogSeq < 0) {
+            throw new BusinessException(DeliveryErrorType.INVALID_TOTAL_LOG_SEQ);
+        }
+        this.totalLogSeq = totalLogSeq;
     }
 
-    // Hub 담당자 배정 완료 시 -> HUB_WAITING 변경
-    // DeliveryCreatedEvent 수신 후 호출
-    public void markHubWaitingAfterAssignment() {
-        if (status != DeliveryStatus.CREATED) {
-            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_ASSIGNMENT);
-        }
+    // ===== 담당자 배정 =====
 
-        this.status = DeliveryStatus.HUB_WAITING;
-
-        // 생성된 모든 허브 leg를 HUB_WAITING 으로 전환
-        for (DeliveryLog log : logs) {
-            if (log.getStatus() != DeliveryLogStatus.CREATED) {
-                throw new BusinessException(DeliveryErrorType.INVALID_LOG_STATUS_FOR_ASSIGNMENT);
-            }
-            log.markHubWaiting();    // CREATED -> HUB_WAITING
-        }
-    }
-
-    // 허브 담당자 사전 배정 (DeliveryCreatedEvent 이후)
-    public void assignHubDeliveryMan(UUID hubDeliveryManId) {
-        if (hubDeliveryManId == null) {
-            throw new BusinessException(DeliveryErrorType.DELIVERYMAN_ID_REQUIRED);
-        }
-        // 이미 배정된 상태에서 다른 사람으로 바꾸려 하면 정책에 따라 검증
-        if (this.hubDeliveryManId != null && !this.hubDeliveryManId.equals(hubDeliveryManId)) {
-            throw new BusinessException(DeliveryErrorType.HUB_DELIVERYMAN_MISMATCH);
-        }
-        this.hubDeliveryManId = hubDeliveryManId;
-    }
-
-    // 업체 담당자 사전 배정
-    public void assignCompanyDeliveryMan(UUID companyDeliveryManId) {
-        if (companyDeliveryManId == null) {
-            throw new BusinessException(DeliveryErrorType.DELIVERYMAN_ID_REQUIRED);
-        }
-        if (this.companyDeliveryManId != null && !this.companyDeliveryManId.equals(companyDeliveryManId)) {
-            throw new BusinessException(DeliveryErrorType.COMPANY_DELIVERYMAN_MISMATCH);
-        }
-        this.companyDeliveryManId = companyDeliveryManId;
-    }
-
-//    // 허브 출발 처리 (담당자 먼저 셋팅하고 출발하는거로 하는 경우)
-//    public void startCompanyMoving(UUID companyDeliveryManId) {
-//        if (this.status != DeliveryStatus.DEST_HUB_ARRIVED) {
-//            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_COMPANY_MOVING);
-//        }
-//        // 먼저 담당자 세팅
-//        assignCompanyDeliveryMan(companyDeliveryManId);
-//        // 그 다음 상태 전환
-//        this.status = DeliveryStatus.COMPANY_MOVING;
-//    }
-
-    // 허브 출발 처리 / HUB_WAITING -> HUB_MOVING
-    public void startHubMoving(int sequence, UUID deliveryManId) {
+    public void assignHubDeliveryMan(UUID deliveryManId) {
         if (deliveryManId == null) {
-            throw new BusinessException(DeliveryErrorType.DELIVERYMAN_ID_REQUIRED);
+            throw new BusinessException(DeliveryErrorType.DELIVERY_MAN_ID_REQUIRED);
         }
-        if (status == DeliveryStatus.CANCELED
-                || status == DeliveryStatus.DELIVERED
-                || status == DeliveryStatus.COMPANY_MOVING) {
-            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_HUB_DEPARTURE);
+        if (status != DeliveryStatus.CREATED && status != DeliveryStatus.HUB_WAITING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_HUB_ASSIGN);
         }
-
-        DeliveryLog log = getLogBySequenceOrThrow(sequence);
-
-        if (log.getStatus() != DeliveryLogStatus.HUB_WAITING) {
-            throw new BusinessException(DeliveryErrorType.INVALID_LOG_STATUS_FOR_HUB_DEPARTURE);
+        this.hubDeliveryManId = deliveryManId;
+        if (this.status == DeliveryStatus.CREATED) {
+            this.status = DeliveryStatus.HUB_WAITING;
         }
-
-        // 🔹 허브 담당자 스냅샷 기록
-        if (this.hubDeliveryManId == null) {
-            this.hubDeliveryManId = deliveryManId;
-        } else if (!this.hubDeliveryManId.equals(deliveryManId)) {
-            // 정책에 따라 막을지, 허용할지.  지금은 막는 쪽으로.
-            throw new BusinessException(DeliveryErrorType.HUB_DELIVERYMAN_MISMATCH);
-        }
-
-        // 로그 도메인 로직에 위임 (deliveryManId 세팅 + 상태 HUB_MOVING)
-        log.start(deliveryManId);
-
-        if (this.status == DeliveryStatus.HUB_WAITING) {
-            this.status = DeliveryStatus.HUB_MOVING;
-        }
-        this.currentLogSeq = sequence;
     }
 
-    // 허브 도착 처리 / HUB_MOVING -> HUB_ARRIVED or DEST_HUB_ARRIVED
-    public void completeHubMoving(int sequence, double actualKm, int actualMinutes) {
-        if (actualKm <= 0) {
-            throw new BusinessException(DeliveryErrorType.ACTUAL_DISTANCE_MUST_BE_POSITIVE);
+    public void assignCompanyDeliveryMan(UUID deliveryManId) {
+        if (deliveryManId == null) {
+            throw new BusinessException(DeliveryErrorType.DELIVERY_MAN_ID_REQUIRED);
         }
-        if (actualMinutes <= 0) {
-            throw new BusinessException(DeliveryErrorType.ACTUAL_MINUTES_MUST_BE_POSITIVE);
+        if (status != DeliveryStatus.DEST_HUB_ARRIVED && status != DeliveryStatus.COMPANY_MOVING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_COMPANY_ASSIGN);
         }
-        if (status == DeliveryStatus.CANCELED || status == DeliveryStatus.DELIVERED) {
-            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_HUB_ARRIVAL);
+        this.companyDeliveryManId = deliveryManId;
+    }
+
+    // ===== 허브 leg 진행 =====
+
+    public void startHubMoving(int seq) {
+        if (this.status != DeliveryStatus.HUB_WAITING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_HUB_START);
+        }
+        if (seq < 0) {
+            throw new BusinessException(DeliveryErrorType.INVALID_LOG_SEQUENCE);
+        }
+        this.status = DeliveryStatus.HUB_MOVING;
+        this.currentLogSeq = seq;
+    }
+
+    public void completeHubMoving(int seq, boolean isLastLog) {
+        if (this.status != DeliveryStatus.HUB_MOVING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_HUB_COMPLETE);
+        }
+        if (this.currentLogSeq == null || this.currentLogSeq != seq) {
+            throw new BusinessException(DeliveryErrorType.INVALID_LOG_SEQUENCE);
         }
 
-        DeliveryLog log = getLogBySequenceOrThrow(sequence);
-
-        if (log.getStatus() != DeliveryLogStatus.HUB_MOVING) {
-            throw new BusinessException(DeliveryErrorType.INVALID_LOG_STATUS_FOR_HUB_ARRIVAL);
-        }
-
-        log.complete(actualKm, actualMinutes);
-
-        int maxSeq = logs.stream()
-                .mapToInt(DeliveryLog::getSequence)
-                .max()
-                .orElse(sequence);
-
-        if (sequence == maxSeq) {
-            // 마지막 허브 leg 도착
+        if (isLastLog) {
             this.status = DeliveryStatus.DEST_HUB_ARRIVED;
             this.currentLogSeq = null;
         } else {
-            // 중간 허브 도착: HUB_WAITING + 현재 위치는 sequence(도착 허브)
             this.status = DeliveryStatus.HUB_WAITING;
-            this.currentLogSeq = sequence;
+            this.currentLogSeq = seq;
         }
     }
 
-    // 목적지 허브 -> 업체 배송 시작
-    public void startCompanyMoving(UUID companyDeliveryManId) {
-        if (companyDeliveryManId == null) {
-            throw new BusinessException(DeliveryErrorType.DELIVERYMAN_ID_REQUIRED);
-        }
-        if (this.status != DeliveryStatus.DEST_HUB_ARRIVED) {
-            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_COMPANY_MOVING);
-        }
+    // ===== 업체 구간 진행 =====
 
-        this.companyDeliveryManId = companyDeliveryManId;
+    public void startCompanyMoving() {
+        if (this.status != DeliveryStatus.DEST_HUB_ARRIVED) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_COMPANY_START);
+        }
         this.status = DeliveryStatus.COMPANY_MOVING;
     }
 
-    // 최종 업체 배송 완료
     public void completeDelivery() {
-        if (this.status == DeliveryStatus.DELIVERED) {
-            throw new BusinessException(DeliveryErrorType.DELIVERY_ALREADY_COMPLETED);
-        }
         if (this.status != DeliveryStatus.COMPANY_MOVING) {
-            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_DELIVERY_COMPLETE);
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_COMPLETE);
         }
         this.status = DeliveryStatus.DELIVERED;
     }
 
-    // 주문 취소 -> 배송 취소 / CREATED/HUB_WAITING 상태에서만 취소 가능
+    // ===== 취소/삭제 =====
+
     public void cancel() {
-        if (this.status != DeliveryStatus.CREATED
-                && this.status != DeliveryStatus.HUB_WAITING) {
-            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_CANCEL);
+        if (this.status == DeliveryStatus.CANCELED) {
+            return;
         }
-
-        boolean hasNotCancellableLog = logs.stream()
-                .anyMatch(log ->
-                        log.getStatus() != DeliveryLogStatus.CREATED
-                                && log.getStatus() != DeliveryLogStatus.HUB_WAITING
-                );
-
-        if (hasNotCancellableLog) {
-            throw new BusinessException(DeliveryErrorType.CANNOT_CANCEL_WHILE_LEG_IN_PROGRESS);
-        }
-
         this.status = DeliveryStatus.CANCELED;
-
-        for (DeliveryLog log : logs) {
-            log.cancelFromDelivery();   // CREATED/HUB_WAITING -> CANCELED
-        }
     }
 
+    public void delete() {
+        if (this.status == DeliveryStatus.CANCELED && this.getDeletedAt() != null) {
+            return;
+        }
+        this.status = DeliveryStatus.CANCELED;
+        this.markAsDeleted();
+    }
 }

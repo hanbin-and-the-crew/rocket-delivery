@@ -1,6 +1,6 @@
 package org.sparta.delivery.domain.enumeration;
 
-public enum DeliveryStatus {    // 기존이랑 동일 주석만 좀 자세히 작성
+public enum DeliveryStatus {
     CREATED,            // Delivery, DeliveryLog 생성 완료 된 직후의 상태 (담당자 배정 전)
     HUB_WAITING,        // 허브 출발 대기 (담당자는 배정되었지만 아직 첫 leg 시작 전)
     HUB_MOVING,         // 허브 간 이동 중(어떤 leg라도 진행 중)
