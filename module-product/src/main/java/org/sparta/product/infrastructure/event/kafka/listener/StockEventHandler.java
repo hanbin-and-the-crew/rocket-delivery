@@ -12,6 +12,7 @@ import org.sparta.product.domain.repository.ProcessedEventRepository;
 import org.sparta.product.infrastructure.event.kafka.dto.*;
 import org.sparta.product.domain.enums.OutboxStatus;
 import org.sparta.product.infrastructure.event.outbox.ProductOutboxEventRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,7 @@ import java.util.UUID;
  * 4. 재고 처리 결과 이벤트 발행
  */
 @Slf4j
+@Profile("!test")
 @Service
 @RequiredArgsConstructor
 public class StockEventHandler {

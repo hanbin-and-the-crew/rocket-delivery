@@ -33,7 +33,7 @@ class StockConcurrencyTest {
 
     @MockBean
     private EventPublisher eventPublisher;
-    
+
     @Autowired
     private StockService stockService;
 
