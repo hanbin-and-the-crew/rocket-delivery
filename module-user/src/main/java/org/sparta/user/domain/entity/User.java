@@ -144,10 +144,8 @@ public class User extends BaseEntity {
 
     private static UUID validateHubId(UserRoleEnum role,
                                       DeliveryManagerRoleEnum deliveryManagerRole, UUID hubId) {
-        if(role == UserRoleEnum.DELIVERY_MANAGER) {
-            if(deliveryManagerRole == DeliveryManagerRoleEnum.HUB) {
-                hubId = null;
-            }
+        if(role == UserRoleEnum.DELIVERY_MANAGER && deliveryManagerRole == DeliveryManagerRoleEnum.HUB) {
+            hubId = null;
         }
         else {
             if(hubId == null) {
