@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.product.application.service.StockService;
+import org.sparta.product.config.TestEventPublisherConfig;
 import org.sparta.product.domain.entity.Category;
 import org.sparta.product.domain.entity.Product;
 import org.sparta.product.domain.entity.Stock;
@@ -15,6 +16,7 @@ import org.sparta.product.support.fixtures.ProductFixture;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -28,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@Import(TestEventPublisherConfig.class)
 @DisplayName("재고 동시성 처리 통합 테스트 (Fixture 적용)")
 class StockConcurrencyTest {
 

@@ -35,6 +35,7 @@ import java.util.UUID;
  */
 @Slf4j
 @Service
+@Profile("!test")
 @RequiredArgsConstructor
 public class StockEventHandler {
 

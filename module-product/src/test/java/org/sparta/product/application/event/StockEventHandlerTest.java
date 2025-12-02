@@ -41,9 +41,6 @@ class StockEventHandlerTest {
     @Mock
     private StockService stockService;
 
-    @MockBean
-    private EventPublisher eventPublisher;
-
     @Mock
     private ProcessedEventRepository processedEventRepository;
 
