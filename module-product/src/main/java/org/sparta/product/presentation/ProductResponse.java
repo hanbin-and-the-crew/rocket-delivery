@@ -2,7 +2,7 @@ package org.sparta.product.presentation;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.sparta.product.domain.entity.Product;
-import org.sparta.product.domain.vo.Money;
+import org.sparta.product.domain.entity.Stock;
 
 import java.util.UUID;
 
@@ -43,12 +43,12 @@ public class ProductResponse {
             @Schema(description = "재고 수량")
             Integer quantity
     ) {
-        public static Detail of(Product product) {
+        public static Detail of(Product product, Stock stock) {
             return new Detail(
                     product.getId(),
                     product.getProductName(),
                     product.getPrice().getAmount(),
-                    product.getStock().getQuantity()
+                    stock.getQuantity()
             );
         }
     }

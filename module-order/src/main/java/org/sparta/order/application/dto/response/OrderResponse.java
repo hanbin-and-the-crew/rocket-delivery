@@ -13,142 +13,150 @@ import java.util.UUID;
  */
 public class OrderResponse {
 
-    @Schema(description = "주문 생성 응답")
-    public record Create(
-            @Schema(description = "주문 ID")
+    @Schema(description = "주문 단건 상세 응답")
+    public record Detail(
+
+            @Schema(description = "주문 ID", example = "550e8400-e29b-41d4-a716-446655440000")
             UUID orderId,
 
-            @Schema(description = "주문 상태")
-            OrderStatus status,
+            @Schema(description = "주문 상태", example = "CREATED")
+            OrderStatus orderStatus,
 
-            @Schema(description = "총 금액")
+            @Schema(description = "주문자(고객) ID", example = "550e8400-e29b-41d4-a716-446655440010")
+            UUID customerId,
+
+            @Schema(description = "공급업체 ID", example = "550e8400-e29b-41d4-a716-446655440001")
+            UUID supplierCompanyId,
+
+            @Schema(description = "공급업체 허브 ID", example = "550e8400-e29b-41d4-a716-446655440002")
+            UUID supplierHubId,
+
+            @Schema(description = "수령업체 ID", example = "550e8400-e29b-41d4-a716-446655440003")
+            UUID receiptCompanyId,
+
+            @Schema(description = "수령업체 허브 ID", example = "550e8400-e29b-41d4-a716-446655440004")
+            UUID receiptHubId,
+
+            @Schema(description = "상품 ID", example = "550e8400-e29b-41d4-a716-446655440005")
+            UUID productId,
+
+            @Schema(description = "주문 수량", example = "10")
+            Integer quantity,
+
+            @Schema(description = "상품 가격 스냅샷", example = "10000")
+            Long productPriceSnapshot,
+
+            @Schema(description = "총 주문 금액", example = "100000")
             Long totalPrice,
 
-            @Schema(description = "생성 시간")
-            LocalDateTime createdAt
+            @Schema(description = "배송지 주소", example = "서울특별시 강남구 테헤란로 123")
+            String address,
+
+            @Schema(description = "주문자 실명", example = "김손님")
+            String userName,
+
+            @Schema(description = "전화번호", example = "010-1111-2222")
+            String userPhoneNumber,
+
+            @Schema(description = "slack 아이디", example = "12@1234.com")
+            String slackId,
+
+            @Schema(description = "납품 기한", example = "2025-12-31T23:59:59")
+            LocalDateTime dueAt,
+
+            @Schema(description = "요청사항", example = "빠른 배송 부탁드립니다")
+            String requestMemo,
+
+            @Schema(description = "취소 사유 코드", example = "CUSTOMER_REQUEST")
+            CanceledReasonCode canceledReasonCode,
+
+            @Schema(description = "취소 사유 상세", example = "고객 요청으로 취소합니다")
+            String canceledReasonMemo,
+
+            @Schema(description = "취소 일시", example = "2025-12-01T10:00:00")
+            LocalDateTime canceledAt,
+
+            @Schema(description = "생성 일시", example = "2025-11-25T09:00:00")
+            LocalDateTime createdAt,
+
+            @Schema(description = "수정 일시", example = "2025-11-25T10:00:00")
+            LocalDateTime updatedAt
     ) {
-        public static Create of(Order order) {
-            return new Create(
-                    order.getId(),
-                    order.getOrderStatus(),
-                    order.getTotalPrice().getAmount(),
-                    order.getCreatedAt()
+
+        public static Detail from(Order o) {
+            return new Detail(
+                    o.getId(),
+                    o.getOrderStatus(),
+                    o.getCustomerId(),
+                    o.getSupplierCompanyId(),
+                    o.getSupplierHubId(),
+                    o.getReceiveCompanyId(),
+                    o.getReceiveHubId(),
+                    o.getProductId(),
+                    o.getQuantity().getValue(),
+                    o.getProductPriceSnapshot().getAmount(),
+                    o.getTotalPrice().getAmount(),
+                    o.getAddress(),
+                    o.getUserName(),
+                    o.getUserPhoneNumber(),
+                    o.getSlackId(),
+                    o.getDueAt().getTime(),
+                    o.getRequestMemo(),
+                    o.getCanceledReasonCode(),
+                    o.getCanceledReasonMemo(),
+                    o.getCanceledAt(),
+                    o.getCreatedAt(),
+                    o.getUpdatedAt()
             );
         }
     }
 
-    @Schema(description = "주문 상세 조회 응답")
-    public record Detail(
-            @Schema(description = "주문 ID")
+    @Schema(description = "주문 목록 조회용 요약 응답")
+    public record Summary(
+
+            @Schema(description = "주문 ID", example = "550e8400-e29b-41d4-a716-446655440000")
             UUID orderId,
 
-            @Schema(description = "배송 ID")
-            UUID deliveryId,
+            @Schema(description = "주문 상태", example = "CREATED")
+            OrderStatus orderStatus,
 
-            @Schema(description = "주문 상태")
-            OrderStatus status,
-
-            @Schema(description = "요청자 ID")
-            UUID supplierId,
-
-            @Schema(description = "요청업체 ID")
+            @Schema(description = "공급업체 ID", example = "550e8400-e29b-41d4-a716-446655440001")
             UUID supplierCompanyId,
 
-            @Schema(description = "요청업체 허브 ID")
-            UUID supplierHubId,
-
-            @Schema(description = "수령업체 ID")
+            @Schema(description = "수령업체 ID", example = "550e8400-e29b-41d4-a716-446655440003")
             UUID receiptCompanyId,
 
-            @Schema(description = "수령업체 허브 ID")
-            UUID receiptHubId,
-
-            @Schema(description = "상품 ID")
+            @Schema(description = "상품 ID", example = "550e8400-e29b-41d4-a716-446655440005")
             UUID productId,
 
-            @Schema(description = "상품명 (스냅샷)")
-            String productName,
-
-            @Schema(description = "상품 단가 (스냅샷)")
-            Long productPrice,
-
-            @Schema(description = "주문 수량")
+            @Schema(description = "주문 수량", example = "10")
             Integer quantity,
 
-            @Schema(description = "총 금액")
+            @Schema(description = "총 주문 금액", example = "100000")
             Long totalPrice,
 
-            @Schema(description = "배송지 주소")
-            String deliveryAddress,            
-            
-            @Schema(description = "주문자 실명")
-            String userName,            
-            
-            @Schema(description = "전화번호")
-            String userPhoneNumber,            
-            
-            @Schema(description = "slack 아이디")
-            String slackId,
-
-            @Schema(description = "납품 기한")
+            @Schema(description = "납품 기한", example = "2025-12-31T23:59:59")
             LocalDateTime dueAt,
 
-            @Schema(description = "요청사항")
-            String requestedMemo,
+            @Schema(description = "배송지 주소", example = "서울특별시 강남구 테헤란로 123")
+            String address,
 
-            @Schema(description = "출고 시간")
-            LocalDateTime dispatchedAt,
-
-            @Schema(description = "출고 처리자 ID")
-            UUID dispatchedBy,
-
-            @Schema(description = "취소 시간")
-            LocalDateTime canceledAt,
-
-            @Schema(description = "취소자 ID")
-            UUID canceledBy,
-
-            @Schema(description = "취소 사유 코드")
-            CanceledReasonCode canceledReasonCode,
-
-            @Schema(description = "취소 사유 상세")
-            String canceledReasonMemo,
-
-            @Schema(description = "생성 시간")
-            LocalDateTime createdAt,
-
-            @Schema(description = "수정 시간")
-            LocalDateTime updatedAt
+            @Schema(description = "생성 일시", example = "2025-11-25T09:00:00")
+            LocalDateTime createdAt
     ) {
-        public static Detail of(Order order) {
-            return new Detail(
-                    order.getId(),
-                    order.getDeliveryId(),
-                    order.getOrderStatus(),
-                    order.getSupplierId(),
-                    order.getSupplierCompanyId(),
-                    order.getSupplierHubId(),
-                    order.getReceiptCompanyId(),
-                    order.getReceiptHubId(),
-                    order.getProductId(),
-                    order.getProductNameSnapshot(),
-                    order.getProductPriceSnapshot().getAmount(),
-                    order.getQuantity().getValue(),
-                    order.getTotalPrice().getAmount(),
-                    order.getAddressSnapshot(),
-                    order.getUserName(),
-                    order.getUserPhoneNumber(),
-                    order.getSlackId(),
-                    order.getDueAt(),
-                    order.getRequestedMemo(),
-                    order.getDispatchedAt(),
-                    order.getDispatchedBy(),
-                    order.getCanceledAt(),
-                    order.getCanceledBy(),
-                    order.getCanceledReasonCode(),
-                    order.getCanceledReasonMemo(),
-                    order.getCreatedAt(),
-                    order.getUpdatedAt()
+
+        public static Summary from(Order o) {
+            return new Summary(
+                    o.getId(),
+                    o.getOrderStatus(),
+                    o.getSupplierCompanyId(),
+                    o.getReceiveCompanyId(),
+                    o.getProductId(),
+                    o.getQuantity().getValue(),
+                    o.getTotalPrice().getAmount(),
+                    o.getDueAt().getTime(),
+                    o.getAddress(),
+                    o.getCreatedAt()
             );
         }
     }
@@ -168,50 +176,6 @@ public class OrderResponse {
             return new Update(
                     order.getId(),
                     message,
-                    order.getUpdatedAt()
-            );
-        }
-    }
-
-    @Schema(description = "주문 목록 조회 응답")
-    public record Summary(
-            @Schema(description = "주문 ID")
-            UUID orderId,
-
-            @Schema(description = "주문자 실명")
-            String userName,
-
-            @Schema(description = "주문 상태")
-            OrderStatus status,
-
-            @Schema(description = "상품명")
-            String productName,
-
-            @Schema(description = "주문 수량")
-            Integer quantity,
-
-            @Schema(description = "총 금액")
-            Long totalPrice,
-
-            @Schema(description = "납품 기한")
-            LocalDateTime dueAt,
-
-            @Schema(description = "생성 시간")
-            LocalDateTime createdAt,
-
-            @Schema(description = "수정 시간")
-            LocalDateTime updatedAt
-    ) {
-        public static Summary of(Order order) {
-            return new Summary(
-                    order.getId(),
-                    order.getUserName(),
-                    order.getOrderStatus(),
-                    order.getProductNameSnapshot(),
-                    order.getQuantity().getValue(),
-                    order.getTotalPrice().getAmount(),
-                    order.getDueAt(),
-                    order.getCreatedAt(),
                     order.getUpdatedAt()
             );
         }

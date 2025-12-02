@@ -10,7 +10,7 @@ public class UserResponse {
 
     @Schema(description = "회원가입 응답")
     public record SignUpUser(
-            @Schema(description = "사용자 PK", example = "123412431234")
+            @Schema(description = "사용자 PK", example = "151e6741-9723-4724-bfc0-91836773b33c")
             UUID userId,
 
             @Schema(description = "사용자 Id", example = "user1107")
@@ -26,7 +26,7 @@ public class UserResponse {
 
     @Schema(description = "회원 정보 조회 응답")
     public record GetUser(
-            @Schema(description = "사용자 PK", example = "123412431234")
+            @Schema(description = "사용자 PK", example = "151e6741-9723-4724-bfc0-91836773b33c")
             UUID userId,
 
             @Schema(description = "사용자 Id", example = "user1107")
@@ -50,7 +50,7 @@ public class UserResponse {
             @Schema(description = "권한", example = "DELIVERY_MANAGER")
             UserRoleEnum role,
 
-            @Schema(description = "허브 ID", example = "123412431234")
+            @Schema(description = "허브 ID", example = "61a98cf7-921c-47fb-a802-3ec71f736f74")
             UUID hubId
     ) {
         public static GetUser from(User user) {
@@ -91,7 +91,7 @@ public class UserResponse {
             @Schema(description = "권한", example = "DELIVERY_MANAGER")
             UserRoleEnum role,
 
-            @Schema(description = "허브 ID", example = "123412431234")
+            @Schema(description = "허브 ID", example = "61a98cf7-921c-47fb-a802-3ec71f736f74")
             UUID hubId
     ) {
         public static UpdateUser from(User user) {

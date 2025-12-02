@@ -68,12 +68,19 @@ class StockJpaRepositoryTest {
         );
         Product savedProduct = productJpaRepository.save(product);
         UUID productId = savedProduct.getId();
+        Stock savedStock = Stock.create(
+                productId,
+                savedProduct.getCompanyId(),
+                savedProduct.getHubId(),
+                100
+        );
+        stockJpaRepository.save(savedStock);
 
         entityManager.flush();
         entityManager.clear();
 
         // when: Product ID로 Stock 조회
-        Optional<Stock> foundStock = stockJpaRepository.findById(productId);
+        Optional<Stock> foundStock = stockJpaRepository.findByProductId(productId);
 
         // then: Stock이 조회됨
         assertThat(foundStock).isPresent();
@@ -88,7 +95,7 @@ class StockJpaRepositoryTest {
         UUID nonExistentId = UUID.randomUUID();
 
         // when: 조회
-        Optional<Stock> result = stockJpaRepository.findById(nonExistentId);
+        Optional<Stock> result = stockJpaRepository.findByProductId(nonExistentId);
 
         // then: 빈 Optional 반환
         assertThat(result).isEmpty();
@@ -111,20 +118,27 @@ class StockJpaRepositoryTest {
         );
         Product savedProduct = productJpaRepository.save(product);
         UUID productId = savedProduct.getId();
+        Stock savedStock = Stock.create(
+                productId,
+                savedProduct.getCompanyId(),
+                savedProduct.getHubId(),
+                50
+        );
+        stockJpaRepository.save(savedStock);
 
         entityManager.flush();
         entityManager.clear();
 
         // when: Stock 수정 (재고 차감)
-        Stock stock = stockJpaRepository.findById(productId).get();
-        stock.decrease(10);
-        stockJpaRepository.save(stock);
+        Stock foundStock = stockJpaRepository.findByProductId(productId).orElseThrow();
+        foundStock.decrease(10);
+        stockJpaRepository.save(foundStock);
 
         entityManager.flush();
         entityManager.clear();
 
         // then: 수정된 재고가 반영됨
-        Stock updatedStock = stockJpaRepository.findById(productId).get();
+        Stock updatedStock = stockJpaRepository.findByProductId(productId).get();
         assertThat(updatedStock.getQuantity()).isEqualTo(40);
     }
 
@@ -145,12 +159,19 @@ class StockJpaRepositoryTest {
         );
         Product savedProduct = productJpaRepository.save(product);
         UUID productId = savedProduct.getId();
+        Stock savedStock = Stock.create(
+                productId,
+                savedProduct.getCompanyId(),
+                savedProduct.getHubId(),
+                100
+        );
+        stockJpaRepository.save(savedStock);
 
         entityManager.flush();
         entityManager.clear();
 
         // when: Stock 조회
-        Stock stock = stockJpaRepository.findById(productId).get();
+        Stock stock = stockJpaRepository.findByProductId(productId).orElseThrow();
 
         // then: 가용 재고 = 총 재고 - 예약 재고
         assertThat(stock.getAvailableQuantity()).isEqualTo(100);

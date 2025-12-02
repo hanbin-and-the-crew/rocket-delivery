@@ -8,7 +8,7 @@ import org.sparta.user.application.service.AuthService;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController implements AuthApiSpec {
 
     private final AuthService authService;
@@ -17,9 +17,9 @@ public class AuthController implements AuthApiSpec {
         this.authService = authService;
     }
 
-    @GetMapping("/hello")
+    @GetMapping("/health")
     public String hello() {
-        return "Hello from Company Service!";
+        return "Auth OK";
     }
 
     @Override

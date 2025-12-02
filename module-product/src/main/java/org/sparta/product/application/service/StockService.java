@@ -18,7 +18,6 @@ import java.util.UUID;
 /**
  * Stock 서비스
  * - Product와 독립적으로 재고를 관리
- * - Product 더티체킹을 방지하기 위해 Stock만 조회/수정
  * - 낙관적 락 충돌 시 @Retryable로 자동 재시도
  */
 @Slf4j
@@ -30,10 +29,12 @@ public class StockService {
     private final StockRepository stockRepository;
 
     /**
-     * 재고 조회
+     * Product ID로 재고 조회
+     * - Stock과 Product는 독립된 ID를 가짐
+     * - productId 필드로 연결
      */
     public Stock getStock(UUID productId) {
-        return stockRepository.findById(productId)
+        return stockRepository.findByProductId(productId)
                 .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
     }
 
@@ -109,12 +110,12 @@ public class StockService {
      * 예약 취소 (주문 취소 시)
      * - 예약된 재고만 감소
      * - Stock 애그리거트 내에서 취소 처리
-     * - 낙관적 락 충돌 시 최대 3회 재시도 (50ms, 100ms, 150ms 간격)
+     * - 낙관적 락 충돌 시 최대 5회 재시도 (랜덤 백오프로 경합 감소)
      */
     @Retryable(
             retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
             maxAttempts = 5,
-            backoff = @Backoff(delay = 100, multiplier = 1000)
+            backoff = @Backoff(delay = 100, maxDelay = 1000, multiplier = 2, random = true)
     )
     @Transactional
     public void cancelReservation(UUID productId, int quantity) {

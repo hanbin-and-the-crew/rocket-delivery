@@ -12,6 +12,14 @@ spring:
   application:
     name: order-service
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: order-service
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver

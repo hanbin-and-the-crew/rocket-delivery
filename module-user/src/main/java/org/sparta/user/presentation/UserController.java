@@ -18,7 +18,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 public class UserController implements UserApiSpec {
 
     private final UserService userService;
@@ -27,6 +27,11 @@ public class UserController implements UserApiSpec {
     public UserController(UserService userService, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    @GetMapping("/health")
+    public String hello() {
+        return "User OK";
     }
 
     @Override

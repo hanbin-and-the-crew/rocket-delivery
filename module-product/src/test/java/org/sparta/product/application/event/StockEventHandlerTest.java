@@ -18,7 +18,7 @@ import org.sparta.product.infrastructure.event.publisher.StockConfirmedEvent;
 import org.sparta.product.infrastructure.event.publisher.StockReservationCancelledEvent;
 import org.sparta.product.infrastructure.event.publisher.StockReservationFailedEvent;
 import org.sparta.product.infrastructure.event.publisher.StockReservedEvent;
-import org.sparta.product.support.fixtures.ProductFixture;
+import org.sparta.product.support.fixtures.StockFixture;
 
 import java.util.UUID;
 
@@ -49,7 +49,7 @@ class StockEventHandlerTest {
         UUID eventId = UUID.randomUUID();
         int orderQuantity = 30;
 
-        Stock stock = ProductFixture.withStock(100).getStock();
+        Stock stock = StockFixture.withQuantity(100);
         OrderCreatedEvent event = new OrderCreatedEvent(eventId, orderId, productId, orderQuantity, null, null);
 
         given(processedEventRepository.existsByEventId(eventId)).willReturn(false);
@@ -70,7 +70,7 @@ class StockEventHandlerTest {
         UUID eventId = UUID.randomUUID();
         int orderQuantity = 50;
 
-        Stock stock = ProductFixture.withStock(10).getStock();
+        Stock stock = StockFixture.withQuantity(10);
         OrderCreatedEvent event = new OrderCreatedEvent(eventId, orderId, productId, orderQuantity, null, null);
 
         given(processedEventRepository.existsByEventId(eventId)).willReturn(false);
@@ -92,7 +92,7 @@ class StockEventHandlerTest {
         UUID eventId = UUID.randomUUID();
         int confirmedQuantity = 30;
 
-        Stock stock = ProductFixture.withStock(100).getStock();
+        Stock stock = StockFixture.withQuantity(100);
         stock.reserve(30);
 
         PaymentCompletedEvent event = new PaymentCompletedEvent(eventId, orderId, productId, confirmedQuantity, null);
