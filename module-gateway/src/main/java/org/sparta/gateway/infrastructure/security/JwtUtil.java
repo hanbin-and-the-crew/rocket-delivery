@@ -1,4 +1,4 @@
-package org.sparta.gateway.config;
+package org.sparta.gateway.infrastructure.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

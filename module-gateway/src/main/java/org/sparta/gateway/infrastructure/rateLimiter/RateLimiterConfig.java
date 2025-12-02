@@ -1,4 +1,4 @@
-package org.sparta.gateway.config;
+package org.sparta.gateway.infrastructure.rateLimiter;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

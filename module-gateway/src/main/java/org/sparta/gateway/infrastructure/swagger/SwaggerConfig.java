@@ -1,4 +1,4 @@
-package org.sparta.gateway.config;
+package org.sparta.gateway.infrastructure.swagger;
 
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.cloud.gateway.route.RouteDefinition;
