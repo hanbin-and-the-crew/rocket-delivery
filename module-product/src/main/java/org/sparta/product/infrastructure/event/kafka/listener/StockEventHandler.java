@@ -34,7 +34,6 @@ import java.util.UUID;
  * 4. 재고 처리 결과 이벤트 발행
  */
 @Slf4j
-@Profile("!test")
 @Service
 @RequiredArgsConstructor
 public class StockEventHandler {
