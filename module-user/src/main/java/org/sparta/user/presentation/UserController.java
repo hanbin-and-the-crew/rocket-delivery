@@ -7,6 +7,8 @@ import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
+import org.sparta.user.presentation.dto.request.UserRequest;
+import org.sparta.user.presentation.dto.response.UserResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;

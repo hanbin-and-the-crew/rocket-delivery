@@ -14,8 +14,8 @@ import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.repository.UserRepository;
 import org.sparta.user.infrastructure.event.publisher.UserCreatedEvent;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
-import org.sparta.user.presentation.UserRequest;
-import org.sparta.user.presentation.UserResponse;
+import org.sparta.user.presentation.dto.request.UserRequest;
+import org.sparta.user.presentation.dto.response.UserResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 

@@ -2,8 +2,8 @@ package org.sparta.user.application.service;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.sparta.user.infrastructure.security.JwtUtil;
-import org.sparta.user.presentation.AuthRequest;
-import org.sparta.user.presentation.AuthResponse;
+import org.sparta.user.presentation.dto.request.AuthRequest;
+import org.sparta.user.presentation.dto.response.AuthResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

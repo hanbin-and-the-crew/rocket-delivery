@@ -1,6 +1,5 @@
 package org.sparta.user.application.service;
 
-import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
@@ -14,8 +13,8 @@ import org.sparta.user.infrastructure.event.publisher.UserRoleChangedEvent;
 import org.sparta.user.infrastructure.event.publisher.UserUpdatedEvent;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
-import org.sparta.user.presentation.UserRequest;
-import org.sparta.user.presentation.UserResponse;
+import org.sparta.user.presentation.dto.request.UserRequest;
+import org.sparta.user.presentation.dto.response.UserResponse;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
