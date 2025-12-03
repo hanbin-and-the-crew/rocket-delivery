@@ -20,7 +20,7 @@ public class PointRepositoryImpl implements PointRepository {
     private PointJpaRepository jpaRepository;
 
     @Override
-    public List<Point> findUsablePoints(Long userId, PointStatus status,
+    public List<Point> findUsablePoints(UUID userId, PointStatus status,
                                         LocalDateTime now, Sort sort) {
 
         return jpaRepository.findByUserIdAndStatusAndExpiryDateAfter(

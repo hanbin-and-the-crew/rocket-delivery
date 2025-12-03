@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public interface PointJpaRepository extends JpaRepository<Point, UUID> {
     List<Point> findByUserIdAndStatusAndExpiryDateAfter(
-            Long userId,
+            UUID userId,
             PointStatus status,
             LocalDateTime now,
             Sort sort

@@ -10,9 +10,9 @@ public class PointResponse {
     @Schema(description = "포인트 응답")
     public record PointReservationResult (
             @Schema(description = "예약된 포인트", example = "5000")
-            Integer totalReservedAmount,
+            Long totalReservedAmount,
 
-            @Schema(description = "ㅇㅇ", example = "user1107")
+            @Schema(description = "예약된 포인트 목록")
             List<PointReservation> reservations
     ) {
     }

@@ -21,10 +21,10 @@ public class Point {
     private UUID id;
 
     @Column(nullable = false)
-    private Long userId;
+    private UUID userId;
 
     @Column(nullable = false)
-    private Integer amount;
+    private Long amount;
 
     @Column(nullable = false)
     private LocalDateTime expiryDate;

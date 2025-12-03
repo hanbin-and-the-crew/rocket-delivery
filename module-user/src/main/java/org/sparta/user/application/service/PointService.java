@@ -2,6 +2,7 @@ package org.sparta.user.application.service;
 
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
+import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.domain.entity.Point;
 import org.sparta.user.domain.entity.PointReservation;
 import org.sparta.user.domain.enums.PointStatus;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
@@ -28,7 +30,12 @@ public class PointService {
     /**
      * 포인트 예약 (결제 시작 단계)
      */
-    public PointResponse.PointReservationResult reservePoints(Long userId, Integer requiredAmount, String paymentId) {
+    public PointResponse.PointReservationResult reservePoints(PointCommand.ReservePoint command) {
+
+        UUID userId = command.userId();
+        Long requiredAmount = command.orderAmount();
+        UUID orderId = command.orderId();
+
         // FIFO: AVAILABLE이고 만료되지 않은 포인트를 유효 기간이 오래된 순서로 조회
         List<Point> availablePoints = pointRepository.findUsablePoints(
                 userId,
@@ -37,13 +44,13 @@ public class PointService {
                 Sort.by(Sort.Direction.ASC, "expiryDate")
         );
 
-        int remainingAmount = requiredAmount;
+        Long remainingAmount = requiredAmount;
         List<PointReservation> reservations = new ArrayList<>();
 
         for (Point point : availablePoints) {
             if (remainingAmount <= 0) break;
 
-            int reserveAmount = Math.min(point.getAmount(), remainingAmount);
+            Long reserveAmount = Math.min(point.getAmount(), remainingAmount);
 
             // Point 상태 변경
             point.setStatus(PointStatus.RESERVED);
@@ -53,7 +60,7 @@ public class PointService {
             // Reservation 기록
             PointReservation reservation = new PointReservation();
             reservation.setPointId(point.getId());
-            reservation.setPaymentId(paymentId);
+            reservation.setOrderId(orderId);
             reservation.setReservedAmount(reserveAmount);
             reservation.setStatus(ReservationStatus.RESERVED);
             reservationRepository.save(reservation);
@@ -65,7 +72,7 @@ public class PointService {
         // 부족한 경우
         if (remainingAmount > 0) {
             // 예약한 것들 롤백
-            rollbackReservations(paymentId);
+            rollbackReservations(orderId);
             throw new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT);
         }
 
@@ -75,9 +82,9 @@ public class PointService {
     /**
      * 포인트 차감 확정 (결제 완료 단계)
      */
-    public void confirmPointUsage(String paymentId) {
-        List<PointReservation> reservations = reservationRepository.findByPaymentIdAndStatus(
-                paymentId,
+    public void confirmPointUsage(UUID orderId) {
+        List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
+                orderId,
                 ReservationStatus.RESERVED
         );
 
@@ -97,9 +104,9 @@ public class PointService {
     /**
      * 포인트 예약 취소 (결제 실패 시 보상 트랜잭션)
      */
-    public void rollbackReservations(String paymentId) {
-        List<PointReservation> reservations = reservationRepository.findByPaymentIdAndStatus(
-                paymentId,
+    public void rollbackReservations(UUID orderId) {
+        List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
+                orderId,
                 ReservationStatus.RESERVED
         );
 
@@ -119,7 +126,7 @@ public class PointService {
     /**
      * 포인트 적립 (구매 후). 이거까진 이용안할듯
      */
-    public void addPoints(Long userId, Integer amount, LocalDateTime expiryDate) {
+    public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
         Point point = new Point();
         point.setUserId(userId);
         point.setAmount(amount);

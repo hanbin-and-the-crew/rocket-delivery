@@ -24,10 +24,10 @@ public class PointReservation {
     private UUID pointId;
 
     @Column(nullable = false)
-    private String paymentId;
+    private UUID orderId;
 
     @Column(nullable = false)
-    private Integer reservedAmount;
+    private Long reservedAmount;
 
     @Column(nullable = false)
     private LocalDateTime reservedAt;
