@@ -12,8 +12,8 @@ import org.sparta.product.domain.repository.CategoryRepository;
 import org.sparta.product.domain.repository.ProductRepository;
 import org.sparta.product.domain.repository.StockRepository;
 import org.sparta.product.domain.vo.Money;
-import org.sparta.product.presentation.ProductRequest;
-import org.sparta.product.presentation.ProductResponse;
+import org.sparta.product.presentation.dto.product.ProductRequest;
+import org.sparta.product.presentation.dto.product.ProductResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

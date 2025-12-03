@@ -4,6 +4,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.product.application.service.ProductService;
+import org.sparta.product.presentation.dto.product.ProductRequest;
+import org.sparta.product.presentation.dto.product.ProductResponse;
+import org.sparta.product.presentation.spec.ProductApiSpec;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -11,7 +14,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
-public class ProductController implements ProductApiSpec{
+public class ProductController implements ProductApiSpec {
 
     private final ProductService productService;
 
