@@ -3,8 +3,9 @@ package org.sparta.order.application.service;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
-import org.sparta.order.application.dto.request.OrderRequest;
-import org.sparta.order.application.dto.response.OrderResponse;
+import org.sparta.order.application.command.OrderCommand;
+import org.sparta.order.presentation.dto.request.OrderRequest;
+import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
 import org.sparta.order.domain.error.OrderErrorType;
@@ -67,7 +68,7 @@ public class OrderService {
      * 주문 생성
      * - 상태: CREATED
      */
-    public OrderResponse.Detail createOrder(UUID customerId, OrderRequest.Create request) {
+    public OrderResponse.Detail createOrder(UUID customerId, OrderCommand.Create request) {
         // 엔티티 생성
         Order order = Order.create(
                 customerId,
@@ -111,7 +112,7 @@ public class OrderService {
     }
 
     // 주문 취소 처리
-    public OrderResponse.Update cancelOrder(OrderRequest.Cancel request) {
+    public OrderResponse.Update cancelOrder(OrderCommand.Cancel request) {
         Order order = findOrderOrThrow(request.orderId());
 
         // String → Enum 변환
@@ -133,7 +134,7 @@ public class OrderService {
 
     // 배송 시작/출고 처리
     // TODO: 배송 시작 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
-    public OrderResponse.Update shipOrder(OrderRequest.ShipOrder request) {
+    public OrderResponse.Update shipOrder(OrderCommand.ShipOrder request) {
         Order order = findOrderOrThrow(request.orderId());
         order.markShipped();
         return OrderResponse.Update.of(order, "주문이 출고(배송 시작) 처리되었습니다.");
@@ -141,14 +142,14 @@ public class OrderService {
 
     // 배송 완료 처리
     // TODO: 배송 완료 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
-    public OrderResponse.Update deliverOrder(OrderRequest.DeliverOrder request) {
+    public OrderResponse.Update deliverOrder(OrderCommand.DeliverOrder request) {
         Order order = findOrderOrThrow(request.orderId());
         order.markDelivered();
         return OrderResponse.Update.of(order, "주문이 배송 완료 처리되었습니다.");
     }
 
     // 삭제
-    public OrderResponse.Update deleteOrder(OrderRequest.DeleteOrder request) {
+    public OrderResponse.Update deleteOrder(OrderCommand.DeleteOrder request) {
         Order order = findOrderOrThrow(request.orderId());
         order.validateDeletable();
         order.markAsDeleted();
@@ -179,19 +180,19 @@ public class OrderService {
 
     // ===== 주문 수정 메소드 =====
 
-    public OrderResponse.Update changeDueAt(UUID orderId, OrderRequest.ChangeDueAt request) {
+    public OrderResponse.Update changeDueAt(UUID orderId, OrderCommand.ChangeDueAt request) {
         Order order = findOrderOrThrow(orderId);
         order.changeDueAt(request.dueAt());
         return OrderResponse.Update.of(order, "납기일이 변경되었습니다.");
     }
 
-    public OrderResponse.Update changeAddress(UUID orderId, OrderRequest.ChangeAddress request) {
+    public OrderResponse.Update changeAddress(UUID orderId, OrderCommand.ChangeAddress request) {
         Order order = findOrderOrThrow(orderId);
         order.changeAddress(request.addressSnapshot());
         return OrderResponse.Update.of(order, "주소가 변경되었습니다.");
     }
 
-    public OrderResponse.Update changeRequestMemo(UUID orderId, OrderRequest.ChangeMemo request) {
+    public OrderResponse.Update changeRequestMemo(UUID orderId, OrderCommand.changeRequestMemo request) {
         Order order = findOrderOrThrow(orderId);
         order.changeRequestMemo(request.requestedMemo());
         return OrderResponse.Update.of(order, "요청사항이 변경되었습니다.");
