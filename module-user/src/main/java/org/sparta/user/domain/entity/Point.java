@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.sparta.jpa.entity.BaseEntity;
 import org.sparta.user.domain.enums.PointStatus;
 
 import java.time.LocalDateTime;
@@ -15,7 +16,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor//(access = AccessLevel.PROTECTED)
-public class Point {
+public class Point extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -33,9 +34,6 @@ public class Point {
     @Enumerated(EnumType.STRING)
     private PointStatus status;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
     @Column
     private LocalDateTime usedAt;
 
@@ -44,7 +42,6 @@ public class Point {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
         this.status = PointStatus.AVAILABLE;
     }
 }

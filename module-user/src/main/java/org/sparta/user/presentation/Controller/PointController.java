@@ -1,9 +1,10 @@
-package org.sparta.user.presentation;
+package org.sparta.user.presentation.Controller;
 
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.application.service.PointService;
+import org.sparta.user.presentation.ApiSpec.PointApiSpec;
 import org.sparta.user.presentation.dto.PointMapper;
 import org.sparta.user.presentation.dto.request.PointRequest;
 import org.sparta.user.presentation.dto.response.PointResponse;
@@ -25,7 +26,6 @@ public class PointController implements PointApiSpec {
     public ApiResponse<Object> reservePoint(
             @Valid @RequestBody PointRequest.Reserve request
     ) {
-
         PointCommand.ReservePoint command = pointMapper.toCommand(request);
         PointResponse.PointReservationResult response = pointService.reservePoints(command);
         return ApiResponse.success(response);

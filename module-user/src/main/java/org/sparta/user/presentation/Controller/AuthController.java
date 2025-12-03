@@ -1,4 +1,4 @@
-package org.sparta.user.presentation;
+package org.sparta.user.presentation.Controller;
 
 import org.sparta.common.api.ApiResponse;
 
@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.sparta.user.application.command.AuthCommand;
 import org.sparta.user.application.service.AuthService;
+import org.sparta.user.presentation.ApiSpec.AuthApiSpec;
 import org.sparta.user.presentation.dto.AuthMapper;
 import org.sparta.user.presentation.dto.request.AuthRequest;
 import org.sparta.user.presentation.dto.response.AuthResponse;

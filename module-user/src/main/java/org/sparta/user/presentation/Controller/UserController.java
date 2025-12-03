@@ -1,4 +1,4 @@
-package org.sparta.user.presentation;
+package org.sparta.user.presentation.Controller;
 
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
@@ -8,6 +8,7 @@ import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
+import org.sparta.user.presentation.ApiSpec.UserApiSpec;
 import org.sparta.user.presentation.dto.UserMapper;
 import org.sparta.user.presentation.dto.request.UserRequest;
 import org.sparta.user.presentation.dto.response.UserResponse;
