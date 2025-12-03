@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "points")
+@Table(name = "p_points")
 @Getter
 @Setter
 @NoArgsConstructor//(access = AccessLevel.PROTECTED)

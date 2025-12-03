@@ -17,28 +17,28 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PointRepositoryImpl implements PointRepository {
 
-    private PointJpaRepository jpaRepository;
+    private final PointJpaRepository pointJpaRepository;
 
     @Override
     public List<Point> findUsablePoints(UUID userId, PointStatus status,
                                         LocalDateTime now, Sort sort) {
 
-        return jpaRepository.findByUserIdAndStatusAndExpiryDateAfter(
+        return pointJpaRepository.findByUserIdAndStatusAndExpiryDateAfter(
                 userId, status, now, sort
         );
     }
     @Override
     public Optional<Point> findById(UUID id) {
-        return jpaRepository.findById(id);
+        return pointJpaRepository.findById(id);
     }
 
     @Override
     public Point save(Point point) {
-        return jpaRepository.save(point);
+        return pointJpaRepository.save(point);
     }
 
     @Override
     public long count() {
-        return jpaRepository.count();
+        return pointJpaRepository.count();
     }
 }

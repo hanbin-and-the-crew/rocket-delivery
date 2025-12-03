@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "point_reservations")
+@Table(name = "p_point_reservations")
 @Getter
 @Setter
 @NoArgsConstructor//(access = AccessLevel.PROTECTED)
