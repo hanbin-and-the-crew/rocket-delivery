@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
+import org.sparta.order.application.error.OrderApplicationErrorType;
 import org.sparta.order.presentation.dto.request.OrderRequest;
 import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.sparta.order.domain.entity.Order;
@@ -39,7 +40,7 @@ public class OrderService {
     // 단건 조회 (내부)
     private Order findOrderOrThrow(UUID orderId) {
         return orderRepository.findByIdAndDeletedAtIsNull(orderId)
-                .orElseThrow(() -> new BusinessException(OrderErrorType.ORDER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(OrderApplicationErrorType.ORDER_NOT_FOUND));
     }
 
     /**
