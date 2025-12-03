@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -17,15 +19,21 @@ public class PointRepositoryImpl implements PointRepository {
 
     private PointJpaRepository jpaRepository;
 
-    Sort sort = Sort.by(Sort.Direction.ASC, "expiryDate");
+    @Override
+    public List<Point> findUsablePoints(Long userId, PointStatus status,
+                                        LocalDateTime now, Sort sort) {
+
+        return jpaRepository.findByUserIdAndStatusAndExpiryDateAfter(
+                userId, status, now, sort
+        );
+    }
+    @Override
+    public Optional<Point> findById(UUID id) {
+        return jpaRepository.findById(id);
+    }
 
     @Override
-    public List<Point> findUsablePoints(Long userId, LocalDateTime now) {
-        return jpaRepository.findByUserIdAndStatusAndExpiryDateAfter(
-                userId,
-                PointStatus.AVAILABLE,
-                now,
-                sort
-        );
+    public Point save(Point point) {
+        return jpaRepository.save(point);
     }
 }
