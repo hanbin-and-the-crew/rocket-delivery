@@ -3,6 +3,7 @@ package org.sparta.user.application.service;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.user.application.command.UserCommand;
 import org.sparta.user.domain.entity.User;
 import org.sparta.user.domain.enums.*;
 import org.sparta.user.domain.error.UserErrorType;
@@ -52,7 +53,7 @@ public class UserService {
      */
     @Transactional
     @CacheEvict(value = "userListCache", allEntries = true)
-    public UserResponse.SignUpUser signup(UserRequest.SignUpUser request) {
+    public UserResponse.SignUpUser signup(UserCommand.SignUpUser request) {
 
         String userName = request.userName();
         String realName = request.realName();
@@ -102,7 +103,7 @@ public class UserService {
             @CacheEvict(value = "userCache", key = "#user.id"),
             @CacheEvict(value = "userListCache", allEntries = true)
     })
-    public UserResponse.UpdateUser updateSelf(CustomUserDetails user, UserRequest.UpdateUser request) {
+    public UserResponse.UpdateUser updateSelf(CustomUserDetails user, UserCommand.UpdateUser request) {
         User userInfo = userRepository.findByUserId(user.getId()).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
         );
@@ -186,7 +187,7 @@ public class UserService {
      * POST /User/id-find
      */
     @Transactional
-    public UserResponse.FindUserId findUserId(UserRequest.FindUserId request) {
+    public UserResponse.FindUserId findUserId(UserCommand.FindUserId request) {
         String email = request.email();
 
         User user = userRepository.findByEmail(email)
@@ -215,7 +216,7 @@ public class UserService {
             @CacheEvict(value = "userCache", key = "#userid"),
             @CacheEvict(value = "userListCache", allEntries = true)
     })
-    public UserResponse.UpdateUser updateUser(UUID userId, UserRequest.UpdateUser request) {
+    public UserResponse.UpdateUser updateUser(UUID userId, UserCommand.UpdateUser request) {
         User userInfo = userRepository.findByUserId(userId).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
         );

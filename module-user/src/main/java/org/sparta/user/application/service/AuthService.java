@@ -1,8 +1,8 @@
 package org.sparta.user.application.service;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.sparta.user.application.command.AuthCommand;
 import org.sparta.user.infrastructure.security.JwtUtil;
-import org.sparta.user.presentation.dto.request.AuthRequest;
 import org.sparta.user.presentation.dto.response.AuthResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +20,7 @@ public class AuthService {
      * /auth/login
      */
     @Transactional
-    public AuthResponse.Login login(AuthRequest.Login request, HttpServletResponse response) {
+    public AuthResponse.Login login(AuthCommand.Login request, HttpServletResponse response) {
         // 토큰 생성
         String accessToken = jwtUtil.createAccessToken(request.userName(), request.role().name());
         String refreshToken = jwtUtil.createRefreshToken(request.userName(), request.role().name());
