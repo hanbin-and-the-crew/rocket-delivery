@@ -1,9 +1,8 @@
-package org.sparta.order.infrastructure;
+package org.sparta.order.infrastructure.repository;
 
 import lombok.RequiredArgsConstructor;
 import org.sparta.order.domain.entity.ProcessedEvent;
 import org.sparta.order.domain.repository.ProcessedEventRepository;
-import org.sparta.order.infrastructure.repository.ProcessedEventJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;

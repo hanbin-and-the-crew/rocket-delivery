@@ -1,9 +1,10 @@
-package org.sparta.order.application.dto.request;
+package org.sparta.order.presentation.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.sparta.order.application.command.OrderCommand;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
