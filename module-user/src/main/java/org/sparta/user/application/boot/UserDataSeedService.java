@@ -18,7 +18,6 @@ public class UserDataSeedService {
 
     private final UserRepository userRepository;
 
-
     @Transactional
     public void seedUsers() {
         log.info("유저 데이터 생성 중...");
