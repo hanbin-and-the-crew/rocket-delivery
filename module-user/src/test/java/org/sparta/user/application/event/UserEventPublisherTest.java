@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.entity.User;
+import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.repository.UserRepository;
 import org.sparta.user.infrastructure.event.publisher.UserCreatedEvent;
@@ -54,7 +55,7 @@ class UserEventPublisherTest {
         // given
         UserRequest.SignUpUser request = new UserRequest.SignUpUser(
                 "newUser", "password123", "slackId", "홍길동",
-                "01012341234", "new@ex.com", UserRoleEnum.MASTER, hubId
+                "01012341234", "new@ex.com", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, hubId
         );
         given(userRepository.findByUserName("newUser")).willReturn(Optional.empty());
         given(userRepository.findByEmail("new@ex.com")).willReturn(Optional.empty());

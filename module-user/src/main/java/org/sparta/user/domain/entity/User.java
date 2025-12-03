@@ -3,6 +3,7 @@ package org.sparta.user.domain.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.sparta.common.error.BusinessException;
+import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.jpa.entity.BaseEntity;
@@ -47,12 +48,13 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 30)
     private UserRoleEnum role; // 사용자 역할
 
-    @Column(name = "hub_id", nullable = false)
+    @Column(name = "hub_id")
     private UUID hubId; // 허브 UUID (회원가입 시 소속 허브 필요)
 
     /**
-     * 주문 생성 팩토리 메서드
+     * 유저 생성 팩토리 메서드
      * 모든 비즈니스 규칙을 여기서 검증
+     * DeliveryManager에 따라 오버라이딩
      */
     public static User create(
             String userName, String password, String slackId, String realName,
@@ -60,7 +62,34 @@ public class User extends BaseEntity {
 
         // 비즈니스 규칙 검증
         validateUserName(userName);
-        validateHubId(hubId);
+        validateHubId(hubId); // DeliveryManager-HUB면 허브Id Null되도록
+        validatePassword(password);
+        validateSlackId(slackId);
+        validateEmail(email);
+
+        // User 엔티티 생성
+        User user = new User();
+        user.userName = userName;
+        user.password = password;
+        user.slackId = slackId;
+        user.realName = realName;
+        user.userPhoneNumber = userPhoneNumber;
+        user.email = email;
+        user.status = UserStatusEnum.PENDING;
+        user.role = role;
+        user.hubId = hubId;
+
+        return user;
+    }
+
+    public static User create(
+            String userName, String password, String slackId, String realName,
+            String userPhoneNumber, String email, UserRoleEnum role, UUID hubId,
+            DeliveryManagerRoleEnum deliveryManagerRoleEnum) {
+
+        // 비즈니스 규칙 검증
+        validateUserName(userName);
+        hubId = validateHubId(role, deliveryManagerRoleEnum, hubId); // DeliveryManager-HUB면 허브Id Null되도록
         validatePassword(password);
         validateSlackId(slackId);
         validateEmail(email);
@@ -109,8 +138,21 @@ public class User extends BaseEntity {
 
     private static void validateHubId(UUID hubId) {
         if (hubId == null) {
-            throw new BusinessException(UserErrorType.HUB_ID_REQUIRED);
+            throw new BusinessException(UserErrorType.SLACK_ID_REQUIRED);
         }
+    }
+
+    private static UUID validateHubId(UserRoleEnum role,
+                                      DeliveryManagerRoleEnum deliveryManagerRole, UUID hubId) {
+        if(role == UserRoleEnum.DELIVERY_MANAGER && deliveryManagerRole == DeliveryManagerRoleEnum.HUB) {
+            hubId = null;
+        }
+        else {
+            if(hubId == null) {
+                throw new BusinessException(UserErrorType.HUB_ID_REQUIRED);
+            }
+        }
+        return hubId;
     }
 
     public void updateUserName(String userName) {this.userName = userName;}

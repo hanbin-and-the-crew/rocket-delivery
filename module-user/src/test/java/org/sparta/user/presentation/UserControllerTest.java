@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.sparta.user.application.service.UserService;
+import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.infrastructure.SecurityDisabledConfig;
@@ -65,7 +66,7 @@ class UserControllerTest {
 
         UserRequest.SignUpUser request = new UserRequest.SignUpUser(
                 "testuser", "pw123!", "slack01", "홍길동",
-                "01011112222", "test@ex.com", UserRoleEnum.MASTER, hubId
+                "01011112222", "test@ex.com", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, hubId
         );
 
         // when & then
@@ -83,7 +84,7 @@ class UserControllerTest {
         // given: email 누락
         UserRequest.SignUpUser invalidRequest = new UserRequest.SignUpUser(
                 "testuser", "pw123!", "slack01", "홍길동",
-                "01011112222", "", UserRoleEnum.MASTER, UUID.randomUUID()
+                "01011112222", "", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, UUID.randomUUID()
         );
 
         // when & then

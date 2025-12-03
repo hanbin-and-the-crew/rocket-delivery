@@ -1,4 +1,4 @@
-package org.sparta.gateway.config;
+package org.sparta.gateway.infrastructure.rateLimiter;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;

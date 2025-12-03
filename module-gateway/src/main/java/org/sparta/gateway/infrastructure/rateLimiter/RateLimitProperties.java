@@ -1,4 +1,4 @@
-package org.sparta.gateway.config;
+package org.sparta.gateway.infrastructure.rateLimiter;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;

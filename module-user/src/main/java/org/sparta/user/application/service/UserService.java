@@ -1,11 +1,11 @@
 package org.sparta.user.application.service;
 
+import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.user.domain.entity.User;
-import org.sparta.user.domain.enums.UserRoleEnum;
-import org.sparta.user.domain.enums.UserStatusEnum;
+import org.sparta.user.domain.enums.*;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.domain.repository.UserRepository;
 import org.sparta.user.infrastructure.event.publisher.UserCreatedEvent;
@@ -63,19 +63,20 @@ public class UserService {
         String slackId = request.slackId();
         UUID hubId = request.hubId();
         UserRoleEnum role = request.role();
+        DeliveryManagerRoleEnum deliveryManagerRoleEnum = request.deliveryRole();
 
         // 중복 체크: userName, email
         userRepository.findByUserName(userName).ifPresent(u -> {
-            throw new BusinessException(UserErrorType.UNAUTHORIZED, "중복된 사용자 ID가 존재합니다.");
+            throw new BusinessException(UserErrorType.VALIDATION_FAILED, "중복된 사용자 ID가 존재합니다.");
         });
         userRepository.findByEmail(email).ifPresent(u -> {
-            throw new BusinessException(UserErrorType.UNAUTHORIZED,"중복된 Email 입니다.");
+            throw new BusinessException(UserErrorType.VALIDATION_FAILED,"중복된 Email 입니다.");
         });
 
         // 사용자 생성 및 저장
         User user = User.create(
                 userName, password, slackId, realName,
-                userPhoneNumber, email, role, hubId);
+                userPhoneNumber, email, role, hubId, deliveryManagerRoleEnum);
 
         user = userRepository.save(user);
 
