@@ -138,7 +138,7 @@ public class User extends BaseEntity {
 
     private static void validateHubId(UUID hubId) {
         if (hubId == null) {
-            throw new BusinessException(UserErrorType.SLACK_ID_REQUIRED);
+            throw new BusinessException(UserErrorType.HUB_ID_REQUIRED);
         }
     }
 
