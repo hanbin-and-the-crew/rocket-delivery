@@ -40,12 +40,6 @@ public class Point extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private PointStatus status;
 
-    @Column
-    private LocalDateTime usedAt;
-
-    @Column
-    private LocalDateTime reservedAt;
-
     public Long getAvailableAmount() {
         return this.amount - this.reservedAmount - this.usedAmount;
     }

@@ -11,11 +11,11 @@ public class PointRequest {
     @Schema(description = "결제시 포인트 요청(예약)")
     public record Reserve(
             @Schema(description = "사용자 ID", example = "61a98cf7-921c-47fb-a802-3ec71f736f74")
-            @NotBlank
+            @NotNull(message = "사용자 ID는 필수입니다")
             UUID userId,
 
             @Schema(description = "주문 ID", example = "61a98cf7-921c-47fb-a802-3ec71f736f75")
-            @NotBlank
+            @NotNull(message = "주문 ID는 필수입니다")
             UUID orderId,
 
             @Schema(description = "결제 가격", example = "150000")

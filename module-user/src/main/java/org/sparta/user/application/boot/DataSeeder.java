@@ -19,7 +19,7 @@ public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PointDataSeedService pointSeedService;
     private final PointRepository pointRepository;
-    private final PointReservationRepository pointReservationRepository;
+    //private final PointReservationRepository pointReservationRepository;
 
     @Override
     public void run(String... args) {

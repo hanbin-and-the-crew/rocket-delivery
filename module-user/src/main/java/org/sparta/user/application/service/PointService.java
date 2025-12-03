@@ -30,10 +30,11 @@ public class PointService {
     /**
      * 포인트 예약 (결제 시작 단계)
      */
+    @Transactional
     public PointResponse.PointReservationResult reservePoints(PointCommand.ReservePoint command) {
 
         UUID userId = command.userId();
-        Long requiredAmount = command.orderAmount();
+        Long requiredAmount = command.requestPoint();
         UUID orderId = command.orderId();
 
         // FIFO: AVAILABLE이고 만료되지 않은 포인트를 유효 기간이 오래된 순서로 조회
@@ -51,7 +52,7 @@ public class PointService {
             if (remainingAmount <= 0L) break;
 
             Long availableInPoint = point.getAvailableAmount(); // 1000 - 0 - 0 = 1000
-            if (availableInPoint <= 0) continue; // 사용 가능한 게 없으면 스킵
+            if (availableInPoint <= 0L) continue; // 사용 가능한 게 없으면 스킵
 
             Long reserveAmount = Math.min(point.getAmount(), remainingAmount);
 
@@ -84,6 +85,7 @@ public class PointService {
     /**
      * 포인트 차감 확정 (결제 완료 단계)
      */
+    @Transactional
     public void confirmPointUsage(UUID orderId) {
         List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
                 orderId,
@@ -96,7 +98,6 @@ public class PointService {
 
             point.setReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
             point.setUsedAmount(point.getUsedAmount() + reservation.getReservedAmount());
-            point.setUsedAt(LocalDateTime.now());
             pointRepository.save(point);
 
             reservation.setStatus(ReservationStatus.CONFIRMED);
@@ -129,6 +130,7 @@ public class PointService {
     /**
      * 포인트 적립 (구매 후). 이거까진 이용안할듯
      */
+    @Transactional
     public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
         Point point = new Point();
         point.setUserId(userId);
