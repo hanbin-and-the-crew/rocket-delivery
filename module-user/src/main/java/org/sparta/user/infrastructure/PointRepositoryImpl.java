@@ -36,4 +36,9 @@ public class PointRepositoryImpl implements PointRepository {
     public Point save(Point point) {
         return jpaRepository.save(point);
     }
+
+    @Override
+    public long count() {
+        return jpaRepository.count();
+    }
 }

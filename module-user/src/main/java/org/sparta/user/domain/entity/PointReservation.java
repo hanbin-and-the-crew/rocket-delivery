@@ -40,4 +40,13 @@ public class PointReservation {
     protected void onCreate() {
         this.reservedAt = LocalDateTime.now();
     }
+    public static PointReservation create(
+            UUID pointId, UUID orderId, Long reservedAmount, ReservationStatus status) {
+        PointReservation reservation = new PointReservation();
+        reservation.pointId = pointId;
+        reservation.orderId = orderId;
+        reservation.reservedAmount = reservedAmount;
+        reservation.status = status;
+        return reservation;
+    }
 }

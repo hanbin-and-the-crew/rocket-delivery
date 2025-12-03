@@ -28,6 +28,12 @@ public class Point extends BaseEntity {
     private Long amount;
 
     @Column(nullable = false)
+    private Long usedAmount; // 사용된 포인트
+
+    @Column(nullable = false)
+    private Long reservedAmount; // 예약된 포인트
+
+    @Column(nullable = false)
     private LocalDateTime expiryDate;
 
     @Column(nullable = false)
@@ -40,8 +46,20 @@ public class Point extends BaseEntity {
     @Column
     private LocalDateTime reservedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.status = PointStatus.AVAILABLE;
+    public Long getAvailableAmount() {
+        return this.amount - this.reservedAmount - this.usedAmount;
+    }
+
+    public static Point create(
+            UUID userId, Long amount, Long usedAmount, Long reservedAmount,
+            LocalDateTime expiryDate, PointStatus status) {
+        Point point = new Point();
+        point.userId = userId;
+        point.amount = amount;
+        point.usedAmount = usedAmount;
+        point.reservedAmount = reservedAmount;
+        point.expiryDate = expiryDate;
+        point.status = status;
+        return point;
     }
 }

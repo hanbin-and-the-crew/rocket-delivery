@@ -275,12 +275,12 @@ public class UserService {
     })
     public void deleteUser(UUID userId) {
         User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
         int updated = userRepository.softDeleteByUserId(user.getUserId(), now);
         if (updated == 0) {
-            throw new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다.");
+            throw new BusinessException(UserErrorType.NOT_FOUND);
         }
 
         // 유저 삭제 이벤트 발행
