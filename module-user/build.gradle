@@ -55,6 +55,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-tracing-bridge-brave'
     implementation 'io.zipkin.reporter2:zipkin-reporter-brave' // 이것만 있어도 되지 않을까..?
+
+    // Logging
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 }
 
 jacoco {

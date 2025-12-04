@@ -21,4 +21,7 @@ dependencies {
 
     // env 읽도록
     implementation 'me.paulschwarz:spring-dotenv:3.0.0'
+
+    // Logging
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
 }
