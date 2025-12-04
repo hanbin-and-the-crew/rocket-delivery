@@ -74,6 +74,6 @@ public class UserDataSeedService {
         userRepository.save(User.create("user0014", "1234", "slack_u6", "강감찬",
                 "010-6060-6060", "user6@example.com", UserRoleEnum.DELIVERY_MANAGER, null, DeliveryManagerRoleEnum.HUB));
 
-        log.info("Method… 생성 완료 (총 15개)");
+        log.info("유저 데이터 생성 완료 (총 15개)");
     }
 }

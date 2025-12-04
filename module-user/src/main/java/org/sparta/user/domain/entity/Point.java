@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.sparta.jpa.entity.BaseEntity;
 import org.sparta.user.domain.enums.PointStatus;
 
@@ -14,7 +13,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "p_points")
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Point extends BaseEntity {
     @Id
@@ -55,5 +53,13 @@ public class Point extends BaseEntity {
         point.expiryDate = expiryDate;
         point.status = status;
         return point;
+    }
+
+    public void updateUsedAmount(long usedAmount) {
+        this.usedAmount = usedAmount;
+    }
+
+    public void updateReservedAmount(long reservedAmount) {
+        this.reservedAmount = reservedAmount;
     }
 }

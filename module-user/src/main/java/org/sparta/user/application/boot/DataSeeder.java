@@ -3,7 +3,6 @@ package org.sparta.user.application.boot;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.user.domain.repository.PointRepository;
-import org.sparta.user.domain.repository.PointReservationRepository;
 import org.sparta.user.domain.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
@@ -19,7 +18,6 @@ public class DataSeeder implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PointDataSeedService pointSeedService;
     private final PointRepository pointRepository;
-    //private final PointReservationRepository pointReservationRepository;
 
     @Override
     public void run(String... args) {

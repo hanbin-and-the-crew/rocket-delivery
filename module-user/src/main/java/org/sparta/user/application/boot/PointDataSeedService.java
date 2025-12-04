@@ -24,7 +24,7 @@ public class PointDataSeedService {
 
     private final PointRepository pointRepository;
     private final UserRepository userRepository;
-    private final PointReservationRepository pointReservationRepository;;
+    private final PointReservationRepository pointReservationRepository;
 
     @Transactional
     public void seedPoints() {
@@ -96,7 +96,7 @@ public class PointDataSeedService {
 
         // 시나리오 1: user0001의 point1(10000)에서 7000 예약
         UUID orderId1 = UUID.randomUUID();
-        point1.setReservedAmount(point1.getReservedAmount() + 7000L);
+        point1.updateReservedAmount(point1.getReservedAmount() + 7000L);
         pointRepository.save(point1);
         pointReservationRepository.save(PointReservation.create(
                 point1.getId(),
@@ -107,7 +107,7 @@ public class PointDataSeedService {
 
         // 시나리오 2: user0002의 point5(8000, 이미 2000 예약됨)에서 추가로 3000 예약
         UUID orderId2 = UUID.randomUUID();
-        point5.setReservedAmount(point5.getReservedAmount() + 3000L);
+        point5.updateReservedAmount(point5.getReservedAmount() + 3000L);
         pointRepository.save(point5);
         pointReservationRepository.save(PointReservation.create(
                 point5.getId(),
@@ -117,9 +117,9 @@ public class PointDataSeedService {
         ));
 
         // 시나리오 3: user0001의 point2(5000)에서 5000 예약 후 결제 완료 상태
+        // ReservedAmount가 5000이었다가 0으로 바뀌고 UsedAmount가 5000이 되는 상황임.
         UUID orderId3 = UUID.randomUUID();
-        point2.setReservedAmount(5000L);
-        point2.setUsedAmount(5000L);  // CONFIRMED 상태이므로 usedAmount도 함께 증가
+        point2.updateUsedAmount(5000L);  // CONFIRMED 상태이므로 usedAmount도 함께 증가
         pointRepository.save(point2);
         pointReservationRepository.save(PointReservation.create(
                 point2.getId(),

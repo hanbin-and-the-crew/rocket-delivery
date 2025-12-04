@@ -15,6 +15,9 @@ public class PointResponse {
             @Schema(description = "예약된 포인트 목록")
             List<PointReservation> reservations
     ) {
+        public static PointReservationResult of(Long totalReservedAmount, List<PointReservation> reservations) {
+            return new PointReservationResult(totalReservedAmount, reservations);
+        }
     }
 
     @Schema(description = "현재 포인트 확인")

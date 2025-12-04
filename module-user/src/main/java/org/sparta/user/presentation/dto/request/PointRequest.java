@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Positive;
 import java.util.UUID;
 
 public class PointRequest {
+
     @Schema(description = "결제시 포인트 요청(예약)")
     public record Reserve(
             @Schema(description = "사용자 ID", example = "61a98cf7-921c-47fb-a802-3ec71f736f74")

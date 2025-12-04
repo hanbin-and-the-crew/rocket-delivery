@@ -63,7 +63,7 @@ public class PointService {
             Long reserveAmount = Math.min(availableInPoint, remainingAmount);
 
             // Point 상태 변경
-            point.setReservedAmount(point.getReservedAmount() + reserveAmount);
+            point.updateReservedAmount(point.getReservedAmount() + reserveAmount);
             pointRepository.save(point);
 
             // Reservation 기록
@@ -86,7 +86,7 @@ public class PointService {
             throw new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT);
         }
 
-        return new PointResponse.PointReservationResult(requiredAmount, reservations);
+        return PointResponse.PointReservationResult.of(requiredAmount, reservations);
     }
 
     /**
@@ -105,8 +105,8 @@ public class PointService {
             Point point = pointRepository.findById(reservation.getPointId())
                     .orElseThrow(() -> new BusinessException(PointErrorType.POINT_NOT_FOUND));
 
-            point.setReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
-            point.setUsedAmount(point.getUsedAmount() + reservation.getReservedAmount());
+            point.updateReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
+            point.updateUsedAmount(point.getUsedAmount() + reservation.getReservedAmount());
             pointRepository.save(point);
 
             reservation.updateStatus(ReservationStatus.CONFIRMED);
@@ -128,7 +128,7 @@ public class PointService {
                     .orElseThrow(() -> new BusinessException(PointErrorType.POINT_NOT_FOUND));
 
             // reservedAmount만 감소 (복구)
-            point.setReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
+            point.updateReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
             pointRepository.save(point);
 
             reservation.updateStatus(ReservationStatus.CANCELLED);
