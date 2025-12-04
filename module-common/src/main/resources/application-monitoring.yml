@@ -1,0 +1,32 @@
+# Monitoring configuration for Prometheus + Loki
+# 각 비즈니스 모듈에서 spring.profiles.include: monitoring 로 활성화
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # 필요한 엔드포인트만 노출 (보안)
+        include: health,info,prometheus,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      # 각 서비스 이름을 자동으로 태깅 (Grafana에서 필터링 용이)
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
+  # JVM, HTTP, DB 등 기본 메트릭 수집
+
+  health:
+    defaults:
+      enabled: true
+    redis:
+      enabled: false
+
+
+# Logback 설정은 logback-spring.xml에서 관리

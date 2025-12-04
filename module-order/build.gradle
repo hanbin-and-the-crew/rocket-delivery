@@ -79,3 +79,7 @@ test {
     useJUnitPlatform()  // JUnit 5 사용
     finalizedBy jacocoTestReport
 }
+
+bootJar {
+    dependsOn(":module-common:processResources")
+}

@@ -27,4 +27,11 @@ dependencies {
 
     // Logging
     implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+
+    //모니터링
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
+
+    //로그 모니터링
+    implementation 'com.github.loki4j:loki-logback-appender:1.5.1'
 }
