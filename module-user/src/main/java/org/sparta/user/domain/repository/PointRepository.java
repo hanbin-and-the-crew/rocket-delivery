@@ -11,6 +11,7 @@ import java.util.UUID;
 
 public interface PointRepository {
     List<Point> findUsablePoints(UUID userId, PointStatus status, LocalDateTime now, Sort sort);
+    List<Point> findUsablePoints(UUID userId, PointStatus status, LocalDateTime now);
     Point save(Point point);
     Optional<Point> findById(UUID id);
     long count();

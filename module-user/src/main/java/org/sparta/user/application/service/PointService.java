@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static org.springframework.data.domain.Sort.Direction.ASC;
+
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -48,7 +50,7 @@ public class PointService {
                 userId,
                 PointStatus.AVAILABLE,
                 LocalDateTime.now(),
-                Sort.by(Sort.Direction.ASC, "expiryDate")
+                Sort.by(ASC, "expiryDate")
         );
 
         Long remainingAmount = requiredAmount;
@@ -81,8 +83,7 @@ public class PointService {
 
         // 부족한 경우
         if (remainingAmount > 0) {
-            // 예약한 것들 롤백
-            rollbackReservations(orderId);
+            rollbackReservations(orderId); // 예약한 것들 롤백
             throw new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT);
         }
 
@@ -117,6 +118,7 @@ public class PointService {
     /**
      * 포인트 예약 취소 (결제 실패 시 보상 트랜잭션)
      */
+    @Transactional
     public void rollbackReservations(UUID orderId) {
         List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
                 orderId,
@@ -141,13 +143,13 @@ public class PointService {
      */
     @Transactional
     public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
-        Point point = Point.create(
+        Point point = Point.create( // 이용 안할거라 일단 토대만 작성.
                 userId,
                 amount,
                 0L,
                 0L,
                 expiryDate,
-                PointStatus.USED
+                PointStatus.AVAILABLE
         );
         pointRepository.save(point);
     }
@@ -155,14 +157,11 @@ public class PointService {
     /**
      * 현재 User 포인트 계산
      */
-    @Transactional
     public PointResponse.PointSummary getPoint(UUID userId) {
         List<Point> activePoints = pointRepository.findUsablePoints(
                 userId,
                 PointStatus.AVAILABLE,
-                LocalDateTime.now(),
-                Sort.by(Sort.Direction.ASC, "createdAt")
-
+                LocalDateTime.now()
         );
 
         // 포인트 통계 계산
