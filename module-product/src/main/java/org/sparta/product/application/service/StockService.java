@@ -96,6 +96,9 @@ public class StockService {
             String reservationKey,
             int quantity) {
 
+        log.info("[StockService] reserveStock called: productId={}, reservationKey={}, quantity={}",
+                productId, reservationKey, quantity);
+
         // 1) 이미 동일 예약 키가 존재하면 멱등 처리
         return stockReservationRepository.findByReservationKey(reservationKey)
                 .map(existing -> {
@@ -103,11 +106,18 @@ public class StockService {
                     if (existing.getReservedQuantity() != quantity) {
                         throw new BusinessException(ProductErrorType.STOCK_RESERVATION_ALREADY_EXISTS);
                     }
+
+                    log.debug("[StockService] idempotent reserve: reservationKey={}, quantity={}",
+                            reservationKey, quantity);
+
                     return existing;
                 })
                 .orElseGet(() -> {
                     // 2) 재고 조회
                     Stock stock = getStock(productId);
+
+                    log.debug("[StockService] creating new reservation: productId={}, reservationKey={}, requestedQuantity={}, availableQuantity={}",
+                            productId, reservationKey, quantity, stock.getAvailableQuantity());
 
                     // 3) Stock 애그리게이트에서 예약 수행 (재고 부족/상태 이상 시 BusinessException 발생)
                     stock.reserve(quantity);
@@ -122,6 +132,10 @@ public class StockService {
 
                     // 5) 변경된 Stock 저장
                     stockRepository.save(stock);
+
+                    log.info("[StockService] reservation created: reservationId={}, stockId={}, reservationKey={}, reservedQuantity={}, remainingAvailableQuantity={}",
+                            reservation.getId(), reservation.getStockId(), reservation.getReservationKey(),
+                            reservation.getReservedQuantity(), stock.getAvailableQuantity());
 
                     return reservation;
                 });
@@ -141,17 +155,23 @@ public class StockService {
     )
     @Transactional
     public void confirmReservation(String reservationKey) {
+
+        log.info("[StockService] confirmReservation called: reservationKey={}", reservationKey);
+
         // 1) 예약 조회
         StockReservation reservation = stockReservationRepository.findByReservationKey(reservationKey)
                 .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
 
         // 2) 멱등성 처리
         if (reservation.isConfirmed()) {
-            // 이미 확정된 예약이면 조용히 종료 (멱등)
+
+            // 이미 확정된 예약이면 종료 (멱등)
+            log.debug("[StockService] confirmReservation idempotent: already CONFIRMED, reservationKey={}", reservationKey);
             return;
         }
         if (reservation.isCancelled()) {
-            // 취소된 예약을 확정하려는 것은 잘못된 흐름
+            // 취소된 예약을 확정하려는 잘못된 흐름
+            log.warn("[StockService] confirmReservation invalid state: already CANCELLED, reservationKey={}", reservationKey);
             throw new BusinessException(ProductErrorType.STOCK_RESERVATION_ALREADY_CANCELLED);
         }
 
@@ -170,6 +190,9 @@ public class StockService {
         // 6) 저장
         stockRepository.save(stock);
         stockReservationRepository.save(reservation);
+
+        log.info("[StockService] confirmReservation completed: reservationKey={}, confirmedQuantity={}, remainingAvailableQuantity={}",
+                reservationKey, quantityToConfirm, stock.getAvailableQuantity());
     }
 
 
@@ -187,17 +210,21 @@ public class StockService {
     )
     @Transactional
     public void cancelReservation(String reservationKey) {
+        log.info("[StockService] cancelReservation called: reservationKey={}", reservationKey);
+
         // 1) 예약 조회
         StockReservation reservation = stockReservationRepository.findByReservationKey(reservationKey)
                 .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
 
         // 2) 멱등성 처리
         if (reservation.isCancelled()) {
-            // 이미 취소된 예약이면 조용히 종료 (멱등)
+            // 이미 취소된 예약이면 종료 (멱등)
+            log.debug("[StockService] cancelReservation idempotent: already CANCELLED, reservationKey={}", reservationKey);
             return;
         }
         if (reservation.isConfirmed()) {
             // 이미 확정된 예약을 취소하려면, 별도의 반품/롤백 프로세스가 필요
+            log.warn("[StockService] cancelReservation invalid state: already CONFIRMED, reservationKey={}", reservationKey);
             throw new BusinessException(ProductErrorType.STOCK_RESERVATION_ALREADY_CONFIRMED);
         }
 
@@ -216,6 +243,9 @@ public class StockService {
         // 6) 저장
         stockRepository.save(stock);
         stockReservationRepository.save(reservation);
+
+        log.info("[StockService] cancelReservation completed: reservationKey={}, cancelledQuantity={}, remainingAvailableQuantity={}",
+                reservationKey, quantityToCancel, stock.getAvailableQuantity());
     }
 
 }

@@ -18,7 +18,7 @@ public class StockRequest {
             @NotNull(message = "productId는 필수입니다.")
             UUID productId,
 
-            @Schema(description = "예약 키 (orderItemId 등)", example = "orderItem-20251203-0001")
+            @Schema(description = "예약 키 (현재는 orderId를 문자열로 전달)", example = "c2b1a4e8-5f9d-4c1b-9a7d-1234567890ab")
             @NotBlank(message = "reservationKey는 필수입니다.")
             String reservationKey,
 
@@ -30,7 +30,7 @@ public class StockRequest {
 
     @Schema(description = "재고 예약 확정 요청 (결제 성공 시)")
     public record Confirm(
-            @Schema(description = "예약 키 (orderItemId 등)", example = "orderItem-20251203-0001")
+            @Schema(description = "예약 키 (현재는 orderId를 문자열로 전달)", example = "c2b1a4e8-5f9d-4c1b-9a7d-1234567890ab")
             @NotBlank(message = "reservationKey는 필수입니다.")
             String reservationKey
     ) {
@@ -38,7 +38,7 @@ public class StockRequest {
 
     @Schema(description = "재고 예약 취소 요청 (주문 취소 / 결제 실패 시)")
     public record Cancel(
-            @Schema(description = "예약 키 (orderItemId 등)", example = "orderItem-20251203-0001")
+            @Schema(description = "예약 키 (현재는 orderId를 문자열로 전달)", example = "c2b1a4e8-5f9d-4c1b-9a7d-1234567890ab")
             @NotBlank(message = "reservationKey는 필수입니다.")
             String reservationKey
     ) {
