@@ -199,7 +199,7 @@ public class Order extends BaseEntity {
             throw new BusinessException(OrderErrorType.USERNAME_REQUIRED);
         }
         if (userPhoneNumber == null || userPhoneNumber.isBlank()) {
-            throw new BusinessException(OrderErrorType.USER_PHONENUMBER_REQUIRED);
+            throw new BusinessException(OrderErrorType.USER_PHONE_NUMBER_REQUIRED);
         }
 
     }

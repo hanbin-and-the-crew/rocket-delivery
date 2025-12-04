@@ -6,8 +6,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.order.application.dto.request.OrderRequest;
-import org.sparta.order.application.dto.response.OrderResponse;
+import org.sparta.order.presentation.dto.request.OrderRequest;
+import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

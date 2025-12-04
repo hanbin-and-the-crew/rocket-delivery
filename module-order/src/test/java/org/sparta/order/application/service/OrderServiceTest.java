@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.sparta.common.event.DomainEvent;
 import org.sparta.common.event.EventPublisher;
-import org.sparta.order.application.dto.request.OrderRequest;
-import org.sparta.order.application.dto.response.OrderResponse;
+import org.sparta.order.application.command.OrderCommand;
+import org.sparta.order.presentation.dto.OrderMapper;
+import org.sparta.order.presentation.dto.request.OrderRequest;
+import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
 import org.sparta.order.domain.repository.OrderRepository;
@@ -32,6 +34,9 @@ class OrderServiceTest {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private OrderMapper orderMapper;
 
     @MockitoBean
     private OrderRepository orderRepository;
@@ -62,6 +67,10 @@ class OrderServiceTest {
                 "요청 메모"
         );
 
+        // request DTO -> command 변환 작업 필요
+        OrderCommand.Create command = orderMapper.toCommand(request);
+
+
         // Repository.save() 가 호출되면 Order에 id를 채워서 반환되도록 세팅
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order o = invocation.getArgument(0);
@@ -75,7 +84,7 @@ class OrderServiceTest {
         ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
 
         // when
-        OrderResponse.Detail response = orderService.createOrder(CUSTOMER_ID, request);
+        OrderResponse.Detail response = orderService.createOrder(CUSTOMER_ID, command);
 
         // then
         assertThat(response.orderId()).isEqualTo(ORDER_ID);
@@ -98,7 +107,7 @@ class OrderServiceTest {
         when(orderRepository.findByIdAndDeletedAtIsNull(ORDER_ID))
                 .thenReturn(Optional.of(existing));
 
-        OrderRequest.Cancel request = new OrderRequest.Cancel(
+        OrderCommand.Cancel request = new OrderCommand.Cancel(
                 ORDER_ID,
                 CanceledReasonCode.CUSTOMER_REQUEST.name(),
                 "고객 요청 취소"
