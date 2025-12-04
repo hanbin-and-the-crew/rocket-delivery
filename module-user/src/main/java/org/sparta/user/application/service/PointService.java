@@ -1,6 +1,7 @@
 package org.sparta.user.application.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.domain.entity.Point;
@@ -13,6 +14,7 @@ import org.sparta.user.domain.repository.PointReservationRepository;
 import org.sparta.user.presentation.dto.response.PointResponse;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ import java.util.UUID;
 
 import static org.springframework.data.domain.Sort.Direction.ASC;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -53,6 +56,17 @@ public class PointService {
                 Sort.by(ASC, "expiryDate")
         );
 
+        // 조회하자마자 해당 user의 총 가능한 포인트 합
+        long totalAvailable = availablePoints.stream()
+                .mapToLong(Point::getAvailableAmount)
+                .sum();
+
+        // 포인트가 부족한 경우
+        if (totalAvailable < requiredAmount) {
+            log.info("사용 가능한 총 포인트: {}, 요청 포인트: {}", totalAvailable, requiredAmount);
+            throw new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT);
+        }
+
         Long remainingAmount = requiredAmount;
         List<PointReservation> reservations = new ArrayList<>();
 
@@ -79,12 +93,6 @@ public class PointService {
 
             reservations.add(reservation);
             remainingAmount -= reserveAmount;
-        }
-
-        // 부족한 경우
-        if (remainingAmount > 0) {
-            rollbackReservations(orderId); // 예약한 것들 롤백
-            throw new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT);
         }
 
         return PointResponse.PointReservationResult.of(requiredAmount, reservations);
@@ -116,9 +124,22 @@ public class PointService {
     }
 
     /**
-     * 포인트 예약 취소 (결제 실패 시 보상 트랜잭션)
+     * 포인트 적립 (구매 후). 이거까진 이용안할듯
      */
     @Transactional
+    public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
+        Point point = Point.create( // 이용 안할거라 일단 토대만 작성.
+                userId,
+                amount,
+                0L,
+                0L,
+                expiryDate,
+                PointStatus.AVAILABLE
+        );
+        pointRepository.save(point);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void rollbackReservations(UUID orderId) {
         List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
                 orderId,
@@ -136,22 +157,6 @@ public class PointService {
             reservation.updateStatus(ReservationStatus.CANCELLED);
             reservationRepository.save(reservation);
         }
-    }
-
-    /**
-     * 포인트 적립 (구매 후). 이거까진 이용안할듯
-     */
-    @Transactional
-    public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
-        Point point = Point.create( // 이용 안할거라 일단 토대만 작성.
-                userId,
-                amount,
-                0L,
-                0L,
-                expiryDate,
-                PointStatus.AVAILABLE
-        );
-        pointRepository.save(point);
     }
 
     /**

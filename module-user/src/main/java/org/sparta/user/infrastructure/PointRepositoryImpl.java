@@ -51,4 +51,9 @@ public class PointRepositoryImpl implements PointRepository {
     public long count() {
         return pointJpaRepository.count();
     }
+
+    @Override
+    public void flush() {
+        pointJpaRepository.flush();
+    }
 }

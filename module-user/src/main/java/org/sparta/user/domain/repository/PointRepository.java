@@ -15,4 +15,5 @@ public interface PointRepository {
     Point save(Point point);
     Optional<Point> findById(UUID id);
     long count();
+    void flush();
 }

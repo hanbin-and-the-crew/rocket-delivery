@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public interface PointReservationRepository extends JpaRepository<PointReservation, UUID> {
     List<PointReservation> findByOrderIdAndStatus(UUID orderId, ReservationStatus status);
+    List<PointReservation> findByOrderId(UUID orderId);
     boolean existsByOrderId(UUID orderId);
     long count();
 }
