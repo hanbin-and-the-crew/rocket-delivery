@@ -141,6 +141,7 @@ public class PointService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void rollbackReservations(UUID orderId) {
+        log.info("예약 취소 시작");
         List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
                 orderId,
                 ReservationStatus.RESERVED
@@ -187,5 +188,25 @@ public class PointService {
                 .sum();
 
         return PointResponse.PointSummary.of(totalAmount, totalReservedAmount, totalUsedAmount, availableAmount);
+    }
+
+    /**
+     * 포인트 자동 만료
+     */
+    @Transactional
+    public void expireReservations() {
+        LocalDateTime now = LocalDateTime.now();
+        int ttlMinutes = 5; // 예약 만료 5분
+        LocalDateTime expireThreshold = now.minusMinutes(ttlMinutes);
+
+        // 만료된 예약 조회
+        List<PointReservation> expiredReservations = reservationRepository.findByStatusAndReservedAtBefore(
+                ReservationStatus.RESERVED, expireThreshold
+        );
+
+        for (PointReservation reservation : expiredReservations) {
+            rollbackReservations(reservation.getOrderId());
+            log.info("예약 만료 처리: orderId={}, pointReservationId={}", reservation.getOrderId(), reservation.getId());
+        }
     }
 }

@@ -38,6 +38,7 @@ public class PointReservation {
     protected void onCreate() {
         this.reservedAt = LocalDateTime.now();
     }
+
     public static PointReservation create(
             UUID pointId, UUID orderId, Long reservedAmount, ReservationStatus status) {
         PointReservation reservation = new PointReservation();
@@ -50,5 +51,10 @@ public class PointReservation {
 
     public void updateStatus(ReservationStatus reservationStatus) {
         this.status = reservationStatus;
+    }
+
+    // 예약 만료 Test용
+    public void updateReservedAt(LocalDateTime localDateTime) {
+        this.reservedAt = localDateTime;
     }
 }
