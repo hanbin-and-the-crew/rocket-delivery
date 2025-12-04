@@ -1,4 +1,4 @@
-package org.sparta.user.presentation;
+package org.sparta.user.presentation.ApiSpec;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
+import org.sparta.user.presentation.dto.request.UserRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

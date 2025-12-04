@@ -41,5 +41,4 @@ public enum UserErrorType implements ErrorType {
         this.code = "user:" + name().toLowerCase(Locale.ROOT);
         this.message = message;
     }
-
 }

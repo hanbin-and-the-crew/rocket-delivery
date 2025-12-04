@@ -1,4 +1,4 @@
-package org.sparta.order.application.dto.response;
+package org.sparta.order.presentation.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.sparta.order.domain.entity.Order;

@@ -1,12 +1,17 @@
-package org.sparta.user.presentation;
+package org.sparta.user.presentation.Controller;
 
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.common.error.BusinessException;
+import org.sparta.user.application.command.UserCommand;
 import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
+import org.sparta.user.presentation.ApiSpec.UserApiSpec;
+import org.sparta.user.presentation.dto.UserMapper;
+import org.sparta.user.presentation.dto.request.UserRequest;
+import org.sparta.user.presentation.dto.response.UserResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,10 +27,12 @@ import java.util.stream.Collectors;
 public class UserController implements UserApiSpec {
 
     private final UserService userService;
+    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public UserController(UserService userService, PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService, UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userService = userService;
+        this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -48,7 +55,8 @@ public class UserController implements UserApiSpec {
                     .body(ApiResponse.fail("VALIDATION_FAILED", errorMessage));
         }
 
-        UserResponse.SignUpUser response = userService.signup(request);
+        UserCommand.SignUpUser command = userMapper.toCommand(request);
+        UserResponse.SignUpUser response = userService.signup(command);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -74,8 +82,9 @@ public class UserController implements UserApiSpec {
         if (!passwordEncoder.matches(request.oldPassword(), userDetailsInfo.getPassword())) {
             throw new BusinessException(UserErrorType.UNAUTHORIZED, "현재 비밀번호를 확인해주세요.");
         }
-        // TODO: 서비스 호출 후 결과 리턴
-        UserResponse.UpdateUser response = userService.updateSelf(userDetailsInfo, request);
+
+        UserCommand.UpdateUser command = userMapper.toCommand(request);
+        UserResponse.UpdateUser response = userService.updateSelf(userDetailsInfo, command);
         return ApiResponse.success(response);
     }
 
@@ -100,7 +109,8 @@ public class UserController implements UserApiSpec {
             return ApiResponse.fail("VALIDATION_FAILED", errorMessage);
         }
 
-        UserResponse.FindUserId response = userService.findUserId(request);
+        UserCommand.FindUserId command = userMapper.toCommand(request);
+        UserResponse.FindUserId response = userService.findUserId(command);
         return ApiResponse.success(response);
     }
 
@@ -126,12 +136,9 @@ public class UserController implements UserApiSpec {
         if (bindingResult.hasErrors()) {
             return ApiResponse.fail("VALIDATION_FAILED", "회원 수정 실패");
         }
-        /* 운영자는 현재 비밀번호를 알 필요 없으니
-        if (!passwordEncoder.matches(request.oldPassword(), userDetailsInfo.getPassword())) {
-            throw new BusinessException(UserErrorType.UNAUTHORIZED, "현재 비밀번호를 확인해주세요.");
-        }*/
-        // TODO: 서비스 호출 후 결과 리턴
-        UserResponse.UpdateUser response = userService.updateUser(userId, request);
+
+        UserCommand.UpdateUser command = userMapper.toCommand(request);
+        UserResponse.UpdateUser response = userService.updateUser(userId, command);
         return ApiResponse.success(response);
     }
 

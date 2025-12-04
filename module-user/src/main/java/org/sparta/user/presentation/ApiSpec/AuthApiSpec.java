@@ -1,10 +1,12 @@
-package org.sparta.user.presentation;
+package org.sparta.user.presentation.ApiSpec;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
+import org.sparta.user.presentation.dto.request.AuthRequest;
+import org.sparta.user.presentation.dto.response.AuthResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
