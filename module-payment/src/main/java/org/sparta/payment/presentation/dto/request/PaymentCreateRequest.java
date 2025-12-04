@@ -41,6 +41,12 @@ public record PaymentCreateRequest(
         @NotBlank(message = "currency는 필수입니다.")
         String currency,
 
+        @NotNull(message = "couponId는 필수입니다.")
         UUID couponId,
-        UUID pointUsageId
+
+        @NotNull(message = "pointUsageId는 필수입니다.")
+        UUID pointUsageId,
+
+        @NotBlank(message = "paymentKey는 필수입니다.")
+        String paymentKey
 ) {}

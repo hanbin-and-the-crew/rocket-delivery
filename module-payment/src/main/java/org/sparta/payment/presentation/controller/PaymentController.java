@@ -46,7 +46,7 @@ public class PaymentController implements PaymentApiSpec {
                 request.pointUsageId()
         );
 
-        var result = paymentService.createPayment(command);
+        var result = paymentService.storeCompletedPayment(command, request.paymentKey());
         return ApiResponse.success(PaymentDetailResponse.from(result));
     }
 

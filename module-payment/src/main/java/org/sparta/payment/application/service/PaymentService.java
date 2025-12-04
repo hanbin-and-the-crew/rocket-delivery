@@ -81,7 +81,36 @@ public class PaymentService {
     private long nvl(Long v) {
         return v == null ? 0L : v;
     }
+    @Transactional
+    public PaymentDetailResult storeCompletedPayment(PaymentCreateCommand command, String paymentKey) {
+        // 1) 금액 검증
+        validateAmounts(command);
 
+        // 2) REQUESTED 상태로 결제 객체 생성
+        Payment payment = Payment.createRequested(
+                command.orderId(),
+                command.amountTotal(),
+                command.amountCoupon(),
+                command.amountPoint(),
+                command.amountPayable(),
+                command.methodType(),
+                command.pgProvider(),
+                command.currency(),
+                command.couponId(),
+                command.pointUsageId()
+        );
+
+        // 3) PG 승인 완료 반영 (status를 COMPLETED로, amountPaid/approvedAt 세팅)
+        payment.complete(paymentKey, command.amountPayable());
+
+        // 4) 저장
+        Payment saved = paymentRepository.save(payment);
+
+        // 5) PAYMENT_COMPLETED Outbox 이벤트 생성
+        createPaymentCompletedOutbox(saved);
+
+        return PaymentDetailResult.from(saved);
+    }
     private void createPaymentCompletedOutbox(Payment payment) {
         PaymentCompletedPayload payload = PaymentCompletedPayload.from(payment);
 
