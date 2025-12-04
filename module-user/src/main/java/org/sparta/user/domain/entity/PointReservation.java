@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.sparta.user.domain.enums.ReservationStatus;
 
 import java.time.LocalDateTime;
@@ -13,8 +12,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "p_point_reservations")
 @Getter
-@Setter
-@NoArgsConstructor//(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PointReservation {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -48,5 +46,9 @@ public class PointReservation {
         reservation.reservedAmount = reservedAmount;
         reservation.status = status;
         return reservation;
+    }
+
+    public void updateStatus(ReservationStatus reservationStatus) {
+        this.status = reservationStatus;
     }
 }

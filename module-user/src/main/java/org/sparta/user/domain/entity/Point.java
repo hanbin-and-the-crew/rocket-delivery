@@ -15,7 +15,7 @@ import java.util.UUID;
 @Table(name = "p_points")
 @Getter
 @Setter
-@NoArgsConstructor//(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Point extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

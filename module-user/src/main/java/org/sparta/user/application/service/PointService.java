@@ -67,11 +67,12 @@ public class PointService {
             pointRepository.save(point);
 
             // Reservation 기록
-            PointReservation reservation = new PointReservation();
-            reservation.setPointId(point.getId());
-            reservation.setOrderId(orderId);
-            reservation.setReservedAmount(reserveAmount);
-            reservation.setStatus(ReservationStatus.RESERVED);
+            PointReservation reservation = PointReservation.create(
+                    point.getId(),
+                    orderId,
+                    reserveAmount,
+                    ReservationStatus.RESERVED
+            );
             reservationRepository.save(reservation);
 
             reservations.add(reservation);
@@ -108,7 +109,7 @@ public class PointService {
             point.setUsedAmount(point.getUsedAmount() + reservation.getReservedAmount());
             pointRepository.save(point);
 
-            reservation.setStatus(ReservationStatus.CONFIRMED);
+            reservation.updateStatus(ReservationStatus.CONFIRMED);
             reservationRepository.save(reservation);
         }
     }
@@ -130,7 +131,7 @@ public class PointService {
             point.setReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
             pointRepository.save(point);
 
-            reservation.setStatus(ReservationStatus.CANCELLED);
+            reservation.updateStatus(ReservationStatus.CANCELLED);
             reservationRepository.save(reservation);
         }
     }
@@ -140,10 +141,14 @@ public class PointService {
      */
     @Transactional
     public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
-        Point point = new Point();
-        point.setUserId(userId);
-        point.setAmount(amount);
-        point.setExpiryDate(expiryDate);
+        Point point = Point.create(
+                userId,
+                amount,
+                0L,
+                0L,
+                expiryDate,
+                PointStatus.USED
+        );
         pointRepository.save(point);
     }
 
