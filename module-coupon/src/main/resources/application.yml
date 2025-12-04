@@ -34,6 +34,12 @@ spring:
       hibernate:
         format_sql: true
 
+  data:
+    redis:
+      host: localhost
+      port: 6378
+      password:
+
   jackson:
     time-zone: Asia/Seoul
 
@@ -63,3 +69,9 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+
+coupon:
+  reservation:
+    expiration:
+      fixed-delay-ms: 60000
+      batch-size: 100
