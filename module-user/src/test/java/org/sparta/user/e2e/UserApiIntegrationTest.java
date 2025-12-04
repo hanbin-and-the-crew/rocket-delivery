@@ -11,7 +11,7 @@ import org.sparta.user.UserApplication;
 import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.infrastructure.SecurityDisabledConfig;
-import org.sparta.user.presentation.UserRequest;
+import org.sparta.user.presentation.dto.request.UserRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
