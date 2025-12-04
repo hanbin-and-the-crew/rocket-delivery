@@ -1,13 +1,13 @@
-package rocketdelivery.modulepayment;
+package org.sparta.payment;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class ModulePaymentApplication {
+public class PaymentApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ModulePaymentApplication.class, args);
+        SpringApplication.run(PaymentApplication.class, args);
     }
 
 }

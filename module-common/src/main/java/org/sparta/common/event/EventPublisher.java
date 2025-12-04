@@ -113,6 +113,11 @@ public class EventPublisher {
             return "stock-events";
         }
 
+        // Stock 관련 이벤트 (StockConfirmedEvent, StockReservedEvent, …)
+        if (eventType.startsWith("Payment")) {
+            return "payment-events";
+        }
+
 
         // 기본 토픽
         return "domain-events";

@@ -1,4 +1,4 @@
-package rocketdelivery.modulepayment;
+package org.sparta.payment;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
