@@ -28,7 +28,7 @@ public class PointEventHandler {
         pointService.confirmPointUsage(command);
     }
 
-    @KafkaListener(topics = "payment-failed", groupId = "product-service")
+    @KafkaListener(topics = "payment-failed", groupId = "user-service")
     @Transactional
     public void handlePaymentCompleted(PaymentEvent event) {
         log.info("결제 실패 이벤트 수신: orderId={}", event.orderId());
