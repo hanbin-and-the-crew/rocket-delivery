@@ -15,4 +15,10 @@ public class PointMapper {
                 req.requestPoint()
         );
     }
+
+    public PointCommand.ConfirmPoint toCommand(PointRequest.Confirm req) {
+        return new PointCommand.ConfirmPoint(
+                req.orderId()
+        );
+    }
 }

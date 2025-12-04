@@ -10,6 +10,8 @@ import org.sparta.user.presentation.dto.request.PointRequest;
 import org.sparta.user.presentation.dto.response.PointResponse;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/users/point")
 public class PointController implements PointApiSpec {
@@ -28,6 +30,24 @@ public class PointController implements PointApiSpec {
     ) {
         PointCommand.ReservePoint command = pointMapper.toCommand(request);
         PointResponse.PointReservationResult response = pointService.reservePoints(command);
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @PostMapping("/confirm")
+    public void confirmPoint(
+            @Valid @RequestBody PointRequest.Confirm request
+    ) {
+        PointCommand.ConfirmPoint command = pointMapper.toCommand(request);
+        pointService.confirmPointUsage(command);
+    }
+
+    @Override
+    @GetMapping("/{userId}")
+    public ApiResponse<Object> getPoint(
+            @PathVariable UUID userId
+    ) {
+        PointResponse.PointSummary response = pointService.getPoint(userId);
         return ApiResponse.success(response);
     }
 }

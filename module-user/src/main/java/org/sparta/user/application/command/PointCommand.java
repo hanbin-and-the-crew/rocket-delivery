@@ -10,4 +10,8 @@ public class PointCommand {
             Long orderAmount,
             Long requestPoint
     ) {}
+
+    public record ConfirmPoint(
+            UUID orderId
+    ) {}
 }

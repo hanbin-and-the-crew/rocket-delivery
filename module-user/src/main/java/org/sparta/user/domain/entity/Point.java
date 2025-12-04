@@ -25,7 +25,7 @@ public class Point extends BaseEntity {
     private UUID userId;
 
     @Column(nullable = false)
-    private Long amount;
+    private Long amount; // 시작 포인트 (현재 가능한 포인트는 아래 getAvailableAmount로 따로 구함)
 
     @Column(nullable = false)
     private Long usedAmount; // 사용된 포인트

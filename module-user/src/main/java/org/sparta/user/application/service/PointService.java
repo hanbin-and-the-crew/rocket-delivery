@@ -37,6 +37,12 @@ public class PointService {
         Long requiredAmount = command.requestPoint();
         UUID orderId = command.orderId();
 
+        // orderId 기반 중복 체크
+        boolean exists = reservationRepository.existsByOrderId(orderId);
+        if (exists) {
+            throw new BusinessException(PointErrorType.DUPLICATE_ORDER_ID);
+        }
+
         // FIFO: AVAILABLE이고 만료되지 않은 포인트를 유효 기간이 오래된 순서로 조회
         List<Point> availablePoints = pointRepository.findUsablePoints(
                 userId,
@@ -54,7 +60,7 @@ public class PointService {
             Long availableInPoint = point.getAvailableAmount(); // 1000 - 0 - 0 = 1000
             if (availableInPoint <= 0L) continue; // 사용 가능한 게 없으면 스킵
 
-            Long reserveAmount = Math.min(point.getAmount(), remainingAmount);
+            Long reserveAmount = Math.min(availableInPoint, remainingAmount);
 
             // Point 상태 변경
             point.setReservedAmount(point.getReservedAmount() + reserveAmount);
@@ -86,7 +92,9 @@ public class PointService {
      * 포인트 차감 확정 (결제 완료 단계)
      */
     @Transactional
-    public void confirmPointUsage(UUID orderId) {
+    public void confirmPointUsage(PointCommand.ConfirmPoint command) {
+        UUID orderId = command.orderId();
+
         List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
                 orderId,
                 ReservationStatus.RESERVED
@@ -137,5 +145,38 @@ public class PointService {
         point.setAmount(amount);
         point.setExpiryDate(expiryDate);
         pointRepository.save(point);
+    }
+
+    /**
+     * 현재 User 포인트 계산
+     */
+    @Transactional
+    public PointResponse.PointSummary getPoint(UUID userId) {
+        List<Point> activePoints = pointRepository.findUsablePoints(
+                userId,
+                PointStatus.AVAILABLE,
+                LocalDateTime.now(),
+                Sort.by(Sort.Direction.ASC, "createdAt")
+
+        );
+
+        // 포인트 통계 계산
+        Long totalAmount = activePoints.stream()
+                .mapToLong(Point::getAmount)
+                .sum();
+
+        Long totalReservedAmount = activePoints.stream()
+                .mapToLong(Point::getReservedAmount)
+                .sum();
+
+        Long totalUsedAmount = activePoints.stream()
+                .mapToLong(Point::getUsedAmount)
+                .sum();
+
+        Long availableAmount = activePoints.stream()
+                .mapToLong(Point::getAvailableAmount)
+                .sum();
+
+        return PointResponse.PointSummary.of(totalAmount, totalReservedAmount, totalUsedAmount, availableAmount);
     }
 }

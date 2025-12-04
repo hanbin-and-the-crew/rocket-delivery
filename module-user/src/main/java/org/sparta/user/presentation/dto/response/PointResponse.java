@@ -16,4 +16,23 @@ public class PointResponse {
             List<PointReservation> reservations
     ) {
     }
+
+    @Schema(description = "현재 포인트 확인")
+    public record PointSummary(
+            @Schema(description = "전체 포인트", example = "10000")
+            Long totalAmount,
+
+            @Schema(description = "예약된 포인트", example = "5000")
+            Long reservedAmount,
+
+            @Schema(description = "사용된 포인트", example = "2000")
+            Long usedAmount,
+
+            @Schema(description = "사용 가능한 포인트", example = "3000")
+            Long availableAmount
+    ) {
+        public static PointSummary of(Long totalAmount, Long reservedAmount, Long usedAmount, Long availableAmount) {
+            return new PointSummary(totalAmount, reservedAmount, usedAmount, availableAmount);
+        }
+    }
 }

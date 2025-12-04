@@ -27,6 +27,7 @@ public class PointRepositoryImpl implements PointRepository {
                 userId, status, now, sort
         );
     }
+
     @Override
     public Optional<Point> findById(UUID id) {
         return pointJpaRepository.findById(id);

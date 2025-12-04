@@ -1,7 +1,6 @@
 package org.sparta.user.presentation.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -27,5 +26,12 @@ public class PointRequest {
             @NotNull(message = "요청 포인트는 필수입니다")
             @Positive(message = "요청 포인트는 0보다 커야 합니다")
             Long requestPoint
+    ) {}
+
+    @Schema(description = "결제 완료 이후 포인트 확정")
+    public record Confirm(
+            @Schema(description = "주문 ID", example = "61a98cf7-921c-47fb-a802-3ec71f736f75")
+            @NotNull(message = "주문 ID는 필수입니다")
+            UUID orderId
     ) {}
 }
