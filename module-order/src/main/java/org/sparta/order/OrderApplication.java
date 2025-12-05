@@ -6,7 +6,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.retry.annotation.EnableRetry;
 
 @SpringBootApplication(scanBasePackages = "org.sparta")
-@EnableFeignClients
+@EnableFeignClients // Feign 클라이언트를 활성화하는 어노테이션
 @EnableRetry
 public class OrderApplication {
     public static void main(String[] args) {

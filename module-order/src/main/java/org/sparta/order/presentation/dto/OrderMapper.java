@@ -4,6 +4,8 @@ import org.sparta.order.application.command.OrderCommand;
 import org.sparta.order.presentation.dto.request.OrderRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 public class OrderMapper {
 
@@ -22,7 +24,12 @@ public class OrderMapper {
                 req.userPhoneNumber(),
                 req.slackId(),
                 req.dueAt(),
-                req.requestMemo()
+                req.requestMemo(),
+                req.requestPoint(),
+                req.methodType(),
+                req.pgProvider(),
+                req.currency(),
+                req.couponId()
         );
     }
 

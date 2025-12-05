@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation project(':module-common')
     implementation project(':module-jpa')
+    implementation project(':module-kafka')
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
@@ -20,17 +21,20 @@ dependencies {
     //JSON 직렬화에 필요
     implementation "com.fasterxml.jackson.core:jackson-databind"
 
-    testImplementation "org.springframework.kafka:spring-kafka-test" // 선택: KafkaListener 테스트용
-
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation project(':module-common')
     testImplementation project(':module-jpa')
+    testImplementation project(':module-kafka')
     testImplementation 'com.h2database:h2'
     testImplementation 'io.rest-assured:rest-assured:5.3.2'
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'    // 선택: KafkaListener 테스트용
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    // WireMock (HTTP stub 서버)
+    testImplementation 'org.wiremock:wiremock-standalone:3.9.1'
+//    testImplementation 'org.wiremock:wiremock-jetty12:3.9.1'
+    testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
 
     // testcontainers
     testImplementation 'org.testcontainers:testcontainers:1.19.3'

@@ -20,6 +20,7 @@ public interface OrderApiSpec {
                     X-USER-ID 헤더의 사용자 ID를 customerId로 사용해서 주문을 생성합니다.
                     - 초기 상태: CREATED
                     - 이후 재고/결제/배송 프로세스는 이벤트/별도 서비스에서 처리
+                    - X-Idempotency-Key를 통해 멱등성을 보장합니다 (동일 키로 재요청 시 기존 결과 반환)
                     """,
             responses = {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -28,6 +29,10 @@ public interface OrderApiSpec {
                             content = @Content(
                                     schema = @Schema(implementation = OrderResponse.Detail.class)
                             )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "409",
+                            description = "동일한 요청이 처리 중입니다"
                     )
             }
     )
@@ -38,6 +43,12 @@ public interface OrderApiSpec {
                     example = "550e8400-e29b-41d4-a716-446655440010"
             )
             String userIdHeader,
+            @Parameter(
+                    description = "멱등성 키 (UUID 권장). 동일한 키로 재요청 시 기존 결과 반환",
+                    required = true,
+                    example = "550e8400-e29b-41d4-a716-446655440099"
+            )
+            String idempotencyKey,
             OrderRequest.Create request
     );
 
