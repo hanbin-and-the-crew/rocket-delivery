@@ -39,48 +39,7 @@ public class PaymentService {
      * 결제 생성 (REQUESTED 상태)
      */
 
-    @Transactional
-    public PaymentDetailResult createPayment(PaymentCreateCommand command) {
-        validateAmounts(command);
 
-        Payment payment = Payment.createRequested(
-                command.orderId(),
-                command.amountTotal(),
-                command.amountCoupon(),
-                command.amountPoint(),
-                command.amountPayable(),
-                command.methodType(),
-                command.pgProvider(),
-                command.currency(),
-                command.couponId(),
-                command.pointUsageId()
-        );
-
-        Payment saved = paymentRepository.save(payment);
-        //log.info("[PaymentService] 결제 생성 완료. paymentId={}, orderId={}", saved.getPaymentId(), saved.getOrderId());
-        createPaymentCompletedOutbox(saved);
-        return PaymentDetailResult.from(saved);
-    }
-
-    private void validateAmounts(PaymentCreateCommand command) {
-        if (command.amountTotal() == null || command.amountTotal() <= 0) {
-            throw new BusinessException(PaymentErrorType.INVALID_AMOUNT);
-        }
-        long coupon = nvl(command.amountCoupon());
-        long point = nvl(command.amountPoint());
-        long payable = nvl(command.amountPayable());
-
-        if (payable < 0) {
-            throw new BusinessException(PaymentErrorType.INVALID_AMOUNT);
-        }
-        if (!command.amountTotal().equals(coupon + point + payable)) {
-            throw new BusinessException(PaymentErrorType.PAYMENT_AMOUNT_MISMATCH);
-        }
-    }
-
-    private long nvl(Long v) {
-        return v == null ? 0L : v;
-    }
     @Transactional
     public PaymentDetailResult storeCompletedPayment(PaymentCreateCommand command, String paymentKey) {
         // 1) 금액 검증
@@ -111,6 +70,26 @@ public class PaymentService {
 
         return PaymentDetailResult.from(saved);
     }
+    private void validateAmounts(PaymentCreateCommand command) {
+        if (command.amountTotal() == null || command.amountTotal() <= 0) {
+            throw new BusinessException(PaymentErrorType.INVALID_AMOUNT);
+        }
+        long coupon = nvl(command.amountCoupon());
+        long point = nvl(command.amountPoint());
+        long payable = nvl(command.amountPayable());
+
+        if (payable < 0) {
+            throw new BusinessException(PaymentErrorType.INVALID_AMOUNT);
+        }
+        if (!command.amountTotal().equals(coupon + point + payable)) {
+            throw new BusinessException(PaymentErrorType.PAYMENT_AMOUNT_MISMATCH);
+        }
+    }
+
+    private long nvl(Long v) {
+        return v == null ? 0L : v;
+    }
+
     private void createPaymentCompletedOutbox(Payment payment) {
         PaymentCompletedPayload payload = PaymentCompletedPayload.from(payment);
 
@@ -184,7 +163,7 @@ public class PaymentService {
 
         Long refundAmount = payment.getAmountPaid();
         if (refundAmount == null || refundAmount <= 0) {
-            refundAmount = payment.getAmountTotal();
+            refundAmount = payment.getAmountPayable();
         }
 
         Refund refund = Refund.request(payment.getPaymentId(), refundAmount, command.reason());
