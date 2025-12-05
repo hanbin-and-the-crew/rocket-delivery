@@ -7,24 +7,41 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * order event 발행
- * 주문 생성 Kafka 이벤트
+ * 주문 생성 완료 + 결제/포인트/쿠폰 정보 포함 이벤트
  */
 public record OrderCreatedEvent(
-        UUID eventId,       // 멱등성 보장용
+        UUID eventId,
         UUID orderId,
-        UUID productId,
-        Integer quantity,
-        UUID userId,
+        Long orderAmount,     // 주문 총 금액 (상품가 * 수량)
+        Long requestPoint,       // 사용 포인트
+        Long discountAmount,// 사용 쿠폰 할인 금액
+        Long amountPayable,   // 실 PG 결제 금액
+        String pointReservationId,
+        String couponReservationId,
+        String pgToken,
         Instant occurredAt
 ) implements DomainEvent {
-    public static OrderCreatedEvent of(Order order) {
-        return new OrderCreatedEvent(
-                UUID.randomUUID(),              // eventId (멱등성 보장용)
-                order.getId(),
-                order.getProductId(),
-                order.getQuantity().getValue(),
-                order.getCustomerId(),
+
+    public static OrderCreatedEvent of(
+            UUID orderId,
+            Long orderAmount,
+            Long requestPoint,
+            Long discountAmount,
+            Long amountPayable,
+            String pointReservationId,
+            String couponReservationId,
+            String pgToken
+    ) {
+        return new OrderCreatedEvent (
+                UUID.randomUUID(),
+                orderId,
+                orderAmount,
+                requestPoint,
+                discountAmount,
+                amountPayable,
+                pointReservationId,
+                couponReservationId,
+                pgToken,
                 Instant.now()
         );
     }

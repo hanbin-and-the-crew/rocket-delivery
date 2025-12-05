@@ -29,6 +29,13 @@ public enum OrderErrorType implements ErrorType {
     CANCELED_REASON_CODE_REQUIRED(HttpStatus.BAD_REQUEST, "취소 사유 코드는 필수입니다"),
     CANCELED_REASON_MEMO_REQUIRED(HttpStatus.BAD_REQUEST, "취소 사유 상세는 필수입니다"),
 
+    // 예약
+    STOCK_RESERVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "재고 예약 실패"),
+    POINT_RESERVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "포인트 예약 실패"),
+    COUPON_RESERVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "쿠폰 예약 실패"),
+    COUPON_VALIDATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "쿠폰 검증 실패"),
+    PAYMENT_APPROVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "결제 승인 실패"),
+
     // 상태 충돌 - 배송 출발(출고) 관련
     ORDER_ALREADY_SHIPPED(HttpStatus.CONFLICT, "이미 출고된 주문입니다"),
     CANNOT_SHIPPED_CANCELED_ORDER(HttpStatus.CONFLICT, "취소된 주문은 출고할 수 없습니다"),
@@ -60,7 +67,10 @@ public enum OrderErrorType implements ErrorType {
     CANNOT_SHIP_NOT_APPROVED_ORDER(HttpStatus.CONFLICT, "APPROVED 상태에서만 출고할 수 있습니다"),
     CANNOT_DELIVER_NOT_SHIPPED_ORDER(HttpStatus.CONFLICT, "SHIPPED 상태에서만 배송 완료로 변경할 수 있습니다"),
     ORDER_ALREADY_DELIVERED(HttpStatus.CONFLICT, "이미 배송 완료된 주문입니다"),
-    CANNOT_DELETE_SHIPPED_OR_DELIVERED_ORDER(HttpStatus.CONFLICT, "출고되었거나 배송 완료된 주문은 삭제할 수 없습니다");
+    CANNOT_DELETE_SHIPPED_OR_DELIVERED_ORDER(HttpStatus.CONFLICT, "출고되었거나 배송 완료된 주문은 삭제할 수 없습니다"),
+
+    // 멱등성
+    REQUEST_IN_PROGRESS(HttpStatus.CONFLICT, "동일한 요청이 처리 중입니다. 잠시 후 다시 시도해주세요");
 
     private final HttpStatus status;
     private final String code;

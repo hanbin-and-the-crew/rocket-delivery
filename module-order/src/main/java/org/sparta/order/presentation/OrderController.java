@@ -31,11 +31,12 @@ public class OrderController implements OrderApiSpec {
     @PostMapping
     public ApiResponse<OrderResponse.Detail> createOrder(
             @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody OrderRequest.Create request
     ) {
         UUID customerId = UUID.fromString(userIdHeader);
         OrderCommand.Create command = orderMapper.toCommand(request);
-        OrderResponse.Detail response = orderService.createOrder(customerId, command);
+        OrderResponse.Detail response = orderService.createOrder(customerId, command, idempotencyKey);
         return ApiResponse.success(response);
     }
 
