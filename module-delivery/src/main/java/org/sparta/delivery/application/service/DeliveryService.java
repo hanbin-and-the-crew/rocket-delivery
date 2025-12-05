@@ -1,5 +1,6 @@
 package org.sparta.delivery.application.service;
 
+import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
 import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
 import org.sparta.delivery.presentation.dto.response.DeliveryResponse;
 import org.springframework.data.domain.Pageable;
@@ -20,7 +21,7 @@ public interface DeliveryService {
      * 허브 경로 조회 + DeliveryLog 생성까지 포함한 정식 생성.
      * - Hub FeignClient로 경로를 조회해 각 leg별 DeliveryLog를 만든다.
      */
-    DeliveryResponse.Detail createWithRoute(DeliveryRequest.Create request);
+    DeliveryResponse.Detail createWithRoute(OrderApprovedEvent event);
 
     // ===== 담당자 배정 =====
 

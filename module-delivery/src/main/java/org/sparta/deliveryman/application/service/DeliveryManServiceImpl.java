@@ -29,8 +29,7 @@ public class DeliveryManServiceImpl implements DeliveryManService {
 
     // TODO: UserCreateEvent를 수신해서 생성 할 때 조건에 만족될 때만 DeliveryMan생성
     //  ==> UserRole은 DELIVERY_MANAGER / userStatus는 APPROVE인 경우에만 DeliveryMan이 생성되게 해야 됨
-    // TODO: user쪽에서 hubId를 null 가능하게 수정완료된 상태. -> 이에 따른 DeliveryManType 판단 로직 수정 (hubId의 null여부에 따라 DeliveryManType 결정)
-    // 현재 구현된거는 user에서 null이 되게 한거로 구현 되어있음
+    // 현재 구현된거는 user에서 hubId null 가능하게 한거로 구현 되어있음
     @Override
     @Transactional
     public DeliveryManResponse.Detail create(
@@ -235,12 +234,12 @@ public class DeliveryManServiceImpl implements DeliveryManService {
         List<DeliveryMan> candidates =
                 deliveryManRepository.findAllByTypeAndDeletedAtIsNullOrderBySequenceAsc(DeliveryManType.HUB);
 
-        DeliveryMan selected = selectBestCandidate(candidates);
+        DeliveryMan selected = selectBestCandidate(candidates); // 담당자 Id 채택
         if (selected == null) {
             throw new BusinessException(DeliveryManErrorType.NO_HUB_DELIVERY_MAN_AVAILABLE);
         }
 
-        selected.assignForNewDelivery();
+        selected.assignForNewDelivery();    // 여기서 DeliveryManStatus 변경 / 배송 건수 증가
         return selected;
     }
 

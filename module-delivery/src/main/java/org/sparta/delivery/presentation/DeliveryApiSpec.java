@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
+import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
 import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
 import org.sparta.delivery.presentation.dto.response.DeliveryResponse;
 import org.springframework.data.domain.Pageable;
@@ -30,7 +31,7 @@ public interface DeliveryApiSpec {
             description = "허브 서비스에서 경로를 조회하고, 각 leg에 대한 DeliveryLog까지 함께 생성합니다."
     )
     ApiResponse<DeliveryResponse.Detail> createWithRoute(
-            @Valid @RequestBody DeliveryRequest.Create request
+            @Valid @RequestBody OrderApprovedEvent event
     );
 
     @Operation(

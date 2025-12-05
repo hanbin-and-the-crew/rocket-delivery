@@ -1,11 +1,17 @@
 package org.sparta.delivery.application.service;
 
+import ch.qos.logback.classic.Logger;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.EventPublisher;
 import org.sparta.delivery.domain.entity.Delivery;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.sparta.delivery.domain.error.DeliveryErrorType;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryCompletedEvent;
+import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryStartedEvent;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
+import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
 import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
 import org.sparta.delivery.presentation.dto.response.DeliveryResponse;
 import org.sparta.deliverylog.application.service.DeliveryLogService;
@@ -19,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.sparta.delivery.infrastructure.client.HubRouteFeignClient;
 import org.sparta.delivery.presentation.dto.response.HubLegResponse;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,9 +37,11 @@ public class DeliveryServiceImpl implements DeliveryService {
     private final DeliveryRepository deliveryRepository;
     private final DeliveryLogService deliveryLogService;
     private final HubRouteFeignClient hubRouteFeignClient; // 허브 경로 조회용 Feign
+    private final EventPublisher eventPublisher;
+    Logger log;
 
     // ================================
-    // 1. 배송 생성 - 단순(테스트용)
+    // 1. 배송 생성 - 단순(테스트용) /TODO: 허브 경로 조회 기능 추가해서 실제 자동으로 실행되는 api와 동일하게 동작하게 하기
     // ================================
     @Override
     @Transactional
@@ -68,37 +77,39 @@ public class DeliveryServiceImpl implements DeliveryService {
     // ================================
     @Override
     @Transactional
-    public DeliveryResponse.Detail createWithRoute(DeliveryRequest.Create request) {
+    public DeliveryResponse.Detail createWithRoute(OrderApprovedEvent orderEvent) {
+        try {
 
-        // 1) Delivery 생성 (위 메서드와 동일한 검증/로직)
-        Delivery delivery = Delivery.createFromOrderApproved(
-                request.orderId(),
-                request.customerId(),
-                request.supplierCompanyId(),
-                request.supplierHubId(),
-                request.receiveCompanyId(),
-                request.receiveHubId(),
-                request.address(),
-                request.receiverName(),
-                request.receiverSlackId(),
-                request.receiverPhone(),
-                request.dueAt(),
-                request.requestedMemo(),
-                null // totalLogSeq는 경로 계산 후 세팅
-        );
-
-        Delivery savedDelivery = deliveryRepository.save(delivery);
-
-        // 2) 허브 서비스에서 경로/leg 정보 조회 (Feign)
+        // 1) 허브 서비스에서 경로/leg 정보 조회 (Feign)
         //    - 예시: List<HubLegResponse> legs = hubRouteFeignClient.getRouteLegs(...);
         List<HubLegResponse> legs = hubRouteFeignClient.getRouteLegs(
-                savedDelivery.getSupplierHubId(),
-                savedDelivery.getReceiveHubId()
+                orderEvent.supplierHubId(),
+                orderEvent.receiveHubId()
         );
 
         if (legs == null || legs.isEmpty()) {
             throw new BusinessException(DeliveryErrorType.INVALID_TOTAL_LOG_SEQ);
+            // TODO : Delivery 생성 실패 Event 발행
         }
+
+        // 2) Delivery 생성 (위 메서드와 동일한 검증/로직)
+        Delivery delivery = Delivery.createFromOrderApproved(
+                orderEvent.orderId(),
+                orderEvent.customerId(),
+                orderEvent.supplierCompanyId(),
+                orderEvent.supplierHubId(),
+                orderEvent.receiveCompanyId(),
+                orderEvent.receiveHubId(),
+                orderEvent.address(),
+                orderEvent.receiverName(),
+                orderEvent.receiverSlackId(),
+                orderEvent.receiverPhone(),
+                orderEvent.dueAt(),
+                orderEvent.requestMemo(),
+                null // totalLogSeq는 경로 계산 후 세팅
+        );
+
+        Delivery savedDelivery = deliveryRepository.save(delivery);
 
         int sequence = 0;
         for (HubLegResponse leg : legs) {
@@ -117,7 +128,22 @@ public class DeliveryServiceImpl implements DeliveryService {
         // 3) 전체 leg 개수 세팅
         savedDelivery.updateTotalLogSeq(sequence);
 
+        // [배송 생성 완료 이벤트 발행]
+        eventPublisher.publishExternal(new DeliveryCreatedEvent(
+                UUID.randomUUID(),
+                savedDelivery.getOrderId(),
+                savedDelivery.getId(),
+                savedDelivery.getSupplierHubId(),
+                savedDelivery.getReceiveHubId(),
+                savedDelivery.getTotalLogSeq(),
+                Instant.now()
+        ));
+
         return DeliveryResponse.Detail.from(savedDelivery);
+        } catch (Exception e) {
+            log.error("Failed to create delivery from order: {}", orderEvent.orderId(), e);
+            throw new BusinessException(DeliveryErrorType.CREATION_FAILED);
+        }
     }
 
     // ================================
@@ -172,6 +198,17 @@ public class DeliveryServiceImpl implements DeliveryService {
                 .orElseThrow(() -> new BusinessException(DeliveryErrorType.INVALID_LOG_SEQUENCE));
 
         deliveryLogService.startLog(target.id());
+
+        // [ 배송 시작 이벤트 ] _ 첫 허브를 출발할 때만 이벤트 발행
+        if (request.sequence() == 0) {
+            eventPublisher.publishExternal(new DeliveryStartedEvent(
+                    UUID.randomUUID(),
+                    delivery.getOrderId(),
+                    delivery.getId(),
+                    delivery.getSupplierHubId(),
+                    Instant.now()
+            ));
+        }
 
         return DeliveryResponse.Detail.from(delivery);
     }
@@ -233,6 +270,16 @@ public class DeliveryServiceImpl implements DeliveryService {
                 .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
 
         delivery.completeDelivery();
+
+        // [ 배송 최종 완료 이벤트 ]
+        eventPublisher.publishExternal(new DeliveryCompletedEvent(
+                UUID.randomUUID(),
+                delivery.getOrderId(),
+                delivery.getId(),
+                delivery.getReceiveCompanyId(),
+                Instant.now()
+        ));
+
         return DeliveryResponse.Detail.from(delivery);
     }
 

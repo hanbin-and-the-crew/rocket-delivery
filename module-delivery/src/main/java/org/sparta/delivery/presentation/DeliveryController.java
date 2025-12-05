@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.delivery.application.service.DeliveryService;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
+import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
 import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
 import org.sparta.delivery.presentation.dto.response.DeliveryResponse;
 import org.springframework.data.domain.Pageable;
@@ -32,9 +33,9 @@ public class DeliveryController implements DeliveryApiSpec {
     @Override
     @PostMapping("/with-route")
     public ApiResponse<DeliveryResponse.Detail> createWithRoute(
-            @Valid @RequestBody DeliveryRequest.Create request
+            @Valid @RequestBody OrderApprovedEvent event
     ) {
-        DeliveryResponse.Detail response = deliveryService.createWithRoute(request);
+        DeliveryResponse.Detail response = deliveryService.createWithRoute(event);
         return ApiResponse.success(response);
     }
 
