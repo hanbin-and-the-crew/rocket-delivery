@@ -14,6 +14,7 @@ import org.sparta.coupon.domain.repository.CouponReservationRepository;
 import org.sparta.coupon.infrastructure.redis.CouponReservationRedisManager;
 import org.sparta.coupon.support.fixtures.CouponFixture;
 import org.sparta.redis.util.DistributedLockExecutor;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -44,6 +45,9 @@ class CouponReservationExpirationServiceTest {
     @Mock
     private DistributedLockExecutor lockExecutor;
 
+    @Mock
+    private ApplicationContext applicationContext;
+
     @InjectMocks
     private CouponReservationExpirationService expirationService;
 
@@ -53,6 +57,9 @@ class CouponReservationExpirationServiceTest {
             Supplier<?> supplier = invocation.getArgument(1);
             return supplier.get();
         });
+
+        lenient().when(applicationContext.getBean(CouponReservationExpirationService.class))
+                .thenReturn(expirationService);
     }
 
     @Test

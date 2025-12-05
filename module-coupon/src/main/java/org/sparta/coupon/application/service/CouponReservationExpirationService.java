@@ -10,7 +10,9 @@ import org.sparta.coupon.domain.repository.CouponRepository;
 import org.sparta.coupon.domain.repository.CouponReservationRepository;
 import org.sparta.coupon.infrastructure.redis.CouponReservationRedisManager;
 import org.sparta.redis.util.DistributedLockExecutor;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -33,11 +35,13 @@ public class CouponReservationExpirationService {
     private final CouponRepository couponRepository;
     private final CouponReservationRedisManager redisManager;
     private final DistributedLockExecutor lockExecutor;
+    private final ApplicationContext applicationContext;
 
     /**
      * 만료된 예약을 정리
      * - 분산 락 획득 후 트랜잭션 시작
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleExpiredReservation(UUID reservationId) {
         Optional<CouponReservation> reservationOpt = couponReservationRepository.findById(reservationId);
 
@@ -105,12 +109,15 @@ public class CouponReservationExpirationService {
     /**
      * 특정 시각 이전에 만료된 예약 배치 처리
      * - 각 예약은 독립적인 트랜잭션으로 처리 (하나의 실패가 전체에 영향 없음)
+     * 트랜잭션 전파 보장
      */
     public void handleExpiredReservations(LocalDateTime referenceTime, int batchSize) {
+        CouponReservationExpirationService self = applicationContext.getBean(CouponReservationExpirationService.class);
+
         couponReservationRepository.findExpiredReservations(referenceTime, batchSize)
                 .forEach(reservation -> {
                     try {
-                        handleExpiredReservation(reservation.getId());
+                        self.handleExpiredReservation(reservation.getId());
                     } catch (Exception e) {
                         log.error("만료 예약 처리 실패: reservationId={}", reservation.getId(), e);
                     }
