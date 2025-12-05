@@ -33,6 +33,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -180,7 +181,7 @@ class CouponServiceTest {
         assertThat(coupon.getStatus()).isEqualTo(CouponStatus.PAID);
         assertThat(coupon.getUsedAt()).isNotNull();
 
-        verify(couponReservationRepository).findById(reservationId);
+        verify(couponReservationRepository, times(2)).findById(reservationId);
         verify(couponRepository).findById(couponId);
         verify(couponRepository).save(any(Coupon.class));
         verify(couponReservationRepository).deleteById(reservationId);
@@ -226,7 +227,7 @@ class CouponServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorType", CouponErrorType.INVALID_ORDER);
 
-        verify(couponReservationRepository).findById(reservationId);
+        verify(couponReservationRepository, times(2)).findById(reservationId);
         verify(couponRepository).findById(couponId);
     }
 
@@ -255,7 +256,7 @@ class CouponServiceTest {
         assertThat(coupon.getStatus()).isEqualTo(CouponStatus.AVAILABLE);
         assertThat(coupon.getOrderId()).isNull();
 
-        verify(couponReservationRepository).findById(reservationId);
+        verify(couponReservationRepository, times(2)).findById(reservationId);
         verify(couponRepository).findById(couponId);
         verify(couponRepository).save(any(Coupon.class));
         verify(couponReservationRepository).deleteById(reservationId);

@@ -64,19 +64,23 @@ public class CouponService {
         UUID couponId = reservation.getCouponId();
 
         executeWithCouponLock(couponId, () -> {
-            // 2. 예약 만료 확인
-            if (reservation.isExpired()) {
+            // 2. 락 내부에서 최신 예약 정보 확보
+            CouponReservation freshReservation = couponReservationRepository.findById(reservationId)
+                    .orElseThrow(() -> new BusinessException(CouponErrorType.RESERVATION_NOT_FOUND));
+
+            // 3. 예약 만료 확인
+            if (freshReservation.isExpired()) {
                 throw new BusinessException(CouponErrorType.RESERVATION_EXPIRED);
             }
 
-            // 3. 쿠폰 조회 및 사용 확정
+            // 4. 쿠폰 조회 및 사용 확정
             Coupon coupon = couponRepository.findById(couponId)
                     .orElseThrow(() -> new BusinessException(CouponErrorType.COUPON_NOT_FOUND));
 
             coupon.confirm(orderId);
             couponRepository.save(coupon);
 
-            // 4. 예약 정보 삭제 (DB + Redis)
+            // 5. 예약 정보 삭제 (DB + Redis)
             couponReservationRepository.deleteById(reservationId);
             redisManager.deleteReservation(reservationId);
 
@@ -101,14 +105,18 @@ public class CouponService {
         UUID couponId = reservation.getCouponId();
 
         executeWithCouponLock(couponId, () -> {
-            // 2. 쿠폰 조회 및 예약 취소
+            // 2. 락 내부에서 최신 예약 정보 확인
+            couponReservationRepository.findById(reservationId)
+                    .orElseThrow(() -> new BusinessException(CouponErrorType.RESERVATION_NOT_FOUND));
+
+            // 3. 쿠폰 조회 및 예약 취소
             Coupon coupon = couponRepository.findById(couponId)
                     .orElseThrow(() -> new BusinessException(CouponErrorType.COUPON_NOT_FOUND));
 
             coupon.cancelReservation();
             couponRepository.save(coupon);
 
-            // 3. 예약 정보 삭제 (DB + Redis)
+            // 4. 예약 정보 삭제 (DB + Redis)
             couponReservationRepository.deleteById(reservationId);
             redisManager.deleteReservation(reservationId);
 

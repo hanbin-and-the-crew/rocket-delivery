@@ -20,8 +20,6 @@ dependencies {
     //JSON 직렬화에 필요
     implementation "com.fasterxml.jackson.core:jackson-databind"
 
-    testImplementation "org.springframework.kafka:spring-kafka-test" // 선택: KafkaListener 테스트용
-
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation project(':module-common')
