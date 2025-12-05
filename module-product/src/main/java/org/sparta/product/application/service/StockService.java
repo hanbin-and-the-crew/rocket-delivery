@@ -110,12 +110,12 @@ public class StockService {
      * 예약 취소 (주문 취소 시)
      * - 예약된 재고만 감소
      * - Stock 애그리거트 내에서 취소 처리
-     * - 낙관적 락 충돌 시 최대 3회 재시도 (50ms, 100ms, 150ms 간격)
+     * - 낙관적 락 충돌 시 최대 5회 재시도 (랜덤 백오프로 경합 감소)
      */
     @Retryable(
             retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
             maxAttempts = 5,
-            backoff = @Backoff(delay = 100, multiplier = 1000)
+            backoff = @Backoff(delay = 100, maxDelay = 1000, multiplier = 2, random = true)
     )
     @Transactional
     public void cancelReservation(UUID productId, int quantity) {

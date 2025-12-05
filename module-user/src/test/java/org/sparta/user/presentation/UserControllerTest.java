@@ -4,10 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.sparta.user.application.command.UserCommand;
 import org.sparta.user.application.service.UserService;
+import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.infrastructure.SecurityDisabledConfig;
+import org.sparta.user.presentation.Controller.UserController;
+import org.sparta.user.presentation.dto.UserMapper;
+import org.sparta.user.presentation.dto.request.UserRequest;
+import org.sparta.user.presentation.dto.response.UserResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -53,6 +59,9 @@ class UserControllerTest {
     private UserService userService;
 
     @MockitoBean
+    private UserMapper userMapper;
+
+    @MockitoBean
     private PasswordEncoder passwordEncoder;
 
     @Test
@@ -60,13 +69,18 @@ class UserControllerTest {
     void signup_ShouldReturnOk() throws Exception {
 
         // given
-        UserResponse.SignUpUser response = new UserResponse.SignUpUser(userId, "testuser");
-        given(userService.signup(any(UserRequest.SignUpUser.class))).willReturn(response);
-
         UserRequest.SignUpUser request = new UserRequest.SignUpUser(
                 "testuser", "pw123!", "slack01", "홍길동",
-                "01011112222", "test@ex.com", UserRoleEnum.MASTER, hubId
+                "01011112222", "test@ex.com", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, hubId
         );
+        UserCommand.SignUpUser command = new UserCommand.SignUpUser(
+                "testuser", "pw123!", "slack01", "홍길동",
+                "01011112222", "test@ex.com", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, hubId );
+        given(userMapper.toCommand(any(UserRequest.SignUpUser.class))).willReturn(command);
+
+        UserResponse.SignUpUser response = new UserResponse.SignUpUser(userId, "testuser");
+        given(userService.signup(any(UserCommand.SignUpUser.class))).willReturn(response);
+
 
         // when & then
         mockMvc.perform(post("/api/users/signup")
@@ -83,7 +97,7 @@ class UserControllerTest {
         // given: email 누락
         UserRequest.SignUpUser invalidRequest = new UserRequest.SignUpUser(
                 "testuser", "pw123!", "slack01", "홍길동",
-                "01011112222", "", UserRoleEnum.MASTER, UUID.randomUUID()
+                "01011112222", "", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, UUID.randomUUID()
         );
 
         // when & then

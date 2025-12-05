@@ -6,14 +6,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Stock Repository 인터페이스
- * - Product와 독립적으로 Stock 조회/수정
+ * Product와 독립적으로 Stock 조회/수정
  */
 public interface StockRepository {
 
-    /**
-     * Stock ID로 조회
-     */
+
     Optional<Stock> findById(UUID stockId);
 
     /**
@@ -22,8 +19,5 @@ public interface StockRepository {
      */
     Optional<Stock> findByProductId(UUID productId);
 
-    /**
-     * Stock 저장
-     */
     Stock save(Stock stock);
 }

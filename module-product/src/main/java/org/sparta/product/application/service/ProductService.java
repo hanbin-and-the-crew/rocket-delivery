@@ -22,7 +22,7 @@ import java.util.UUID;
 /**
  * Product 서비스
  * - 상품 생성 및 조회 담당
- * - Stock 생성은 이벤트를 통해 처리 (독립된 생명주기)
+ * - Stock 생성은 이벤트를 통해 처리 \
  */
 @Service
 @RequiredArgsConstructor
@@ -37,7 +37,7 @@ public class ProductService {
     /**
      * 상품 생성
      * - Product 저장 후 이벤트 발행
-     * - Stock은 이벤트 리스너에서 생성됨 (독립된 생명주기)
+     * - Stock은 이벤트 리스너에서 생성됨
      */
     @Transactional
     public ProductResponse.Create createProduct(ProductRequest.Create request) {
@@ -57,7 +57,7 @@ public class ProductService {
 
         Product createdProduct = productRepository.save(product);
 
-        // Product 생성 이벤트 발행 (Stock 생성 트리거)
+        // Product 생성 이벤트 발행
         ProductCreatedEvent event = ProductCreatedEvent.of(
                 createdProduct.getId(),
                 createdProduct.getCompanyId(),
@@ -101,7 +101,6 @@ public class ProductService {
 
     /**
      * 상품 삭제
-     * - 논리적 삭제 (isActive = false)
      * - 삭제 이벤트 발행으로 Stock도 판매 불가 처리됨
      */
     @Transactional

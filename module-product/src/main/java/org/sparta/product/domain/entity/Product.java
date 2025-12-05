@@ -19,7 +19,14 @@ import java.util.UUID;
  */
 @Entity
 @Getter
-@Table(name = "p_products")
+@Table(
+    name = "p_products",
+    indexes = {
+        @Index(name = "idx_products_company_id", columnList = "company_id"),
+        @Index(name = "idx_products_category_id", columnList = "category_id"),
+        @Index(name = "idx_products_hub_id", columnList = "hub_id")
+    }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Product extends BaseEntity {
 

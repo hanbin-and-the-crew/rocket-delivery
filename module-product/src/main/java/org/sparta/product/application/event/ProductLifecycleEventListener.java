@@ -19,7 +19,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * Product의 생명주기 이벤트를 수신하여 Stock 애그리거트와 동기화
  * - Product 생성 시: Stock 생성
  * - Product 삭제 시: Stock 판매 불가 처리
- * 이벤트는 커밋 이후 별도 트랜잭션에서 처리하여 일관성을 보장한다.
  */
 @Component
 @Slf4j
@@ -65,9 +64,7 @@ public class ProductLifecycleEventListener {
      * Product 삭제 이벤트 처리
      * - 트랜잭션 커밋 후 별도 트랜잭션에서 Stock 판매 불가 처리
      * - Stock 엔티티를 UNAVAILABLE 상태로 변경
-     *
-     * TODO: 보상 이벤트 처리 필요
-     * - 실패 시 재시도 메커니즘 추가 (Dead Letter Queue 또는 재시도 이벤트)
+     * - 실패 시 재시도 메커니즘 추가
      * - 실패 이벤트 발행하여 모니터링 및 수동 처리 가능하도록 개선
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)

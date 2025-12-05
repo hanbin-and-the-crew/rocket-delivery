@@ -3,9 +3,9 @@ package org.sparta.user.application.service;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.user.application.command.UserCommand;
 import org.sparta.user.domain.entity.User;
-import org.sparta.user.domain.enums.UserRoleEnum;
-import org.sparta.user.domain.enums.UserStatusEnum;
+import org.sparta.user.domain.enums.*;
 import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.domain.repository.UserRepository;
 import org.sparta.user.infrastructure.event.publisher.UserCreatedEvent;
@@ -14,8 +14,8 @@ import org.sparta.user.infrastructure.event.publisher.UserRoleChangedEvent;
 import org.sparta.user.infrastructure.event.publisher.UserUpdatedEvent;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
-import org.sparta.user.presentation.UserRequest;
-import org.sparta.user.presentation.UserResponse;
+import org.sparta.user.presentation.dto.request.UserRequest;
+import org.sparta.user.presentation.dto.response.UserResponse;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
@@ -53,7 +53,7 @@ public class UserService {
      */
     @Transactional
     @CacheEvict(value = "userListCache", allEntries = true)
-    public UserResponse.SignUpUser signup(UserRequest.SignUpUser request) {
+    public UserResponse.SignUpUser signup(UserCommand.SignUpUser request) {
 
         String userName = request.userName();
         String realName = request.realName();
@@ -63,19 +63,20 @@ public class UserService {
         String slackId = request.slackId();
         UUID hubId = request.hubId();
         UserRoleEnum role = request.role();
+        DeliveryManagerRoleEnum deliveryManagerRoleEnum = request.deliveryRole();
 
         // 중복 체크: userName, email
         userRepository.findByUserName(userName).ifPresent(u -> {
-            throw new BusinessException(UserErrorType.UNAUTHORIZED, "중복된 사용자 ID가 존재합니다.");
+            throw new BusinessException(UserErrorType.VALIDATION_FAILED, "중복된 사용자 ID가 존재합니다.");
         });
         userRepository.findByEmail(email).ifPresent(u -> {
-            throw new BusinessException(UserErrorType.UNAUTHORIZED,"중복된 Email 입니다.");
+            throw new BusinessException(UserErrorType.VALIDATION_FAILED,"중복된 Email 입니다.");
         });
 
         // 사용자 생성 및 저장
         User user = User.create(
                 userName, password, slackId, realName,
-                userPhoneNumber, email, role, hubId);
+                userPhoneNumber, email, role, hubId, deliveryManagerRoleEnum);
 
         user = userRepository.save(user);
 
@@ -102,7 +103,7 @@ public class UserService {
             @CacheEvict(value = "userCache", key = "#user.id"),
             @CacheEvict(value = "userListCache", allEntries = true)
     })
-    public UserResponse.UpdateUser updateSelf(CustomUserDetails user, UserRequest.UpdateUser request) {
+    public UserResponse.UpdateUser updateSelf(CustomUserDetails user, UserCommand.UpdateUser request) {
         User userInfo = userRepository.findByUserId(user.getId()).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
         );
@@ -186,7 +187,7 @@ public class UserService {
      * POST /User/id-find
      */
     @Transactional
-    public UserResponse.FindUserId findUserId(UserRequest.FindUserId request) {
+    public UserResponse.FindUserId findUserId(UserCommand.FindUserId request) {
         String email = request.email();
 
         User user = userRepository.findByEmail(email)
@@ -215,7 +216,7 @@ public class UserService {
             @CacheEvict(value = "userCache", key = "#userid"),
             @CacheEvict(value = "userListCache", allEntries = true)
     })
-    public UserResponse.UpdateUser updateUser(UUID userId, UserRequest.UpdateUser request) {
+    public UserResponse.UpdateUser updateUser(UUID userId, UserCommand.UpdateUser request) {
         User userInfo = userRepository.findByUserId(userId).orElseThrow(
                 () -> new BusinessException(UserErrorType.UNAUTHORIZED,"수정할 유저 정보가 없습니다.")
         );
@@ -274,12 +275,12 @@ public class UserService {
     })
     public void deleteUser(UUID userId) {
         User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND));
 
         LocalDateTime now = LocalDateTime.ofInstant(Instant.now(), ZoneId.systemDefault());
         int updated = userRepository.softDeleteByUserId(user.getUserId(), now);
         if (updated == 0) {
-            throw new BusinessException(UserErrorType.NOT_FOUND, "이미 탈퇴했거나 존재하지 않는 회원입니다.");
+            throw new BusinessException(UserErrorType.NOT_FOUND);
         }
 
         // 유저 삭제 이벤트 발행
