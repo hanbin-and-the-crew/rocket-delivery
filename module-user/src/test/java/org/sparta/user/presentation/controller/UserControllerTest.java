@@ -1,4 +1,4 @@
-package org.sparta.user.presentation;
+package org.sparta.user.presentation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -10,7 +10,6 @@ import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.infrastructure.SecurityDisabledConfig;
-import org.sparta.user.presentation.controller.UserController;
 import org.sparta.user.presentation.dto.UserMapper;
 import org.sparta.user.presentation.dto.request.UserRequest;
 import org.sparta.user.presentation.dto.response.UserResponse;
@@ -113,8 +112,8 @@ class UserControllerTest {
 
         // given
         UserResponse.GetUser response =
-                new UserResponse.GetUser(userId, "tester", "q1w2e3r4", "slackId",
-                        "김철수","01011112222", "test@ex.com", UserRoleEnum.MASTER, hubId);
+                new UserResponse.GetUser(userId, "tester", "slackId", "김철수",
+                        "01011112222", "test@ex.com", UserRoleEnum.MASTER, hubId);
 
         given(userService.getSpecificUserInfo(userId)).willReturn(response);
 

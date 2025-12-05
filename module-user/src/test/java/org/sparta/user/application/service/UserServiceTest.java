@@ -1,4 +1,4 @@
-package org.sparta.user.application;
+package org.sparta.user.application.service;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,7 +9,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.user.application.command.UserCommand;
-import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.entity.User;
 import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
