@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.sparta.common.error.BusinessException;
 import org.sparta.payment.domain.enumeration.PaymentStatus;
 import org.sparta.payment.domain.enumeration.PaymentType;
 import org.sparta.payment.domain.enumeration.PgProvider;
+import org.sparta.payment.domain.error.PaymentErrorType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -117,17 +119,18 @@ public class Payment {
             UUID pointUsageId
     ) {
         if (amountTotal == null || amountTotal <= 0) {
-            throw new IllegalArgumentException("amountTotal must be positive");
+            throw new BusinessException(PaymentErrorType.INVALID_AMOUNT, "amountTotal must be positive");
         }
         long coupon = nvl(amountCoupon);
         long point = nvl(amountPoint);
         long payable = amountPayable == null ? 0L : amountPayable;
 
         if (payable < 0) {
-            throw new IllegalArgumentException("amountPayable must be >= 0");
+            throw new BusinessException(PaymentErrorType.INVALID_AMOUNT, "amountPayable must be >= 0");
         }
         if (amountTotal != coupon + point + payable) {
-            throw new IllegalArgumentException("amountTotal != coupon + point + payable");
+            throw new BusinessException(PaymentErrorType.PAYMENT_AMOUNT_MISMATCH,
+                    "amountTotal != coupon + point + payable");
         }
 
         Payment p = new Payment();
