@@ -107,7 +107,7 @@ public class EventPublisher {
         }
 
         // Delivery 토픽 추가
-        if (eventType.startsWith("Delivery") || eventType.endsWith("DeliveryEvent")) {
+        if (eventType.startsWith("Delivery")) {
             return "delivery-events";
           
         // Coupon 관련 이벤트 (CouponConfirmedEvent, CouponReservationCancelledEvent)
