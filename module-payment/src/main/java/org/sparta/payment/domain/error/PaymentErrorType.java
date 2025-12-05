@@ -25,6 +25,7 @@ public enum PaymentErrorType implements ErrorType {
     PAYMENT_CANCEL_FAILED(HttpStatus.BAD_GATEWAY, "PG 결제 취소에 실패했습니다."),
     PAYMENT_INSUFFICIENT_AMOUNT(HttpStatus.BAD_REQUEST, "환불 가능한 금액이 부족합니다."),
     PAYMENT_ALREADY_PROCESSED(HttpStatus.BAD_REQUEST, "이미 처리된 결제 요청입니다."),
+    REFUND_AMOUNT_EXCEEDED(HttpStatus.BAD_REQUEST, "환불 금액이 가능한 범위를 초과했습니다."),
 
     // ===========================
     // REFUND (환불)

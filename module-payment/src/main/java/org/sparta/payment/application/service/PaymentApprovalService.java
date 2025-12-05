@@ -23,10 +23,11 @@ public class PaymentApprovalService {
 
     @Transactional
     public PaymentApprovalResult approve(PaymentApprovalCommand command, UUID userId) {
-        log.info("[PaymentApproval] PG 승인 요청 시작. orderId={}, userId={}, pgToken={}, amountPayable={}",
-                command.orderId(), userId, command.pgToken(), command.amountPayable());
+        /*log.info("[PaymentApproval] PG 승인 요청 시작. orderId={}, userId={}, pgToken={}, amountPayable={}",
+                command.orderId(), userId, command.pgToken(), command.amountPayable());*/
 
-        if (command.amountPayable() < 0) {
+        Long amountPayable = command.amountPayable();
+        if (amountPayable == null || amountPayable < 0) {
             throw new BusinessException(PaymentErrorType.INVALID_AMOUNT);
         }
         if (command.pgToken() == null || command.pgToken().isBlank()) {
@@ -41,7 +42,7 @@ public class PaymentApprovalService {
         boolean approved = true; // mock: 항상 성공
 
         if (!approved) {
-            log.warn("[PaymentApproval] PG 승인 실패. orderId={}", command.orderId());
+            //log.warn("[PaymentApproval] PG 승인 실패. orderId={}", command.orderId());
             // 필요시 failureCode, failureMessage 채워서 반환하는 방식으로도 가능
             throw new BusinessException(PaymentErrorType.PAYMENT_APPROVAL_FAILED);
         }
@@ -49,7 +50,7 @@ public class PaymentApprovalService {
         String paymentKey = UUID.randomUUID().toString();
         LocalDateTime approvedAt = LocalDateTime.now();
 
-        log.info("[PaymentApproval] PG 승인 성공. orderId={}, paymentKey={}", command.orderId(), paymentKey);
+        //log.info("[PaymentApproval] PG 승인 성공. orderId={}, paymentKey={}", command.orderId(), paymentKey);
 
         return PaymentApprovalResult.success(
                 command.orderId(),

@@ -122,14 +122,4 @@ public class PaymentController implements PaymentApiSpec {
         return ApiResponse.success(PaymentDetailResponse.from(result));
     }
 
-    /**
-     * 결제 삭제
-     * DELETE /payments/{paymentId}
-     */
-    @DeleteMapping("/{paymentId}")
-    @Override
-    public ApiResponse<Void> deletePayment(@PathVariable UUID paymentId, @RequestHeader("X-User-Id") UUID userId) {
-        paymentService.deletePayment(new PaymentDeleteCommand(paymentId));
-        return ApiResponse.success(null);
-    }
 }

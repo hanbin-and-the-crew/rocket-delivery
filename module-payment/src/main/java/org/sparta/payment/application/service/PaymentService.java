@@ -219,15 +219,6 @@ public class PaymentService {
         return PaymentDetailResult.from(saved);
     }
 
-    /**
-     * 결제 삭제 (정말 삭제가 필요할 때만, 보통 결제는 삭제 안 하는 편)
-     */
-    @Transactional
-    public void deletePayment(PaymentDeleteCommand command) {
-        Payment payment = getPaymentEntity(command.paymentId());
-        paymentRepository.delete(payment);
-    }
-
     // ===== 내부 헬퍼 =====
 
     private Payment getPaymentEntity(UUID paymentId) {

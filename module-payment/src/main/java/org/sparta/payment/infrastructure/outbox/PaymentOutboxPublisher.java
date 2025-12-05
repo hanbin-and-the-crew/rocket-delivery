@@ -25,7 +25,7 @@ public class PaymentOutboxPublisher {
     private final ObjectMapper objectMapper;
 
     private static final int MAX_RETRY = 5;
-    private static final String TOPIC = "payment.events.v1";
+    private static final String TOPIC = "payment-events";
 
     @Scheduled(fixedDelay = 2000)
     @Transactional

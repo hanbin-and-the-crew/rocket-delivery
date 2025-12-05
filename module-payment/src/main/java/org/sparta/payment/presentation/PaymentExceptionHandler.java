@@ -23,7 +23,7 @@ public class PaymentExceptionHandler {
                 : ex.getErrorType().getMessage();
 
         ApiResponse<Object> body = ApiResponse.fail(errorCode, message);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+        return ResponseEntity.status(ex.getErrorType().getStatus()).body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

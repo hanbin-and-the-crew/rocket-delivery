@@ -113,7 +113,7 @@ public class EventPublisher {
             return "stock-events";
         }
 
-        // Stock 관련 이벤트 (StockConfirmedEvent, StockReservedEvent, …)
+        // Payment 관련 이벤트
         if (eventType.startsWith("Payment")) {
             return "payment-events";
         }

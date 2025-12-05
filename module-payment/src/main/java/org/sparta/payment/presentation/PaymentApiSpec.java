@@ -52,7 +52,7 @@ public interface PaymentApiSpec {
             description = "결제 상태 기준으로 결제 목록을 조회합니다"
     )
     ApiResponse<PaymentListResponse> getPaymentsByStatus(
-            @RequestParam(required = false) PaymentStatus status,
+            @RequestParam(required = true) PaymentStatus status,
             @RequestHeader("X-User-Id") UUID userId
     );
 
@@ -73,15 +73,6 @@ public interface PaymentApiSpec {
     ApiResponse<PaymentDetailResponse> refundPartial(
             @PathVariable UUID paymentId,
             @Valid @RequestBody PaymentRefundPartialRequest request,
-            @RequestHeader("X-User-Id") UUID userId
-    );
-
-    @Operation(
-            summary = "결제 삭제",
-            description = "결제를 논리적으로 삭제합니다"
-    )
-    ApiResponse<Void> deletePayment(
-            @PathVariable UUID paymentId,
             @RequestHeader("X-User-Id") UUID userId
     );
 
