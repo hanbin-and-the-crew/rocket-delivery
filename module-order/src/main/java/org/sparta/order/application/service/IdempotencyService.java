@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.sparta.order.domain.entity.IdempotencyRecord;
 import org.sparta.order.domain.repository.IdempotencyRepository;
 import org.sparta.order.presentation.dto.response.OrderResponse;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,9 @@ public class IdempotencyService {
 
     private final IdempotencyRepository idempotencyRepository;
     private final ObjectMapper objectMapper;
+
+    @Lazy
+    private final IdempotencyService self;
 
     @Transactional(readOnly = true)
     public Optional<OrderResponse.Detail> findExistingResponse(String idempotencyKey) {
@@ -35,8 +39,15 @@ public class IdempotencyService {
                     } catch (JsonProcessingException e) {
                         log.error("Failed to deserialize idempotency response for key: {}. Deleting corrupted record.",
                                 idempotencyKey, e);
+                        /** 이 경우 : Spring AOP는 프록시 기반으로 동작, findExistingResponse를 외부에서 호출해야 프록시를 거쳐 트랜잭션이 적용됨
+                         * 근데, findExistingResponse 내부에서 deleteCorruptedRecord호출하면 프롲기 거치지X, 트랜잭션 무시됨
+                         * => 읽기 전용 트랜잭션에서 삭제 시도하게 되서 에러 발생함
+                         * */
                         // 손상된 레코드 삭제 (별도 트랜잭션에서 처리)
-                        deleteCorruptedRecord(idempotencyKey);
+//                        deleteCorruptedRecord(idempotencyKey);
+
+                        // 수정 => self를 통해 프록시를 거쳐서 호출
+                        self.deleteCorruptedRecord(idempotencyKey);
                         return Optional.empty();
                     }
                 });

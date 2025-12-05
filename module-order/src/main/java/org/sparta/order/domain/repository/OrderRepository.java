@@ -16,5 +16,5 @@ public interface OrderRepository {
 
     Page<Order> findByCustomerIdAndDeletedAtIsNull(UUID customerId, Pageable pageable);
 
-    List<Order> findAll();
+    List<Order> findAllByDeletedAtIsNull();
 }
