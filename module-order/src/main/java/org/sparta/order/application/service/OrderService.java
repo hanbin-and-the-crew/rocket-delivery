@@ -120,7 +120,7 @@ public class OrderService {
             idempotencyService.deleteRecord(idempotencyKey);
             throw e;
         }
-        }
+    }
 
     /**
      * 주문 생성
@@ -228,7 +228,7 @@ public class OrderService {
             paymentRes = paymentClient.approvePayment(
                     orderId.toString(),
                     new PaymentClient.PaymentApproveRequest(
-                            orderId.toString(),
+//                            orderId.toString(),
                             amountPayable,
                             request.methodType(),
                             request.pgProvider(),
@@ -256,7 +256,7 @@ public class OrderService {
 
         eventPublisher.publishExternal(event);
 
-        return OrderResponse.Detail.from(order);
+        return OrderResponse.Detail.from(savedOrder);
     }
 
 

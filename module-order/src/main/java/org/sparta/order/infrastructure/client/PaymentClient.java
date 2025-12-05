@@ -17,7 +17,7 @@ public interface PaymentClient {
 
     // ===== DTO =====
     record PaymentApproveRequest(
-            String orderId,
+//            String orderId,
 //            String pgToken,
             Long amountPayable,
             String methodType,   // "CARD"
