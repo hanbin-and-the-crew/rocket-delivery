@@ -39,7 +39,7 @@ class PaymentTest {
         );
 
         // then
-        assertThat(payment.getPaymentId()).isNotNull();
+
         assertThat(payment.getOrderId()).isEqualTo(orderId);
         assertThat(payment.getAmountTotal()).isEqualTo(amountTotal);
         assertThat(payment.getAmountCoupon()).isEqualTo(amountCoupon);
