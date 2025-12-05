@@ -113,6 +113,10 @@ public class EventPublisher {
             return "stock-events";
         }
 
+        // Coupon 관련 이벤트 (CouponConfirmedEvent, CouponReservationCancelledEvent)
+        if (eventType.startsWith("Coupon")) {
+            return "coupon-events";
+        }
 
         // 기본 토픽
         return "domain-events";

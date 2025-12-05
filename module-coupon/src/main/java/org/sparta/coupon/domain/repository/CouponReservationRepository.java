@@ -13,6 +13,8 @@ public interface CouponReservationRepository {
 
     Optional<CouponReservation> findById(UUID id);
 
+    Optional<CouponReservation> findByOrderId(UUID orderId);
+
     Optional<CouponReservation> findByCouponIdAndOrderId(UUID couponId, UUID orderId);
 
     List<CouponReservation> findExpiredReservations(LocalDateTime referenceTime, int limit);

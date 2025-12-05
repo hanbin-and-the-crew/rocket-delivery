@@ -6,6 +6,7 @@ dependencies {
     implementation project(':module-common')
     implementation project(':module-jpa')
     implementation project(':module-redis')
+    implementation project(':module-kafka')
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'

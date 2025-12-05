@@ -29,6 +29,11 @@ public class CouponReservationRepositoryImpl implements CouponReservationReposit
     }
 
     @Override
+    public Optional<CouponReservation> findByOrderId(UUID orderId) {
+        return couponReservationJpaRepository.findByOrderId(orderId);
+    }
+
+    @Override
     public Optional<CouponReservation> findByCouponIdAndOrderId(UUID couponId, UUID orderId) {
         return couponReservationJpaRepository.findByCouponIdAndOrderId(couponId, orderId);
     }

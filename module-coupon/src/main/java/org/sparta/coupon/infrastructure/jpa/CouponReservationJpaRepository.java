@@ -9,11 +9,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * CouponReservation JPA Repository
- * - 쿠폰 예약 데이터 접근
- */
 public interface CouponReservationJpaRepository extends JpaRepository<CouponReservation, UUID> {
+
+    Optional<CouponReservation> findByOrderId(UUID orderId);
 
     Optional<CouponReservation> findByCouponIdAndOrderId(UUID couponId, UUID orderId);
 

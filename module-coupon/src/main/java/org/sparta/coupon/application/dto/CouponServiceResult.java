@@ -16,4 +16,12 @@ public class CouponServiceResult {
             DiscountType discountType,
             LocalDateTime expiresAt
     ) {}
+
+    /**
+     * 쿠폰 확정 결과
+     */
+    public record Confirm(
+            UUID couponId,
+            Long discountAmount
+    ) {}
 }

@@ -84,8 +84,6 @@ public class CouponService {
      * 쿠폰 예약 취소
      * - RESERVED → AVAILABLE 복원
      * - 예약 정보 삭제
-     *
-     * @param reservationId 예약 ID
      */
     @Transactional
     public void cancelReservation(UUID reservationId) {
@@ -106,6 +104,45 @@ public class CouponService {
 
         log.info("쿠폰 예약 취소 완료: reservationId={}, couponId={}",
                 reservationId, reservation.getCouponId());
+    }
+
+    /**
+     * OrderId로 쿠폰 예약 취소
+     * - RESERVED → AVAILABLE 복원
+     * - 예약 정보 삭제
+     */
+    @Transactional
+    public UUID cancelReservationByOrderId(UUID orderId) {
+        // 1. OrderId로 예약 정보 조회
+        CouponReservation reservation = couponReservationRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new BusinessException(CouponErrorType.RESERVATION_NOT_FOUND));
+
+        UUID couponId = reservation.getCouponId();
+
+        // 2. 예약 취소 처리
+        cancelReservation(reservation.getId());
+
+        return couponId;
+    }
+
+    /**
+     * OrderId로 쿠폰 사용 확정
+     * - RESERVED → PAID 상태 변경
+     * - 사용 일시 기록
+     */
+    @Transactional
+    public CouponServiceResult.Confirm confirmCouponByOrderId(UUID orderId) {
+        // 1. OrderId로 예약 정보 조회
+        CouponReservation reservation = couponReservationRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new BusinessException(CouponErrorType.RESERVATION_NOT_FOUND));
+
+        UUID couponId = reservation.getCouponId();
+        Long discountAmount = reservation.getDiscountAmount();
+
+        // 2. 확정 처리
+        confirmCoupon(reservation.getId(), orderId);
+
+        return new CouponServiceResult.Confirm(couponId, discountAmount);
     }
 
 
