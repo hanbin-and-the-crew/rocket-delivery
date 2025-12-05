@@ -67,7 +67,10 @@ public enum OrderErrorType implements ErrorType {
     CANNOT_SHIP_NOT_APPROVED_ORDER(HttpStatus.CONFLICT, "APPROVED 상태에서만 출고할 수 있습니다"),
     CANNOT_DELIVER_NOT_SHIPPED_ORDER(HttpStatus.CONFLICT, "SHIPPED 상태에서만 배송 완료로 변경할 수 있습니다"),
     ORDER_ALREADY_DELIVERED(HttpStatus.CONFLICT, "이미 배송 완료된 주문입니다"),
-    CANNOT_DELETE_SHIPPED_OR_DELIVERED_ORDER(HttpStatus.CONFLICT, "출고되었거나 배송 완료된 주문은 삭제할 수 없습니다");
+    CANNOT_DELETE_SHIPPED_OR_DELIVERED_ORDER(HttpStatus.CONFLICT, "출고되었거나 배송 완료된 주문은 삭제할 수 없습니다"),
+
+    // 멱등성
+    REQUEST_IN_PROGRESS(HttpStatus.CONFLICT, "동일한 요청이 처리 중입니다. 잠시 후 다시 시도해주세요");
 
     private final HttpStatus status;
     private final String code;

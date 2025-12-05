@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -38,6 +39,8 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final EventPublisher eventPublisher; // Kafka + Spring Event 래퍼 (이미 common 모듈에 있음)
+
+    private final IdempotencyService idempotencyService;
 
     private final StockClient stockClient;
     private final PointClient pointClient;
@@ -76,6 +79,48 @@ public class OrderService {
     }
 
     // ===== 주문 생성 =====
+
+    /**
+     * 멱등성이 적용된 주문 생성
+     * - 동일한 idempotencyKey로 재요청 시 기존 결과 반환
+     */
+    public OrderResponse.Detail createOrder(UUID customerId, OrderCommand.Create request,
+                                            String idempotencyKey) {
+        // 1. 이미 처리된 요청인지 확인
+        Optional<OrderResponse.Detail> existingResponse =
+                idempotencyService.findExistingResponse(idempotencyKey);
+
+        if (existingResponse.isPresent()) {
+            log.info("Idempotent request detected - returning cached response. key={}", idempotencyKey);
+            return existingResponse.get();
+        }
+
+        // 2. Lock 획득 시도 (동시 요청 방지)
+        if (!idempotencyService.tryAcquireLock(idempotencyKey)) {
+            log.warn("Concurrent request detected for idempotencyKey={}", idempotencyKey);
+            // 잠시 대기 후 재조회하거나 에러 반환
+            throw new BusinessException(OrderErrorType.REQUEST_IN_PROGRESS);
+        }
+
+        try {
+            // 3. 기존 주문 생성 로직 실행
+            OrderResponse.Detail response = createOrder(customerId, request);
+
+            // 4. 멱등성 레코드 저장
+            idempotencyService.saveIdempotencyRecord(
+                    idempotencyKey,
+                    response.orderId().toString(),
+                    response,
+                    200
+            );
+
+            return response;
+        } catch (Exception e) {
+            // 실패 시 placeholder 삭제 (재시도 가능하도록)
+            idempotencyService.deleteRecord(idempotencyKey);
+            throw e;
+        }
+        }
 
     /**
      * 주문 생성
