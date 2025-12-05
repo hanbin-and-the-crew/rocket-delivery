@@ -5,6 +5,8 @@ plugins {
 dependencies {
     implementation project(':module-common')
     implementation project(':module-jpa')
+    implementation project(':module-redis')
+    implementation project(':module-kafka')
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
@@ -16,9 +18,6 @@ dependencies {
 
     // kafka
     implementation 'org.springframework.kafka:spring-kafka'
-
-    //JSON 직렬화에 필요
-    implementation "com.fasterxml.jackson.core:jackson-databind"
 
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
