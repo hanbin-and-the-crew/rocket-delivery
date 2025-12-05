@@ -18,5 +18,7 @@ public interface PaymentRepository {
 
     List<Payment> findAllByStatus(PaymentStatus status);
 
+    Optional<Payment> findByPaymentKey(String paymentKey);
+
     void delete(Payment payment);
 }

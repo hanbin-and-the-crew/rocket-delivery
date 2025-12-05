@@ -40,4 +40,10 @@ public class PaymentRepositoryImpl implements PaymentRepository {
     public void delete(Payment payment) {
         jpa.delete(payment);
     }
+
+    @Override
+    public Optional<Payment> findByPaymentKey(String paymentKey) {
+        return jpa.findByPaymentKey(paymentKey);
+    }
+
 }
