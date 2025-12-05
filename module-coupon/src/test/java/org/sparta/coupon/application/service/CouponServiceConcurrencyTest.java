@@ -2,8 +2,10 @@ package org.sparta.coupon.application.service;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.sparta.coupon.TestContainersConfig;
 import org.sparta.coupon.domain.entity.Coupon;
 import org.sparta.coupon.domain.enums.DiscountType;
 import org.sparta.coupon.domain.repository.CouponRepository;
@@ -11,14 +13,8 @@ import org.sparta.coupon.domain.repository.CouponReservationRepository;
 import org.sparta.coupon.presentation.CouponRequest;
 import org.sparta.redis.util.LockAcquisitionException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,20 +28,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-@SpringBootTest
-@Testcontainers
+@Disabled("Redis Testcontainers 필요 - CI 환경에서 Docker 설정 후 활성화")
 @DisplayName("CouponService 분산 락 동시성 테스트")
-class CouponServiceConcurrencyTest {
-
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>("redis:6.2.11")
-            .withExposedPorts(6379);
-
-    @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-    }
+class CouponServiceConcurrencyTest extends TestContainersConfig {
 
     @Autowired
     private CouponService couponService;

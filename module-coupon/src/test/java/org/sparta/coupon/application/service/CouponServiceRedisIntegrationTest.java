@@ -1,8 +1,10 @@
 package org.sparta.coupon.application.service;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.sparta.coupon.TestContainersConfig;
 import org.sparta.coupon.application.dto.CouponServiceResult;
 import org.sparta.coupon.domain.entity.Coupon;
 import org.sparta.coupon.domain.enums.DiscountType;
@@ -12,13 +14,7 @@ import org.sparta.coupon.infrastructure.redis.CouponReservationCacheInfo;
 import org.sparta.coupon.infrastructure.redis.CouponReservationRedisManager;
 import org.sparta.coupon.presentation.CouponRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -26,21 +22,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 
-@SpringBootTest
-@Testcontainers
+@Disabled("Redis Testcontainers 필요 - CI 환경에서 Docker 설정 후 활성화")
 @Transactional
 @DisplayName("CouponService Redis 통합 테스트")
-class CouponServiceRedisIntegrationTest {
-
-    @Container
-    static GenericContainer<?> redis = new GenericContainer<>("redis:6.2.11")
-            .withExposedPorts(6379);
-
-    @DynamicPropertySource
-    static void redisProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
-    }
+class CouponServiceRedisIntegrationTest extends TestContainersConfig {
 
     @Autowired
     private CouponService couponService;
