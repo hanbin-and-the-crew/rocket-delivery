@@ -169,7 +169,7 @@ public class UserServiceTest {
         // when & then
         assertThatThrownBy(() -> userService.deleteSelf(userDetails))
                 .isInstanceOf(BusinessException.class)
-                .hasMessageContaining("이미 탈퇴했거나 존재하지 않는 회원입니다.");
+                .hasMessageContaining("회원이 존재하지 않습니다.");
     }
 
     @Test

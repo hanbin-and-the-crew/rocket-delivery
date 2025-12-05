@@ -124,7 +124,7 @@ public class UserService {
     })
     public void deleteSelf(CustomUserDetails userDetails) {
         User userInfo = userRepository.findByUserId(userDetails.getId())
-                .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND));
 
         User deletedUser = softDeleteUser(userInfo);
 
