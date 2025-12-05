@@ -46,7 +46,7 @@ class OrderServiceTest {
 
     private static final UUID CUSTOMER_ID = UUID.randomUUID();
     private static final UUID ORDER_ID = UUID.randomUUID();
-    
+
 
     @Test
     @DisplayName("주문 취소 시 OrderCancelledEvent가 발행된다")

@@ -1,6 +1,5 @@
 package org.sparta.order.application.service;
 
-import ch.qos.logback.classic.Logger;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

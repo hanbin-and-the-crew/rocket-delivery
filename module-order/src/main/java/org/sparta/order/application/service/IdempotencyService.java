@@ -53,7 +53,7 @@ public class IdempotencyService {
             log.debug("Saved idempotency record: key={}, orderId={}", idempotencyKey, orderId);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize idempotency response for key: {}", idempotencyKey, e);
-            throw new IllegalStateException("Failed to save idempotency record"+ idempotencyKey, e);
+            throw new IllegalStateException("Failed to save idempotency record: "+ idempotencyKey, e);
         }
     }
 
