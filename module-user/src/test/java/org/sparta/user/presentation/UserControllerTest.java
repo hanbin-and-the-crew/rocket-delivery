@@ -10,7 +10,7 @@ import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.enums.UserStatusEnum;
 import org.sparta.user.infrastructure.SecurityDisabledConfig;
-import org.sparta.user.presentation.Controller.UserController;
+import org.sparta.user.presentation.controller.UserController;
 import org.sparta.user.presentation.dto.UserMapper;
 import org.sparta.user.presentation.dto.request.UserRequest;
 import org.sparta.user.presentation.dto.response.UserResponse;

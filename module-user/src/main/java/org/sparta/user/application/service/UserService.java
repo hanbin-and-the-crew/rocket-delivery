@@ -14,7 +14,6 @@ import org.sparta.user.infrastructure.event.publisher.UserRoleChangedEvent;
 import org.sparta.user.infrastructure.event.publisher.UserUpdatedEvent;
 import org.sparta.user.infrastructure.security.CustomUserDetails;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
-import org.sparta.user.presentation.dto.request.UserRequest;
 import org.sparta.user.presentation.dto.response.UserResponse;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -42,11 +41,6 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final CustomUserDetailsService customUserDetailsService;
     private final EventPublisher eventPublisher; // Spring 이벤트 퍼블리셔
-
-
-    public String health() {
-        return "ok";
-    }
 
     /**
      * POST users/signup
@@ -117,7 +111,7 @@ public class UserService {
             userInfo.updateUserName(request.userName().trim());
         }
         // 비밀번호
-        if (passwordEncoder.encode(request.oldPassword()).equals(user.getPassword()) && request.newPassword() != null && !request.newPassword().isBlank()) {
+        if (passwordEncoder.matches(request.oldPassword(), user.getPassword()) && request.newPassword() != null && !request.newPassword().isBlank()) {
             userInfo.updatePassword(newPassword);
         }
         // 이메일
@@ -230,7 +224,7 @@ public class UserService {
             userInfo.updateUserName(request.userName().trim());
         }
         // 비밀번호
-        if (passwordEncoder.encode(request.oldPassword()).equals(userInfo.getPassword()) && request.newPassword() != null && !request.newPassword().isBlank()) {
+        if (passwordEncoder.matches(request.oldPassword(), userInfo.getPassword()) && request.newPassword() != null && !request.newPassword().isBlank()) {
             userInfo.updatePassword(newPassword);
         }
         // 이메일
