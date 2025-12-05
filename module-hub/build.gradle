@@ -10,6 +10,8 @@ dependencies {
     implementation project(':module-common')
     implementation project(':module-jpa')
 
+    implementation 'me.paulschwarz:spring-dotenv:3.0.0'
+
     //kafka
     implementation project(':module-kafka')
     implementation 'org.springframework.kafka:spring-kafka'

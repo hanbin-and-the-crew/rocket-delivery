@@ -1,228 +1,66 @@
 package org.sparta.delivery.application.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.sparta.common.error.BusinessException;
-import org.sparta.delivery.application.dto.request.DeliveryRequest;
-import org.sparta.delivery.application.dto.response.DeliveryResponse;
-import org.sparta.delivery.domain.entity.Delivery;
-import org.sparta.delivery.domain.error.DeliveryErrorType;
-import org.sparta.delivery.infrastructure.repository.DeliveryJpaRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
+import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
+import org.sparta.delivery.presentation.dto.response.DeliveryResponse;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
-@Slf4j
-@Service
-@RequiredArgsConstructor
-@Transactional(readOnly = true)
-public class DeliveryService {
+public interface DeliveryService {
 
-    private final DeliveryJpaRepository deliveryRepository;
-
-    private static final List<Integer> ALLOWED_PAGE_SIZES = Arrays.asList(10, 30, 50);
-    private static final int DEFAULT_PAGE_SIZE = 10;
+    // ===== 생성 =====
 
     /**
-     * 배송 생성
+     * 단순 생성 (컨트롤러에서 받은 값만으로 Delivery 생성).
+     * - 허브 경로/DeliveryLog 생성은 수행하지 않는다.
      */
-    @Transactional
-    public DeliveryResponse.Create createDelivery(DeliveryRequest.Create request, UUID userId) {
-        log.info("배송 생성 - orderId: {}, userId: {}", request.orderId(), userId);
-
-        // 중복 체크
-        deliveryRepository.findByOrderIdAndDeletedAtIsNull(request.orderId())
-                .ifPresent(delivery -> {
-                    throw new BusinessException(DeliveryErrorType.DELIVERY_ALREADY_EXISTS);
-                });
-
-        // 배송 생성
-        Delivery delivery = Delivery.create(
-                request.orderId(),
-                request.departureHubId(),
-                request.destinationHubId(),
-                request.deliveryAddress(),
-                request.recipientName(),
-                request.recipientSlackId()
-        );
-
-        Delivery savedDelivery = deliveryRepository.save(delivery);
-        log.info("배송 생성 완료 - deliveryId: {}", savedDelivery.getId());
-
-        return DeliveryResponse.Create.from(savedDelivery);
-    }
+    DeliveryResponse.Detail createSimple(DeliveryRequest.Create request);
 
     /**
-     * 배송 목록 조회 (페이징 + 정렬)
+     * 허브 경로 조회 + DeliveryLog 생성까지 포함한 정식 생성.
+     * - Hub FeignClient로 경로를 조회해 각 leg별 DeliveryLog를 만든다.
      */
-    @Transactional(readOnly = true)
-    public Page<DeliveryResponse.Summary> getAllDeliveries(Pageable pageable) {
-        Page<Delivery> deliveries = deliveryRepository.findAllNotDeleted(pageable);
-        return deliveries.map(DeliveryResponse.Summary::from);
-    }
+    DeliveryResponse.Detail createWithRoute(OrderApprovedEvent event);
+
+    // ===== 담당자 배정 =====
+
+    DeliveryResponse.Detail assignHubDeliveryMan(UUID deliveryId, DeliveryRequest.AssignHubDeliveryMan request);
+
+    DeliveryResponse.Detail assignCompanyDeliveryMan(UUID deliveryId, DeliveryRequest.AssignCompanyDeliveryMan request);
+
+    // ===== 허브 구간 진행 =====
 
     /**
-     * 배송 상세 조회
+     * 허브 leg 출발 (HUB_WAITING → HUB_MOVING).
+     * - Delivery.status / currentLogSeq 변경
+     * - 해당 sequence의 DeliveryLog를 HUB_MOVING으로 전환
      */
-    public DeliveryResponse.Detail getDelivery(UUID deliveryId, UUID userId) {
-        log.info("배송 상세 조회 - deliveryId: {}, userId: {}", deliveryId, userId);
-
-        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
-                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
-
-        return DeliveryResponse.Detail.from(delivery);
-    }
+    DeliveryResponse.Detail startHubMoving(UUID deliveryId, DeliveryRequest.StartHubMoving request);
 
     /**
-     * 배송 상태 변경
+     * 허브 leg 도착 (HUB_MOVING → HUB_WAITING 또는 DEST_HUB_ARRIVED).
+     * - Delivery.status / currentLogSeq 변경
+     * - Delivery.totalLogSeq를 기준으로 마지막 log 여부 판단
+     * - 해당 sequence의 DeliveryLog를 HUB_ARRIVED로 전환하고 실제 거리/시간 기록
      */
-    @Transactional
-    public DeliveryResponse.Update updateStatus(
-            UUID deliveryId,
-            DeliveryRequest.UpdateStatus request,
-            UUID userId
-    ) {
-        log.info("배송 상태 변경 - deliveryId: {}, status: {}", deliveryId, request.deliveryStatus());
+    DeliveryResponse.Detail completeHubMoving(UUID deliveryId, DeliveryRequest.CompleteHubMoving request);
 
-        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
-                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+    // ===== 업체 구간 진행 =====
 
-        delivery.updateStatus(request.deliveryStatus());
+    DeliveryResponse.Detail startCompanyMoving(UUID deliveryId);
 
-        return DeliveryResponse.Update.from(delivery);
-    }
+    DeliveryResponse.Detail completeDelivery(UUID deliveryId);
 
-    /**
-     * 배송 주소 변경
-     */
-    @Transactional
-    public DeliveryResponse.Update updateAddress(
-            UUID deliveryId,
-            DeliveryRequest.UpdateAddress request,
-            UUID userId
-    ) {
-        log.info("배송 주소 변경 - deliveryId: {}, address: {}", deliveryId, request.deliveryAddress());
+    // ===== 취소/삭제 =====
 
-        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
-                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+    DeliveryResponse.Detail cancel(UUID deliveryId);
 
-        delivery.updateAddress(request.deliveryAddress());
+    void delete(UUID deliveryId);
 
-        return DeliveryResponse.Update.from(delivery);
-    }
+    // ===== 조회 =====
 
-    /**
-     * 배송 담당자 배정
-     */
-    @Transactional
-    public DeliveryResponse.Update assignDeliveryMan(
-            UUID deliveryId,
-            DeliveryRequest.AssignDeliveryMan request,
-            UUID userId
-    ) {
-        log.info("배송 담당자 배정 - deliveryId: {}, companyManId: {}, hubManId: {}",
-                deliveryId, request.companyDeliveryManId(), request.hubDeliveryManId());
+    DeliveryResponse.Detail getDetail(UUID deliveryId);
 
-        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
-                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
-
-        delivery.saveDeliveryMan(request.companyDeliveryManId(), request.hubDeliveryManId());
-
-        return DeliveryResponse.Update.from(delivery);
-    }
-
-    /**
-     * 업체 배송 시작
-     */
-    @Transactional
-    public DeliveryResponse.Update startCompanyMoving(UUID deliveryId, DeliveryRequest.StartCompanyMoving request, UUID userId) {
-        log.info("업체 배송 시작 - deliveryId: {}, companyManId: {}", deliveryId, request.companyDeliveryManId());
-
-        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
-                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
-
-        delivery.startCompanyMoving(request.companyDeliveryManId());
-
-        return DeliveryResponse.Update.from(delivery);
-    }
-
-    /**
-     * 배송 완료
-     */
-    @Transactional
-    public DeliveryResponse.Update completeDelivery(UUID deliveryId, UUID userId) {
-        log.info("배송 완료 - deliveryId: {}, userId: {}", deliveryId, userId);
-
-        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
-                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
-
-        delivery.completeDelivery();
-
-        return DeliveryResponse.Update.from(delivery);
-    }
-
-    /**
-     * 배송 삭제 (논리 삭제)
-     */
-    @Transactional
-    public DeliveryResponse.Delete deleteDelivery(UUID deliveryId, UUID userId) {
-        log.info("배송 삭제 - deliveryId: {}, userId: {}", deliveryId, userId);
-
-        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
-                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
-
-        delivery.delete(userId);
-
-        return DeliveryResponse.Delete.from(delivery);
-    }
-
-    /**
-     * 페이지 크기를 검증하고 정렬을 조정합니다.
-     */
-    private Pageable validateAndAdjustPageable(Pageable pageable) {
-        int pageSize = pageable.getPageSize();
-
-        // 허용되지 않은 크기는 기본값(10)으로 설정
-        if (!ALLOWED_PAGE_SIZES.contains(pageSize)) {
-            pageSize = DEFAULT_PAGE_SIZE;
-        }
-
-        // 정렬 조정: 동률 처리를 위해 createdAt 추가
-        Sort sort = adjustSortWithCreatedAt(pageable.getSort());
-
-        return PageRequest.of(pageable.getPageNumber(), pageSize, sort);
-    }
-
-    /**
-     * 정렬에 생성일자를 추가하여 동률을 처리합니다.
-     */
-    private Sort adjustSortWithCreatedAt(Sort sort) {
-        if (sort.isEmpty()) {
-            // 정렬이 없으면 생성일순 DESC
-            return Sort.by(Sort.Direction.DESC, "createdAt");
-        }
-
-        // 이미 createdAt이 포함되어 있는지 확인
-        boolean hasCreatedAt = false;
-        for (Sort.Order order : sort) {
-            if ("createdAt".equals(order.getProperty())) {
-                hasCreatedAt = true;
-                break;
-            }
-        }
-
-        // createdAt이 없으면 추가 (동률 처리용)
-        if (!hasCreatedAt) {
-            return sort.and(Sort.by(Sort.Direction.DESC, "createdAt"));
-        }
-
-        return sort;
-    }
+    DeliveryResponse.PageResult search(DeliveryRequest.Search request, Pageable pageable);
 }

@@ -2,6 +2,9 @@ spring:
   application:
     name: delivery-service-test
 
+  main:
+    allow-bean-definition-overriding: true # 테스트 상황에서는 Bean 이름 중복 허용
+
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
@@ -38,3 +41,10 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
     org.sparta.delivery: debug
+
+
+kafka:
+  # 환경변수 없으면 localhost:9092로 떨어지게 (dummy 값)
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  consumer:
+    group-id: delivery-service-test
