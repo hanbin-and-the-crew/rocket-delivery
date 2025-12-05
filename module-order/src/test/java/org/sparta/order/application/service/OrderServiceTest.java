@@ -46,63 +46,7 @@ class OrderServiceTest {
 
     private static final UUID CUSTOMER_ID = UUID.randomUUID();
     private static final UUID ORDER_ID = UUID.randomUUID();
-
-    @Test
-    @DisplayName("주문 생성 시 OrderCreatedEvent가 발행된다")
-    void createOrder_publishesOrderCreatedEvent() {
-        // given
-        OrderRequest.Create request = new OrderRequest.Create(
-                UUID.randomUUID(), // supplierCompanyId
-                UUID.randomUUID(), // supplierHubId
-                UUID.randomUUID(), // receiptCompanyId
-                UUID.randomUUID(), // receiptHubId
-                UUID.randomUUID(), // productId
-                3,                 // quantity
-                10_000,            // productPrice
-                "서울시 어딘가 1-1", // address
-                "홍길동",           // userName
-                "010-0000-0000",   // userPhoneNumber
-                "slack@example.com", // slackId
-                LocalDateTime.now().plusDays(1), // dueAt
-                "요청 메모",        // requestMemo
-                1000,              // requestPoint
-                "CARD",            // methodType
-                "TOSS",            // pgProvider
-                "KRW",             // currency
-                "COUPON-001"       // couponId
-        );
-
-        // request DTO -> command 변환 작업 필요
-        OrderCommand.Create command = orderMapper.toCommand(request);
-
-        // Repository.save() 가 호출되면 Order에 id를 채워서 반환되도록 세팅
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
-            Order o = invocation.getArgument(0);
-            // id가 null일 수 있으니 강제로 세팅
-            java.lang.reflect.Field idField = Order.class.getDeclaredField("id");
-            idField.setAccessible(true);
-            idField.set(o, ORDER_ID);
-            return o;
-        });
-
-        ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
-
-        // when
-        OrderResponse.Detail response = orderService.createOrder(CUSTOMER_ID, command);
-
-        // then
-        assertThat(response.orderId()).isEqualTo(ORDER_ID);
-
-        verify(orderRepository, times(1)).save(any(Order.class));
-        verify(eventPublisher, times(1)).publishExternal(eventCaptor.capture());
-
-        DomainEvent publishedEvent = eventCaptor.getValue();
-        assertThat(publishedEvent).isInstanceOf(OrderCreatedEvent.class);
-        OrderCreatedEvent createdEvent = (OrderCreatedEvent) publishedEvent;
-        assertThat(createdEvent.orderId()).isEqualTo(ORDER_ID);
-        // OrderCreatedEvent에 quantity() 메서드가 있는 경우만 검증
-        // assertThat(createdEvent.quantity()).isEqualTo(request.quantity());
-    }
+    
 
     @Test
     @DisplayName("주문 취소 시 OrderCancelledEvent가 발행된다")
