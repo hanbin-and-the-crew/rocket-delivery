@@ -32,7 +32,9 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
     // WireMock (HTTP stub 서버)
-    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.0'
+    testImplementation 'org.wiremock:wiremock-standalone:3.9.1'
+//    testImplementation 'org.wiremock:wiremock-jetty12:3.9.1'
+    testImplementation 'javax.servlet:javax.servlet-api:4.0.1'
 
     // testcontainers
     testImplementation 'org.testcontainers:testcontainers:1.19.3'
