@@ -1,11 +1,17 @@
 package org.sparta.order.application.service;
 
+import ch.qos.logback.classic.Logger;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
 import org.sparta.order.application.error.OrderApplicationErrorType;
-import org.sparta.order.presentation.dto.request.OrderRequest;
+import org.sparta.order.infrastructure.client.CouponClient;
+import org.sparta.order.infrastructure.client.PaymentClient;
+import org.sparta.order.infrastructure.client.PointClient;
+import org.sparta.order.infrastructure.client.StockClient;
 import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
@@ -24,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -31,6 +38,11 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final EventPublisher eventPublisher; // Kafka + Spring Event 래퍼 (이미 common 모듈에 있음)
+
+    private final StockClient stockClient;
+    private final PointClient pointClient;
+    private final CouponClient couponClient;
+    private final PaymentClient paymentClient;
 
     // ===== 페이지 사이즈 / 정렬 기본값  =====
     private static final List<Integer> ALLOWED_PAGE_SIZES = List.of(10, 30, 50);
@@ -88,13 +100,120 @@ public class OrderService {
                 request.slackId()
         );
 
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+        UUID orderId = savedOrder.getId();
+        log.info("Order 저장 완료 - orderId: {}", orderId);
 
-        // OrderCreatedEvent 발행 (재고 예약-> 성공 -> 결제 외부 연동 시작점)
-        eventPublisher.publishExternal(OrderCreatedEvent.of(order));
+        long requestPoint = request.requestPoint() != null ? request.requestPoint() : 0L;
+
+        // ===================== 2. 재고 예약 =====================
+        StockClient.StockReserveResponse stockRes;
+        try {
+            stockRes = stockClient.reserveStock(new StockClient.StockReserveRequest(
+                    savedOrder.getProductId(),
+                    orderId.toString(),
+                    savedOrder.getQuantity().getValue()
+            ));
+        } catch (FeignException e) {
+            log.error("재고 예약 실패 - productId={}, quantity={}", savedOrder.getProductId(), savedOrder.getQuantity(), e);
+            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
+        }
+
+        if (!"RESERVED".equalsIgnoreCase(stockRes.status())) {
+            log.error("재고 예약 상태 비정상 - status={}", stockRes.status());
+            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
+        }
+
+        // ===================== 3. 포인트 예약 =====================
+        PointClient.PointReserveResponse pointRes = null;
+        if (requestPoint > 0) {
+            try {
+                pointRes = pointClient.reservePoint(new PointClient.PointReserveRequest(
+                        savedOrder.getCustomerId().toString(),
+                        orderId.toString(),
+                        savedOrder.getTotalPrice().getAmount(),
+                        requestPoint
+                ));
+            } catch (FeignException e) {
+                log.error("포인트 예약 실패 - customerId={}, usedPoint={}", savedOrder.getCustomerId(), requestPoint, e);
+                throw new BusinessException(OrderErrorType.POINT_RESERVATION_FAILED);
+            }
+        }
+
+        String pointReservationId = pointRes != null ? pointRes.reservationId() : null;
+
+        // ===================== 4. 쿠폰 예약 =====================
+        CouponClient.CouponReserveResponse couponRes = null;
+        Long usedCouponAmount = 0L;
+        String couponReservationId = null;
+
+        if (request.couponId() != null) {
+            try {
+                couponRes = couponClient.reserveCoupon(
+                        request.couponId(),
+                        new CouponClient.CouponReserveRequest(
+                                savedOrder.getCustomerId().toString(),
+                                orderId.toString(),
+                                savedOrder.getTotalPrice().getAmount()
+                        )
+                );
+            } catch (FeignException e) {
+                log.error("쿠폰 예약 실패 - couponId={}", request.couponId(), e);
+                throw new BusinessException(OrderErrorType.COUPON_RESERVATION_FAILED);
+            }
+
+            if (!couponRes.valid()) {
+                log.warn("쿠폰 검증 실패 - couponId={}, errorCode={}",
+                        request.couponId(), couponRes.errorCode());
+                throw new BusinessException(OrderErrorType.COUPON_VALIDATION_FAILED);
+            }
+
+            usedCouponAmount = couponRes.discountAmount();
+            couponReservationId = couponRes.reservationId();
+        }
+
+        // ===================== 5. 결제 승인 =====================
+        long amountPayable = savedOrder.getTotalPrice().getAmount() - requestPoint - usedCouponAmount;
+        if (amountPayable < 0) {
+            amountPayable = 0;
+        }
+
+        PaymentClient.PaymentApproveResponse paymentRes;
+        try {
+            paymentRes = paymentClient.approvePayment(
+                    orderId.toString(),
+                    new PaymentClient.PaymentApproveRequest(
+                            orderId.toString(),
+                            amountPayable,
+                            request.methodType(),
+                            request.pgProvider(),
+                            request.currency()
+                    )
+            );
+        } catch (FeignException e) {
+            log.error("결제 승인 실패 - orderId={}, amountPayable={}", orderId, amountPayable, e);
+            throw new BusinessException(OrderErrorType.PAYMENT_APPROVE_FAILED);
+        }
+
+        String pgToken = paymentRes.pgToken();
+
+        // ===================== 7. OrderCreatedEvent 발행 =====================
+        OrderCreatedEvent event = OrderCreatedEvent.of(
+                orderId,
+                savedOrder.getTotalPrice().getAmount(), // 주문 총액
+                requestPoint,   // 사용할 포인트
+                usedCouponAmount,   // 쿠폰 차감액
+                amountPayable,  // 실제 결제 액수 (주문 총액 - 사용 포인트 - 쿠폰 차감액)
+                pointReservationId, // 포인트 예약 Id
+                couponReservationId,    // 쿠폰 예약 Id
+                pgToken
+        );
+
+        eventPublisher.publishExternal(event);
 
         return OrderResponse.Detail.from(order);
     }
+
 
     // ===== 주문 상태 변경 처리 =====
     // 결제 성공 -> 재고 감소 -> 감소 성공 -> approveOrder()

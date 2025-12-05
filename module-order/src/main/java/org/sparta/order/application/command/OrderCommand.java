@@ -18,7 +18,12 @@ public class OrderCommand {
             String userPhoneNumber,
             String slackId,
             LocalDateTime dueAt,
-            String requestMemo
+            String requestMemo,
+            Integer requestPoint,
+            String methodType,
+            String pgProvider,
+            String currency,
+            String couponId
     ) {}
 
     public record ChangeDueAt(

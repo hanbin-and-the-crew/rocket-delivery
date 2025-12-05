@@ -67,7 +67,22 @@ public class OrderRequest {
             LocalDateTime dueAt,
 
             @Schema(description = "요청사항", example = "빠른 배송 부탁드립니다")
-            String requestMemo
+            String requestMemo,
+
+            @Schema(description = "사용할 포인트", example = "1000")
+            Integer requestPoint,
+
+            @Schema(description = "결제 수단", example = "CARD")
+            String methodType,
+
+            @Schema(description = "결제 요청 업체", example = "TOSS")
+            String pgProvider,
+
+            @Schema(description = "결제 화폐", example = "KRW")
+            String currency,
+
+            @Schema(description = "사용할 쿠폰 ID", example = "COUPON-RES-456")
+            String couponId
     ) {
     }
 
