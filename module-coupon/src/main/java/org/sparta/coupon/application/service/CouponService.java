@@ -53,6 +53,7 @@ public class CouponService {
      * - 예약 존재 및 유효성 확인
      * - RESERVED → PAID 상태 변경
      * - 사용 일시 기록
+     * - 분산 락으로 동시 확정 요청 방지
      */
     @Transactional
     public void confirmCoupon(UUID reservationId, UUID orderId) {
@@ -60,30 +61,36 @@ public class CouponService {
         CouponReservation reservation = couponReservationRepository.findById(reservationId)
                 .orElseThrow(() -> new BusinessException(CouponErrorType.RESERVATION_NOT_FOUND));
 
-        // 2. 예약 만료 확인
-        if (reservation.isExpired()) {
-            throw new BusinessException(CouponErrorType.RESERVATION_EXPIRED);
-        }
+        UUID couponId = reservation.getCouponId();
 
-        // 3. 쿠폰 조회 및 사용 확정
-        Coupon coupon = couponRepository.findById(reservation.getCouponId())
-                .orElseThrow(() -> new BusinessException(CouponErrorType.COUPON_NOT_FOUND));
+        executeWithCouponLock(couponId, () -> {
+            // 2. 예약 만료 확인
+            if (reservation.isExpired()) {
+                throw new BusinessException(CouponErrorType.RESERVATION_EXPIRED);
+            }
 
-        coupon.confirm(orderId);
-        couponRepository.save(coupon);
+            // 3. 쿠폰 조회 및 사용 확정
+            Coupon coupon = couponRepository.findById(couponId)
+                    .orElseThrow(() -> new BusinessException(CouponErrorType.COUPON_NOT_FOUND));
 
-        // 4. 예약 정보 삭제 (DB + Redis)
-        couponReservationRepository.deleteById(reservationId);
-        redisManager.deleteReservation(reservationId);
+            coupon.confirm(orderId);
+            couponRepository.save(coupon);
 
-        log.info("쿠폰 사용 확정 완료: reservationId={}, couponId={}, orderId={}",
-                reservationId, reservation.getCouponId(), orderId);
+            // 4. 예약 정보 삭제 (DB + Redis)
+            couponReservationRepository.deleteById(reservationId);
+            redisManager.deleteReservation(reservationId);
+
+            log.info("쿠폰 사용 확정 완료: reservationId={}, couponId={}, orderId={}",
+                    reservationId, couponId, orderId);
+            return null;
+        });
     }
 
     /**
      * 쿠폰 예약 취소
      * - RESERVED → AVAILABLE 복원
      * - 예약 정보 삭제
+     * - 분산 락으로 동시 취소 요청 방지
      */
     @Transactional
     public void cancelReservation(UUID reservationId) {
@@ -91,19 +98,24 @@ public class CouponService {
         CouponReservation reservation = couponReservationRepository.findById(reservationId)
                 .orElseThrow(() -> new BusinessException(CouponErrorType.RESERVATION_NOT_FOUND));
 
-        // 2. 쿠폰 조회 및 예약 취소
-        Coupon coupon = couponRepository.findById(reservation.getCouponId())
-                .orElseThrow(() -> new BusinessException(CouponErrorType.COUPON_NOT_FOUND));
+        UUID couponId = reservation.getCouponId();
 
-        coupon.cancelReservation();
-        couponRepository.save(coupon);
+        executeWithCouponLock(couponId, () -> {
+            // 2. 쿠폰 조회 및 예약 취소
+            Coupon coupon = couponRepository.findById(couponId)
+                    .orElseThrow(() -> new BusinessException(CouponErrorType.COUPON_NOT_FOUND));
 
-        // 3. 예약 정보 삭제 (DB + Redis)
-        couponReservationRepository.deleteById(reservationId);
-        redisManager.deleteReservation(reservationId);
+            coupon.cancelReservation();
+            couponRepository.save(coupon);
 
-        log.info("쿠폰 예약 취소 완료: reservationId={}, couponId={}",
-                reservationId, reservation.getCouponId());
+            // 3. 예약 정보 삭제 (DB + Redis)
+            couponReservationRepository.deleteById(reservationId);
+            redisManager.deleteReservation(reservationId);
+
+            log.info("쿠폰 예약 취소 완료: reservationId={}, couponId={}",
+                    reservationId, couponId);
+            return null;
+        });
     }
 
     /**

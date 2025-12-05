@@ -36,8 +36,8 @@ public class CouponReservationExpirationService {
 
     /**
      * 만료된 예약을 정리
+     * - 분산 락 획득 후 트랜잭션 시작
      */
-    @Transactional
     public void handleExpiredReservation(UUID reservationId) {
         Optional<CouponReservation> reservationOpt = couponReservationRepository.findById(reservationId);
 
@@ -56,6 +56,7 @@ public class CouponReservationExpirationService {
         });
     }
 
+    @Transactional
     private void processReservation(UUID reservationId) {
         CouponReservation reservation = couponReservationRepository.findById(reservationId)
                 .orElse(null);
@@ -103,10 +104,16 @@ public class CouponReservationExpirationService {
 
     /**
      * 특정 시각 이전에 만료된 예약 배치 처리
+     * - 각 예약은 독립적인 트랜잭션으로 처리 (하나의 실패가 전체에 영향 없음)
      */
-    @Transactional
     public void handleExpiredReservations(LocalDateTime referenceTime, int batchSize) {
         couponReservationRepository.findExpiredReservations(referenceTime, batchSize)
-                .forEach(reservation -> handleExpiredReservation(reservation.getId()));
+                .forEach(reservation -> {
+                    try {
+                        handleExpiredReservation(reservation.getId());
+                    } catch (Exception e) {
+                        log.error("만료 예약 처리 실패: reservationId={}", reservation.getId(), e);
+                    }
+                });
     }
 }
