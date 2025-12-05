@@ -11,13 +11,15 @@ eureka:
 spring:
   application:
     name: order-service
+
   cloud:
     openfeign:
       client:
         config:
           default:
-            connectTimeout: 5000  # 연결 타임아웃 5초
-            readTimeout: 10000    # 읽기 타임아웃 10초
+            connect-timeout: 5000   # ms, 연결 타임아웃
+            read-timeout: 10000     # ms, 읽기 타임아웃
+            logger-level: BASIC     # (선택) 로깅 레벨
 
   kafka:
     bootstrap-servers: localhost:9092
