@@ -22,8 +22,8 @@ public class IdempotencyService {
     private final IdempotencyRepository idempotencyRepository;
     private final ObjectMapper objectMapper;
 
-    @Lazy
-    private final IdempotencyService self;
+//    @Lazy
+//    private final IdempotencyService self;
 
     @Transactional(readOnly = true)
     public Optional<OrderResponse.Detail> findExistingResponse(String idempotencyKey) {
@@ -44,10 +44,12 @@ public class IdempotencyService {
                          * => 읽기 전용 트랜잭션에서 삭제 시도하게 되서 에러 발생함
                          * */
                         // 손상된 레코드 삭제 (별도 트랜잭션에서 처리)
-//                        deleteCorruptedRecord(idempotencyKey);
+                        // 일단 이 부분을 다시 살려두고 알아봐야될듯 이렇게 해두면 에러는 안남
+                        deleteCorruptedRecord(idempotencyKey);
 
                         // 수정 => self를 통해 프록시를 거쳐서 호출
-                        self.deleteCorruptedRecord(idempotencyKey);
+                        // 근데 이 부분이 문제가 되는데..?
+//                        self.deleteCorruptedRecord(idempotencyKey);
                         return Optional.empty();
                     }
                 });

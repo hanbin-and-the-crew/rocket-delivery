@@ -6,43 +6,60 @@ import org.mockito.ArgumentCaptor;
 import org.sparta.common.event.DomainEvent;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
-import org.sparta.order.presentation.dto.OrderMapper;
-import org.sparta.order.presentation.dto.request.OrderRequest;
-import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
+import org.sparta.order.domain.repository.IdempotencyRepository;
 import org.sparta.order.domain.repository.OrderRepository;
+import org.sparta.order.infrastructure.client.CouponClient;
+import org.sparta.order.infrastructure.client.PaymentClient;
+import org.sparta.order.infrastructure.client.PointClient;
+import org.sparta.order.infrastructure.client.StockClient;
 import org.sparta.order.infrastructure.event.publisher.OrderCancelledEvent;
-import org.sparta.order.infrastructure.event.publisher.OrderCreatedEvent;
-import org.sparta.order.OrderApplication;
+import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
-@SpringBootTest(classes = OrderApplication.class)
+@SpringBootTest
 @ActiveProfiles("test")
 class OrderServiceTest {
 
     @Autowired
     private OrderService orderService;
 
-    @Autowired
-    private OrderMapper orderMapper;
-
     @MockitoBean
     private OrderRepository orderRepository;
 
     @MockitoBean
     private EventPublisher eventPublisher;
+
+    @MockitoBean
+    private IdempotencyRepository idempotencyRepository;
+
+    // ObjectMapper는 Mock하지 않고 실제 Bean 사용
+    // @MockitoBean 제거!
+
+    // ===== Feign Client Mock 선언 =====
+    @MockitoBean
+    private StockClient stockClient;
+
+    @MockitoBean
+    private PointClient pointClient;
+
+    @MockitoBean
+    private CouponClient couponClient;
+
+    @MockitoBean
+    private PaymentClient paymentClient;
+    // ===================================
 
     private static final UUID CUSTOMER_ID = UUID.randomUUID();
     private static final UUID ORDER_ID = UUID.randomUUID();
