@@ -1,8 +1,9 @@
-package org.sparta.product.infrastructure.jpa;
+package org.sparta.product.infrastructure;
 
 import lombok.RequiredArgsConstructor;
 import org.sparta.product.domain.entity.StockReservation;
 import org.sparta.product.domain.repository.StockReservationRepository;
+import org.sparta.product.infrastructure.jpa.StockReservationJpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;

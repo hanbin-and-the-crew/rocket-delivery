@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.product.domain.entity.Product;
 import org.sparta.product.domain.vo.Money;
+import org.sparta.product.infrastructure.StockReservationRepositoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
@@ -33,13 +34,9 @@ class ProductJpaRepositoryTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    /**
-     * DataJpaTest가 module-product 안의 @Repository 들을 전부 스캔하면서
-     * StockReservationJpaRepositoryImpl 빈 생성 중 순환 참조 에러가 발생했었기 때문에,
-     * 이 테스트에서는 해당 빈을 MockBean 으로 등록해서 실제 구현을 생성하지 않도록 한다.
-     */
+
     @MockBean
-    private org.sparta.product.infrastructure.jpa.StockReservationRepositoryImpl stockReservationJpaRepositoryImpl;
+    private StockReservationRepositoryImpl stockReservationJpaRepositoryImpl;
 
     @Test
     @DisplayName("Product를 저장하고 ID로 조회할 수 있다")
