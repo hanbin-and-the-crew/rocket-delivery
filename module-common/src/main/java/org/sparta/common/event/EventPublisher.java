@@ -33,8 +33,8 @@ public class EventPublisher {
      */
     public void publishLocal(DomainEvent event) {
         log.debug("로컬 이벤트 발행 - Type: {}, EventId: {}",
-                event.eventType(),
-                event.eventId()
+            event.eventType(),
+            event.eventId()
         );
 
         applicationEventPublisher.publishEvent(event);
@@ -47,13 +47,13 @@ public class EventPublisher {
      */
     public void publishExternal(DomainEvent event) {
         log.debug("외부 이벤트 발행 - Type: {}, EventId: {}",
-                event.eventType(),
-                event.eventId()
+            event.eventType(),
+            event.eventId()
         );
 
         if (kafkaTemplate == null) {
             log.warn("KafkaTemplate이 없습니다. 외부 이벤트를 발행할 수 없습니다: {}",
-                    event.eventType());
+                event.eventType());
             return;
         }
 
@@ -61,14 +61,14 @@ public class EventPublisher {
         String topic = determineTopicName(event);
 
         kafkaTemplate.send(topic, event.eventId().toString(), event)
-                .whenComplete((result, ex) -> {
-                    if (ex != null) {
-                        log.error("Kafka 이벤트 발행 실패 - EventId: {}", event.eventId(), ex);
-                    } else {
-                        log.trace("Kafka 이벤트 발행 완료 - Topic: {}, EventId: {}",
-                                topic, event.eventId());
-                    }
-                });
+            .whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("Kafka 이벤트 발행 실패 - EventId: {}", event.eventId(), ex);
+                } else {
+                    log.trace("Kafka 이벤트 발행 완료 - Topic: {}, EventId: {}",
+                        topic, event.eventId());
+                }
+            });
     }
 
 
