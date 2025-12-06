@@ -36,7 +36,7 @@ class StockJpaRepositoryTest {
      * 해당 빈은 MockBean 으로 대체해서 컨텍스트 로딩 대상에서 제외한다.
      */
     @MockBean
-    private org.sparta.product.infrastructure.jpa.StockReservationJpaRepositoryImpl stockReservationJpaRepositoryImpl;
+    private StockReservationRepositoryImpl stockReservationJpaRepositoryImpl;
 
     @Test
     @DisplayName("Stock을 저장하고 ID로 조회할 수 있다")

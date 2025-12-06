@@ -39,7 +39,7 @@ class ProductJpaRepositoryTest {
      * 이 테스트에서는 해당 빈을 MockBean 으로 등록해서 실제 구현을 생성하지 않도록 한다.
      */
     @MockBean
-    private org.sparta.product.infrastructure.jpa.StockReservationJpaRepositoryImpl stockReservationJpaRepositoryImpl;
+    private org.sparta.product.infrastructure.jpa.StockReservationRepositoryImpl stockReservationJpaRepositoryImpl;
 
     @Test
     @DisplayName("Product를 저장하고 ID로 조회할 수 있다")
