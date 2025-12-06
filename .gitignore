@@ -1,4 +1,5 @@
 .gradle
+.gradle-local/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -48,4 +49,30 @@ bin/
 .env.*
 application-local.yml
 
+### Images (documentation/screenshots) ###
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+
+### Logs ###
 *.log
+
+### Monitoring Stack (Local Development Data) ###
+grafana/
+loki/
+prometheus/
+*.hprof
+
+### Development Planning ###
+DEVELOPMENT_PLAN.md
+TODO.md
+PROGRESS.md
+jmeter-performance-test-plan.md
+
+### JMeter Test Files ###
+jmeter/
+*.jmx
+*.jtl
