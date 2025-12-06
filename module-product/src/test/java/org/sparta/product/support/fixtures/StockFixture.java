@@ -22,6 +22,7 @@ public final class StockFixture {
 
     /**
      * 기본 재고 생성
+     * - quantity = 100, reservedQuantity = 0
      */
     public static Stock defaultStock() {
         return Stock.create(
@@ -76,33 +77,9 @@ public final class StockFixture {
     }
 
     /**
-     * 특정 업체의 재고 생성
+     * 재고가 0인 상태 생성
      */
-    public static Stock withCompany(UUID companyId) {
-        return Stock.create(
-                DEFAULT_PRODUCT_ID,
-                companyId,
-                DEFAULT_HUB_ID,
-                100
-        );
-    }
-
-    /**
-     * 특정 허브의 재고 생성
-     */
-    public static Stock withHub(UUID hubId) {
-        return Stock.create(
-                DEFAULT_PRODUCT_ID,
-                DEFAULT_COMPANY_ID,
-                hubId,
-                100
-        );
-    }
-
-    /**
-     * 재고 0인 Stock 생성
-     */
-    public static Stock outOfStock() {
+    public static Stock zeroQuantity() {
         return Stock.create(
                 DEFAULT_PRODUCT_ID,
                 DEFAULT_COMPANY_ID,
@@ -122,7 +99,7 @@ public final class StockFixture {
     }
 
     /**
-     * 일부 예약된 재고 생성
+     * 부분 예약된 재고 생성
      * - 재고 100개, 예약 30개
      */
     public static Stock partiallyReserved() {

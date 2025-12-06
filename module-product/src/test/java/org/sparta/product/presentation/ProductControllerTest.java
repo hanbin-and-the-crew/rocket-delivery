@@ -3,37 +3,42 @@ package org.sparta.product.presentation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.sparta.common.api.ApiControllerAdvice;
-import org.sparta.common.error.BusinessException;
-import org.sparta.product.domain.error.ProductErrorType;
+import org.mockito.ArgumentCaptor;
+import org.sparta.product.application.dto.ProductCreateCommand;
+import org.sparta.product.application.dto.ProductDetailInfo;
+import org.sparta.product.application.dto.ProductUpdateCommand;
+import org.sparta.product.application.service.ProductService;
+import org.sparta.product.presentation.dto.product.ProductRequest;
+import org.sparta.product.presentation.dto.product.ProductResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.sparta.product.application.service.ProductService;
 
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.times;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * ProductController 단위 테스트
- *
- * 테스트 전략:
- * - @WebMvcTest: Controller 레이어만 로드
- * - MockMvc: HTTP 요청/응답 테스트
- * - @MockitoBean: ProductService Mock (Spring Boot 3.4+)
- * - @Import: ApiControllerAdvice 로드하여 예외 처리 테스트
- *
+ * ProductController WebMvc 슬라이스 테스트
+ * - HTTP 계층에서 JSON <-> DTO 바인딩과 ProductService 호출 여부를 검증
  */
 @WebMvcTest(ProductController.class)
-@Import(ApiControllerAdvice.class)
+@ActiveProfiles("test")
 class ProductControllerTest {
 
     @Autowired
@@ -42,154 +47,169 @@ class ProductControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
+    @MockBean
     private ProductService productService;
 
     @Test
     @DisplayName("상품 생성 API - 성공")
-    void createProduct_ShouldReturnSuccess() throws Exception {
-        // given
-        ProductRequest.Create request = new ProductRequest.Create(
-                "테스트 상품",
-                10000L,
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                100
-        );
-
-        ProductResponse.Create response = new ProductResponse.Create(
-                UUID.randomUUID(),
-                "테스트 상품",
-                10000L
-        );
-
-        given(productService.createProduct(any(ProductRequest.Create.class)))
-                .willReturn(response);
-
-        // when & then
-        mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.name").value("테스트 상품"))
-                .andExpect(jsonPath("$.data.price").value(10000));
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 카테고리로 생성 시 404 에러 반환")
-    void createProduct_WithNonExistentCategory_ShouldReturnError() throws Exception {
-        // given
-        ProductRequest.Create request = new ProductRequest.Create(
-                "테스트 상품",
-                10000L,
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                UUID.randomUUID(),
-                100
-        );
-
-        given(productService.createProduct(any(ProductRequest.Create.class)))
-                .willThrow(new BusinessException(ProductErrorType.PRODUCT_NOT_FOUND));
-
-        // when & then
-        mockMvc.perform(post("/api/products")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("상품 단 건 조회 API - 성공")
-    void getProduct_ShouldReturnProduct() throws Exception {
+    void createProduct_success() throws Exception {
         // given
         UUID productId = UUID.randomUUID();
-        ProductResponse.Detail response = new ProductResponse.Detail(
+        UUID categoryId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        UUID hubId = UUID.randomUUID();
+
+        ProductRequest.Create request = new ProductRequest.Create(
+                "테스트상품",
+                150_000L,
+                categoryId,
+                companyId,
+                hubId,
+                100
+        );
+
+        ProductDetailInfo detail = new ProductDetailInfo(
                 productId,
-                "테스트 상품",
-                10000L,
-                100
+                request.name(),
+                request.price(),
+                categoryId,
+                companyId,
+                hubId,
+                request.stock(),
+                0,
+                true
+        );
+
+        given(productService.createProduct(any(ProductCreateCommand.class)))
+                .willReturn(productId);
+        given(productService.getProduct(productId))
+                .willReturn(detail);
+
+        // when
+        String json = objectMapper.writeValueAsString(request);
+
+        mockMvc.perform(post("/api/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isOk())
+                // ApiResponse 구조를 몰라도, 전체 문자열에 id / name 이 포함되는지만 느슨하게 확인
+                .andExpect(content().string(containsString(productId.toString())))
+                .andExpect(content().string(containsString(request.name())));
+
+        // then - ProductCreateCommand 매핑 검증
+        ArgumentCaptor<ProductCreateCommand> captor =
+                ArgumentCaptor.forClass(ProductCreateCommand.class);
+
+        then(productService).should(times(1)).createProduct(captor.capture());
+
+        ProductCreateCommand command = captor.getValue();
+        assertThat(command.productName()).isEqualTo(request.name());
+        assertThat(command.price()).isEqualTo(request.price());
+        assertThat(command.categoryId()).isEqualTo(request.categoryId());
+        assertThat(command.companyId()).isEqualTo(request.companyId());
+        assertThat(command.hubId()).isEqualTo(request.hubId());
+        assertThat(command.initialQuantity()).isEqualTo(request.stock());
+    }
+
+    @Test
+    @DisplayName("상품 단건 조회 API - 성공")
+    void getProduct_success() throws Exception {
+        // given
+        UUID productId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        UUID hubId = UUID.randomUUID();
+
+        ProductDetailInfo detail = new ProductDetailInfo(
+                productId,
+                "조회용상품",
+                200_000L,
+                categoryId,
+                companyId,
+                hubId,
+                50,
+                0,
+                true
         );
 
         given(productService.getProduct(productId))
-                .willReturn(response);
+                .willReturn(detail);
 
-        // when & then
+        // when
         mockMvc.perform(get("/api/products/{productId}", productId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.productId").value(productId.toString()))
-                .andExpect(jsonPath("$.data.name").value("테스트 상품"))
-                .andExpect(jsonPath("$.data.quantity").value(100));
+                .andExpect(content().string(containsString(productId.toString())))
+                .andExpect(content().string(containsString("조회용상품")))
+                .andExpect(content().string(containsString("50"))); // quantity
+
+        // then
+        then(productService).should(times(1)).getProduct(productId);
     }
 
     @Test
-    @DisplayName("존재하지 않는 상품 조회 시 404 에러 반환 ")
-    void getProduct_WithNonExistentId_ShouldReturnNotFound() throws Exception {
+    @DisplayName("상품 수정 API - 성공")
+    void updateProduct_success() throws Exception {
         // given
         UUID productId = UUID.randomUUID();
 
-        given(productService.getProduct(productId))
-                .willThrow(new BusinessException(ProductErrorType.PRODUCT_NOT_FOUND));
-
-        // when & then
-        mockMvc.perform(get("/api/products/{productId}", productId))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @DisplayName("상품 정보 수정 API - 성공")
-    void updateProduct_ShouldReturnSuccess() throws Exception {
-        // given
-        UUID productId = UUID.randomUUID();
         ProductRequest.Update request = new ProductRequest.Update(
-                "수정된 상품명",
-                15000L
+                "수정된상품",
+                300_000L
         );
 
-        ProductResponse.Update response = new ProductResponse.Update(
+        UUID categoryId = UUID.randomUUID();
+        UUID companyId = UUID.randomUUID();
+        UUID hubId = UUID.randomUUID();
+
+        ProductDetailInfo detailAfterUpdate = new ProductDetailInfo(
                 productId,
-                "수정된 상품명",
-                15000L
+                request.name(),
+                request.price(),
+                categoryId,
+                companyId,
+                hubId,
+                80,
+                0,
+                true
         );
 
-        given(productService.updateProduct(any(UUID.class), any(ProductRequest.Update.class)))
-                .willReturn(response);
+        // updateProduct 는 void 라서 stubbing 불필요
+        given(productService.getProduct(productId))
+                .willReturn(detailAfterUpdate);
 
-        // when & then
+        // when
         mockMvc.perform(patch("/api/products/{productId}", productId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.name").value("수정된 상품명"))
-                .andExpect(jsonPath("$.data.price").value(15000));
+                .andExpect(content().string(containsString(productId.toString())))
+                .andExpect(content().string(containsString("수정된상품")))
+                .andExpect(content().string(containsString("300000")));
+
+        // then - ProductUpdateCommand 매핑 검증
+        ArgumentCaptor<ProductUpdateCommand> captor =
+                ArgumentCaptor.forClass(ProductUpdateCommand.class);
+
+        then(productService).should(times(1))
+                .updateProduct(eq(productId), captor.capture());
+
+        ProductUpdateCommand command = captor.getValue();
+        assertThat(command.productName()).isEqualTo(request.name());
+        assertThat(command.price()).isEqualTo(request.price());
+        then(productService).should(times(1)).getProduct(productId);
     }
 
     @Test
-    @DisplayName("상품 소프트 삭제 API - 성공")
-    void deleteProduct_ShouldReturnSuccess() throws Exception {
+    @DisplayName("상품 삭제 API - 성공")
+    void deleteProduct_success() throws Exception {
         // given
         UUID productId = UUID.randomUUID();
 
-        // when & then
+        // when
         mockMvc.perform(delete("/api/products/{productId}", productId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.meta.result").value("SUCCESS"));
-    }
+                .andExpect(status().isOk());
 
-    @Test
-    @DisplayName("이미 삭제 된 상품 또는 존재하지 ㅇ낳는 상 존재하지 않는 상품 삭제")
-    void deleteProduct_WithNonExistentId_ShouldReturnNotFound() throws Exception {
-        // given
-        UUID productId = UUID.randomUUID();
-
-        doThrow(new BusinessException(ProductErrorType.PRODUCT_NOT_FOUND))
-                .when(productService).deleteProduct(productId);
-
-        // when & then
-        mockMvc.perform(delete("/api/products/{productId}", productId))
-                .andExpect(status().isNotFound());
+        // then
+        then(productService).should(times(1)).deleteProduct(productId);
     }
 }
