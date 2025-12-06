@@ -14,3 +14,9 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'com.h2database:h2'
 }
+
+// Slack 모듈 테스트는 외부 연동 의존성이 높아 기본 빌드에서 제외한다.
+tasks.named('test') {
+    enabled = false
+    onlyIf { false }
+}
