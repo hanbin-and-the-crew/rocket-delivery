@@ -8,10 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-/**
- * 도메인 계층의 StockReservationRepository를
- * Spring Data JPA 기반 StockReservationJpaRepository로 구현한 어댑터.
- */
+
 @Repository
 @RequiredArgsConstructor
 public class StockReservationRepositoryImpl implements StockReservationRepository {
