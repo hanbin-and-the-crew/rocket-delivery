@@ -1,7 +1,7 @@
 package org.sparta.delivery.application.service;
 
-import ch.qos.logback.classic.Logger;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.delivery.domain.entity.Delivery;
@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -38,7 +39,6 @@ public class DeliveryServiceImpl implements DeliveryService {
     private final DeliveryLogService deliveryLogService;
     private final HubRouteFeignClient hubRouteFeignClient; // 허브 경로 조회용 Feign
     private final EventPublisher eventPublisher;
-    Logger log;
 
     // ================================
     // 1. 배송 생성 - 단순(테스트용) /TODO: 허브 경로 조회 기능 추가해서 실제 자동으로 실행되는 api와 동일하게 동작하게 하기
@@ -129,14 +129,12 @@ public class DeliveryServiceImpl implements DeliveryService {
         savedDelivery.updateTotalLogSeq(sequence);
 
         // [배송 생성 완료 이벤트 발행]
-        eventPublisher.publishExternal(new DeliveryCreatedEvent(
-                UUID.randomUUID(),
+        eventPublisher.publishExternal(DeliveryCreatedEvent.of(
                 savedDelivery.getOrderId(),
                 savedDelivery.getId(),
                 savedDelivery.getSupplierHubId(),
                 savedDelivery.getReceiveHubId(),
-                savedDelivery.getTotalLogSeq(),
-                Instant.now()
+                savedDelivery.getTotalLogSeq()
         ));
 
         return DeliveryResponse.Detail.from(savedDelivery);
@@ -201,12 +199,10 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         // [ 배송 시작 이벤트 ] _ 첫 허브를 출발할 때만 이벤트 발행
         if (request.sequence() == 0) {
-            eventPublisher.publishExternal(new DeliveryStartedEvent(
-                    UUID.randomUUID(),
+            eventPublisher.publishExternal(DeliveryStartedEvent.of(
                     delivery.getOrderId(),
                     delivery.getId(),
-                    delivery.getSupplierHubId(),
-                    Instant.now()
+                    delivery.getSupplierHubId()
             ));
         }
 
@@ -272,12 +268,10 @@ public class DeliveryServiceImpl implements DeliveryService {
         delivery.completeDelivery();
 
         // [ 배송 최종 완료 이벤트 ]
-        eventPublisher.publishExternal(new DeliveryCompletedEvent(
-                UUID.randomUUID(),
+        eventPublisher.publishExternal(DeliveryCompletedEvent.of(
                 delivery.getOrderId(),
                 delivery.getId(),
-                delivery.getReceiveCompanyId(),
-                Instant.now()
+                delivery.getReceiveCompanyId()
         ));
 
         return DeliveryResponse.Detail.from(delivery);
@@ -357,18 +351,4 @@ public class DeliveryServiceImpl implements DeliveryService {
                 : Sort.Direction.ASC;
     }
 
-    // ================================
-    // 허브 경로 FeignClient 응답 DTO 예시
-    // ================================
-//    public record HubLegResponse(
-//            UUID sourceHubId,
-//            UUID targetHubId,
-//            double estimatedKm,
-//            int estimatedMinutes
-//    ) { }
-
-    // 실제 FeignClient 인터페이스는 별도 파일로 분리해서 작성하는 걸 추천
-//    public interface HubRouteFeignClient {
-//        List<HubLegResponse> getRouteLegs(UUID sourceHubId, UUID targetHubId);
-//    }
 }

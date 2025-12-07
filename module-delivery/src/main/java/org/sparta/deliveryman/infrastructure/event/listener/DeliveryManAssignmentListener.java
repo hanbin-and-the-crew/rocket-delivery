@@ -36,7 +36,6 @@ public class DeliveryManAssignmentListener {
 
     @KafkaListener(
             topics = "delivery-events",
-            groupId = "deliveryman-assignment-group",
             containerFactory = "kafkaListenerContainerFactory"
     )
     public void handleDeliveryCreated(String message) {

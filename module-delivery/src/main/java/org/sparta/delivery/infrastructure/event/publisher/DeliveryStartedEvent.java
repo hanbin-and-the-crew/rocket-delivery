@@ -8,19 +8,19 @@ import java.util.UUID;
 // 배송 출발 이벤트 Delivery(HUB_WAITING => HUB_MOVING) / Order(APPROVED => SHIPPED)
 
 public record DeliveryStartedEvent(
-        UUID eventId,
         UUID orderId,
         UUID deliveryId,
         UUID sourceHubId,
 //        UUID deliveryManId,
+        UUID eventId,
         Instant occurredAt
 ) implements DomainEvent {
-    public static DeliveryStartedEvent of(UUID eventId, UUID orderId, UUID deliveryId,UUID sourceHubId, Instant occurredAt) {
+    public static DeliveryStartedEvent of(UUID orderId, UUID deliveryId,UUID sourceHubId) {
         return new DeliveryStartedEvent(
-                UUID.randomUUID(),
                 orderId,
                 deliveryId,
                 sourceHubId,
+                UUID.randomUUID(),
                 Instant.now()
 
         );
