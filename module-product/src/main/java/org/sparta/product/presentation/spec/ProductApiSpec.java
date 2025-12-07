@@ -1,9 +1,11 @@
-package org.sparta.product.presentation;
+package org.sparta.product.presentation.spec;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
+import org.sparta.product.presentation.dto.product.ProductRequest;
+import org.sparta.product.presentation.dto.product.ProductResponse;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
