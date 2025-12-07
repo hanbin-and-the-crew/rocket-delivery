@@ -9,6 +9,7 @@ import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.sparta.delivery.domain.error.DeliveryErrorType;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryCompletedEvent;
 import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryLastHubArrivedEvent;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryStartedEvent;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
 import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
@@ -242,6 +243,17 @@ public class DeliveryServiceImpl implements DeliveryService {
                 request.actualMinutes()
         );
         deliveryLogService.arriveLog(target.id(), arriveReq);
+
+        // [ 마지막 허브 도착 시 업체 배송 담당자 배정을 위한 이벤트 발행 ]
+        if (isLastLog) {
+            eventPublisher.publishExternal(
+                    DeliveryLastHubArrivedEvent.of(
+                            delivery.getOrderId(),
+                            delivery.getId(),
+                            delivery.getReceiveHubId()
+                    )
+            );
+        }
 
         return DeliveryResponse.Detail.from(delivery);
     }
