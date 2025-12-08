@@ -1,9 +1,9 @@
 package org.sparta.payment.presentation.dto.response;
 
+import org.sparta.payment.application.dto.PaymentApprovalResult;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import org.sparta.payment.application.dto.PaymentApprovalResult;
 
 /**
  * PaymentApproval API 응답 DTO

@@ -1,12 +1,12 @@
 package org.sparta.payment.application.dto;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
-
 import org.sparta.payment.domain.entity.Payment;
 import org.sparta.payment.domain.enumeration.PaymentStatus;
 import org.sparta.payment.domain.enumeration.PaymentType;
 import org.sparta.payment.domain.enumeration.PgProvider;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 public record PaymentDetailResult(

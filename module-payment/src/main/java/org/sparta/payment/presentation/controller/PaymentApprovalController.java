@@ -3,7 +3,6 @@ package org.sparta.payment.presentation.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
-
 import org.sparta.payment.application.command.payment.PaymentApprovalCommand;
 import org.sparta.payment.application.dto.PaymentApprovalResult;
 import org.sparta.payment.application.service.PaymentApprovalService;

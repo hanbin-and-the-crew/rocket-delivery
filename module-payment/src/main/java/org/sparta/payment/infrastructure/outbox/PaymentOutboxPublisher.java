@@ -3,8 +3,6 @@ package org.sparta.payment.infrastructure.outbox;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
-
 import org.sparta.payment.domain.entity.PaymentOutbox;
 import org.sparta.payment.domain.enumeration.OutboxStatus;
 import org.sparta.payment.domain.repository.PaymentOutboxRepository;

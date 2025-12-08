@@ -1,8 +1,9 @@
 package org.sparta.payment.application.command.payment;
 
-import java.util.UUID;
 import org.sparta.payment.domain.enumeration.PaymentType;
 import org.sparta.payment.domain.enumeration.PgProvider;
+
+import java.util.UUID;
 
 /**
  * PaymentService에서 사용하는 생성용 Command
