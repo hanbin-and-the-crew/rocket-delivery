@@ -9,6 +9,7 @@ import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.sparta.delivery.domain.error.DeliveryErrorType;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryCompletedEvent;
 import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryFailedEvent;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryLastHubArrivedEvent;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryStartedEvent;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
@@ -50,7 +51,7 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         // 주문당 하나만 허용하고 싶다면 이 검증 사용
         if (deliveryRepository.existsByOrderIdAndDeletedAtIsNull(request.orderId())) {
-            throw new BusinessException(DeliveryErrorType.DELIVERY_ALREADY_DELETED);
+            throw new BusinessException(DeliveryErrorType.DELIVERY_ALREADY_EXISTS);
         }
 
         Delivery delivery = Delivery.createFromOrderApproved(
@@ -80,70 +81,79 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Transactional
     public DeliveryResponse.Detail createWithRoute(OrderApprovedEvent orderEvent) {
         try {
-
-        // 1) 허브 서비스에서 경로/leg 정보 조회 (Feign)
-        //    - 예시: List<HubLegResponse> legs = hubRouteFeignClient.getRouteLegs(...);
-        List<HubLegResponse> legs = hubRouteFeignClient.getRouteLegs(
-                orderEvent.supplierHubId(),
-                orderEvent.receiveHubId()
-        );
-
-        if (legs == null || legs.isEmpty()) {
-            throw new BusinessException(DeliveryErrorType.INVALID_TOTAL_LOG_SEQ);
-            // TODO : Delivery 생성 실패 Event 발행
-        }
-
-        // 2) Delivery 생성 (위 메서드와 동일한 검증/로직)
-        Delivery delivery = Delivery.createFromOrderApproved(
-                orderEvent.orderId(),
-                orderEvent.customerId(),
-                orderEvent.supplierCompanyId(),
-                orderEvent.supplierHubId(),
-                orderEvent.receiveCompanyId(),
-                orderEvent.receiveHubId(),
-                orderEvent.address(),
-                orderEvent.receiverName(),
-                orderEvent.receiverSlackId(),
-                orderEvent.receiverPhone(),
-                orderEvent.dueAt(),
-                orderEvent.requestMemo(),
-                null // totalLogSeq는 경로 계산 후 세팅
-        );
-
-        Delivery savedDelivery = deliveryRepository.save(delivery);
-
-        int sequence = 0;
-        for (HubLegResponse leg : legs) {
-            DeliveryLogRequest.Create logCreate = new DeliveryLogRequest.Create(
-                    savedDelivery.getId(),
-                    sequence,
-                    leg.sourceHubId(),
-                    leg.targetHubId(),
-                    leg.estimatedKm(),
-                    leg.estimatedMinutes()
+            // 1) 허브 경로 조회
+            List<HubLegResponse> legs = hubRouteFeignClient.getRouteLegs(
+                    orderEvent.supplierHubId(),
+                    orderEvent.receiveHubId()
             );
-            deliveryLogService.create(logCreate);
-            sequence++;
-        }
 
-        // 3) 전체 leg 개수 세팅
-        savedDelivery.updateTotalLogSeq(sequence);
+            if (legs == null || legs.isEmpty()) {
+                // 배송 생성 실패 이벤트 발행
+                eventPublisher.publishExternal(DeliveryFailedEvent.of(orderEvent.orderId()));
+                throw new BusinessException(DeliveryErrorType.NO_ROUTE_AVAILABLE);  // 명확한 에러
+            }
 
-        // [배송 생성 완료 이벤트 발행]
-        eventPublisher.publishExternal(DeliveryCreatedEvent.of(
-                savedDelivery.getOrderId(),
-                savedDelivery.getId(),
-                savedDelivery.getSupplierHubId(),
-                savedDelivery.getReceiveHubId(),
-                savedDelivery.getTotalLogSeq()
-        ));
+            // 2) Delivery 생성
+            Delivery delivery = Delivery.createFromOrderApproved(
+                    orderEvent.orderId(),
+                    orderEvent.customerId(),
+                    orderEvent.supplierCompanyId(),
+                    orderEvent.supplierHubId(),
+                    orderEvent.receiveCompanyId(),
+                    orderEvent.receiveHubId(),
+                    orderEvent.address(),
+                    orderEvent.receiverName(),
+                    orderEvent.receiverSlackId(),
+                    orderEvent.receiverPhone(),
+                    orderEvent.dueAt(),
+                    orderEvent.requestMemo(),
+                    null
+            );
 
-        return DeliveryResponse.Detail.from(savedDelivery);
+            Delivery savedDelivery = deliveryRepository.save(delivery);
+
+            // 3) DeliveryLog 생성
+            int sequence = 0;
+            for (HubLegResponse leg : legs) {
+                DeliveryLogRequest.Create logCreate = new DeliveryLogRequest.Create(
+                        savedDelivery.getId(),
+                        sequence,
+                        leg.sourceHubId(),
+                        leg.targetHubId(),
+                        leg.estimatedKm(),
+                        leg.estimatedMinutes()
+                );
+                deliveryLogService.create(logCreate);
+                sequence++;
+            }
+
+            savedDelivery.updateTotalLogSeq(sequence);
+
+            // 4) 성공 이벤트 발행
+            eventPublisher.publishExternal(DeliveryCreatedEvent.of(
+                    savedDelivery.getOrderId(),
+                    savedDelivery.getId(),
+                    savedDelivery.getSupplierHubId(),
+                    savedDelivery.getReceiveHubId(),
+                    savedDelivery.getTotalLogSeq()
+            ));
+
+            return DeliveryResponse.Detail.from(savedDelivery);
+
+        } catch (BusinessException e) {
+            log.warn("Business validation failed for order: orderId={}, errorType={}, message={}",
+                    orderEvent.orderId(), e.getErrorType(), e.getMessage());
+            throw e;
+
         } catch (Exception e) {
-            log.error("Failed to create delivery from order: {}", orderEvent.orderId(), e);
+            // 배송 생성 실패 이벤트 발행
+            eventPublisher.publishExternal(DeliveryFailedEvent.of(orderEvent.orderId()));
+            log.error("Unexpected error creating delivery from order: orderId={}",
+                    orderEvent.orderId(), e);
             throw new BusinessException(DeliveryErrorType.CREATION_FAILED);
         }
     }
+
 
     // ================================
     // 3. 허브 배송 담당자 배정

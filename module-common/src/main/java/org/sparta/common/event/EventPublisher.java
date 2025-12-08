@@ -116,6 +116,11 @@ public class EventPublisher {
             return "coupon-events";
         }
 
+        // DeliveryMan 토픽 추가
+        if (eventType.startsWith("Deliveryman")) {
+            return "deliveryman-events";
+        }
+
         // 기본 토픽
         return "domain-events";
     }

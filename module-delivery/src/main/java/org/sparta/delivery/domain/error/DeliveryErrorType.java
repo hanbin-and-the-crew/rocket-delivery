@@ -25,6 +25,8 @@ public enum DeliveryErrorType implements ErrorType {
     RECEIVER_PHONE_REQUIRED(HttpStatus.BAD_REQUEST, "수령인 전화번호는 필수입니다."),
     INVALID_TOTAL_LOG_SEQ(HttpStatus.BAD_REQUEST, "허브 경로 전체 개수(totalLogSeq)는 0 이상이어야 합니다."),
     CREATION_FAILED(HttpStatus.CREATED, "배송 생성을 실패했습니다."),
+    DELIVERY_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "배송이 이미 존재합니다."),
+    NO_ROUTE_AVAILABLE(HttpStatus.BAD_REQUEST, "가능한 허브 경로가 없습니다."),
 
     // ===== 담당자 배정 =====
     DELIVERY_MAN_ID_REQUIRED(HttpStatus.BAD_REQUEST, "배송 담당자 ID는 필수입니다."),
