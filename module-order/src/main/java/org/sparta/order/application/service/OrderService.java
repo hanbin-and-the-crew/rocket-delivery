@@ -11,6 +11,7 @@ import org.sparta.order.infrastructure.client.CouponClient;
 import org.sparta.order.infrastructure.client.PaymentClient;
 import org.sparta.order.infrastructure.client.PointClient;
 import org.sparta.order.infrastructure.client.StockClient;
+import org.sparta.order.infrastructure.event.publisher.OrderDeletedEvent;
 import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
@@ -298,7 +299,6 @@ public class OrderService {
     }
 
     // 배송 시작/출고 처리 (API)
-    // TODO: 배송 시작 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
     public OrderResponse.Update shipOrder(OrderCommand.ShipOrder request) {
         Order order = findOrderOrThrow(request.orderId());
         order.markShipped();
@@ -312,7 +312,6 @@ public class OrderService {
     }
 
     // 배송 완료 처리 (API)
-    // TODO: 배송 완료 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
     public OrderResponse.Update deliverOrder(OrderCommand.DeliverOrder request) {
         Order order = findOrderOrThrow(request.orderId());
         order.markDelivered();
@@ -320,7 +319,6 @@ public class OrderService {
     }
 
     // 배송 완료 처리 (내부)
-    // TODO: 배송 완료 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
     public OrderResponse.Update deliveredOrder(UUID orderId) {
         Order order = findOrderOrThrow(orderId);
         order.markDelivered();
@@ -332,6 +330,10 @@ public class OrderService {
         Order order = findOrderOrThrow(request.orderId());
         order.validateDeletable();
         order.markAsDeleted();
+
+        // 주문 삭제 이벤트 발행
+        eventPublisher.publishExternal(OrderDeletedEvent.of(order));
+
         return OrderResponse.Update.of(order, "주문이 삭제되었습니다.");
     }
 
@@ -349,7 +351,6 @@ public class OrderService {
      * - 페이지 사이즈: 10/30/50만 허용, 그 외 값은 10으로 보정
      * - 기본 정렬: createdAt DESC (요청에 sort가 없으면)
      */
-    // TODO: 역할 분리 추가 예정
     @Transactional(readOnly = true)
     public Page<OrderResponse.Summary> getOrdersByCustomer(UUID customerId, Pageable pageable) {
         Pageable normalized = normalizePageable(pageable);
