@@ -1,10 +1,10 @@
-package org.sparta.user.presentation.Controller;
+package org.sparta.user.presentation.controller;
 
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.application.service.PointService;
-import org.sparta.user.presentation.ApiSpec.PointApiSpec;
+import org.sparta.user.presentation.spec.PointApiSpec;
 import org.sparta.user.presentation.dto.PointMapper;
 import org.sparta.user.presentation.dto.request.PointRequest;
 import org.sparta.user.presentation.dto.response.PointResponse;

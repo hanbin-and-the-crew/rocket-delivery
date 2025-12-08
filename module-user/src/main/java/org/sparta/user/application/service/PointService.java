@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.user.application.command.PointCommand;
+import org.sparta.user.application.dto.PointServiceResult;
 import org.sparta.user.domain.entity.Point;
 import org.sparta.user.domain.entity.PointReservation;
 import org.sparta.user.domain.enums.PointStatus;
@@ -102,7 +103,7 @@ public class PointService {
      * 포인트 차감 확정 (결제 완료 단계)
      */
     @Transactional
-    public void confirmPointUsage(PointCommand.ConfirmPoint command) {
+    public PointServiceResult.Confirm confirmPointUsage(PointCommand.ConfirmPoint command) {
         UUID orderId = command.orderId();
 
         List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
@@ -110,35 +111,33 @@ public class PointService {
                 ReservationStatus.RESERVED
         );
 
+        Long discountAmount = 0L;
+        List<PointServiceResult.PointUsageDetail> confirmedDetails = new ArrayList<>();
+
         for (PointReservation reservation : reservations) {
             Point point = pointRepository.findById(reservation.getPointId())
                     .orElseThrow(() -> new BusinessException(PointErrorType.POINT_NOT_FOUND));
 
             point.updateReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
             point.updateUsedAmount(point.getUsedAmount() + reservation.getReservedAmount());
+            discountAmount += reservation.getReservedAmount();
             pointRepository.save(point);
 
             reservation.updateStatus(ReservationStatus.CONFIRMED);
             reservationRepository.save(reservation);
+
+            confirmedDetails.add(new PointServiceResult.PointUsageDetail(
+                    reservation.getPointId(),
+                    reservation.getReservedAmount()
+            ));
         }
+
+        return new PointServiceResult.Confirm(orderId, discountAmount, confirmedDetails);
     }
 
     /**
-     * 포인트 적립 (구매 후). 이거까진 이용안할듯
+     * 예약 취소
      */
-    @Transactional
-    public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
-        Point point = Point.create( // 이용 안할거라 일단 토대만 작성.
-                userId,
-                amount,
-                0L,
-                0L,
-                expiryDate,
-                PointStatus.AVAILABLE
-        );
-        pointRepository.save(point);
-    }
-
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void rollbackReservations(UUID orderId) {
         log.info("예약 취소 시작");
@@ -208,5 +207,21 @@ public class PointService {
             rollbackReservations(reservation.getOrderId());
             log.info("예약 만료 처리: orderId={}, pointReservationId={}", reservation.getOrderId(), reservation.getId());
         }
+    }
+
+    /**
+     * 포인트 적립 (구매 후). 이거까진 이용안할듯
+     */
+    @Transactional
+    public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
+        Point point = Point.create( // 이용 안할거라 일단 토대만 작성.
+                userId,
+                amount,
+                0L,
+                0L,
+                expiryDate,
+                PointStatus.AVAILABLE
+        );
+        pointRepository.save(point);
     }
 }

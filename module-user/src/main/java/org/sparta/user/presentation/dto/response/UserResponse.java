@@ -32,9 +32,6 @@ public class UserResponse {
             @Schema(description = "사용자 Id", example = "user1107")
             String userName,
 
-            @Schema(description = "userPw", example = "1234")
-            String password,
-
             @Schema(description = "슬랙 Id", example = "user1108")
             String slackId,
 
@@ -57,7 +54,6 @@ public class UserResponse {
             return new GetUser(
                     user.getUserId(),
                     user.getUserName(),
-                    user.getPassword(),
                     user.getSlackId(),
                     user.getRealName(),
                     user.getUserPhoneNumber(),
@@ -72,9 +68,6 @@ public class UserResponse {
     public record UpdateUser(
             @Schema(description = "사용자 Id", example = "user1107")
             String userName,
-
-            @Schema(description = "userPw", example = "1234")
-            String password,
 
             @Schema(description = "슬랙 Id", example = "user1108")
             String slackId,
@@ -97,7 +90,6 @@ public class UserResponse {
         public static UpdateUser from(User user) {
             return new UpdateUser(
                     user.getUserName(),
-                    user.getPassword(),
                     user.getSlackId(),
                     user.getRealName(),
                     user.getUserPhoneNumber(),

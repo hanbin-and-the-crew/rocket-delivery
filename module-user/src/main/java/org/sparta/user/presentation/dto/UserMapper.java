@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class UserMapper {
+    // 추후 MapStruct 라이브러리를 쓴다면 일일히 써줄 필요 없이 손쉽게 toCommand 정의 가능
 
     public UserCommand.SignUpUser toCommand(UserRequest.SignUpUser request) {
         return new UserCommand.SignUpUser(
