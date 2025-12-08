@@ -12,6 +12,12 @@ spring:
   application:
     name: delivery-service
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: delivery-service
+
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
@@ -25,6 +31,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc.lob.non_contextual_creation: true
 
   jackson:
     time-zone: Asia/Seoul

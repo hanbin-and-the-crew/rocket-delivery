@@ -21,6 +21,8 @@ spring:
     console:
       enabled: true
 
+
+
 # Eureka 클라이언트 비활성화
 eureka:
   client:
