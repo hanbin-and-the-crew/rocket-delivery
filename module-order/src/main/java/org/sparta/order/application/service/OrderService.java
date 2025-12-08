@@ -265,13 +265,14 @@ public class OrderService {
      * stock에서 "재고 감소 완료" 이벤트가 온 뒤 호출된다고 가정.
      * - CREATED → APPROVED
      */
-    public void approveOrder(UUID orderId) {
+    public void approveOrder(UUID orderId, UUID paymentId) {
         Order order = findOrderOrThrow(orderId);
 
-        order.approve();
+        // 주문 상태 변경: PENDING → APPROVED
+        order.approve(paymentId);
 
         // OrderApprovedEvent 발행 (배송/Slack 모듈 사용)
-        // TODO: 필요한 정보 확인 후 추가
+        // TODO: delivery에서 필요한 정보 확인 후 추가
         eventPublisher.publishExternal(OrderApprovedEvent.of(order));
     }
 
@@ -296,18 +297,32 @@ public class OrderService {
         return OrderResponse.Update.of(order, "주문이 취소되었습니다.");
     }
 
-    // 배송 시작/출고 처리
+    // 배송 시작/출고 처리 (API)
     // TODO: 배송 시작 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
     public OrderResponse.Update shipOrder(OrderCommand.ShipOrder request) {
         Order order = findOrderOrThrow(request.orderId());
         order.markShipped();
         return OrderResponse.Update.of(order, "주문이 출고(배송 시작) 처리되었습니다.");
     }
+    // 배송 시작/출고 처리 (내부) _ DeliveryStartedEvent 수신 후 동작
+    public OrderResponse.Update shippedOrder(UUID orderId) {
+        Order order = findOrderOrThrow(orderId);
+        order.markShipped();
+        return OrderResponse.Update.of(order, "주문이 출고(배송 시작) 처리되었습니다.");
+    }
 
-    // 배송 완료 처리
+    // 배송 완료 처리 (API)
     // TODO: 배송 완료 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
     public OrderResponse.Update deliverOrder(OrderCommand.DeliverOrder request) {
         Order order = findOrderOrThrow(request.orderId());
+        order.markDelivered();
+        return OrderResponse.Update.of(order, "주문이 배송 완료 처리되었습니다.");
+    }
+
+    // 배송 완료 처리 (내부)
+    // TODO: 배송 완료 이벤트 수신해서 메소드 실행 + 마스터,허브 관리자 가능
+    public OrderResponse.Update deliveredOrder(UUID orderId) {
+        Order order = findOrderOrThrow(orderId);
         order.markDelivered();
         return OrderResponse.Update.of(order, "주문이 배송 완료 처리되었습니다.");
     }
