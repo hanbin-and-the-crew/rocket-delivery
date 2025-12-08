@@ -5,12 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.delivery.domain.entity.Delivery;
-import org.sparta.delivery.domain.entity.ProcessedEvent;
+import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.sparta.delivery.domain.error.DeliveryErrorType;
 import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
-import org.sparta.delivery.domain.repository.ProcessedEventRepository;
+import org.sparta.delivery.domain.repository.DeliveryProcessedEventRepository;
 import org.sparta.delivery.infrastructure.client.HubRouteFeignClient;
 import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryCompletedEvent;
@@ -40,7 +40,7 @@ import java.util.UUID;
 public class DeliveryServiceImpl implements DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
-    private final ProcessedEventRepository processedEventRepository;
+    private final DeliveryProcessedEventRepository deliveryProcessedEventRepository;
     private final DeliveryLogService deliveryLogService;
     private final HubRouteFeignClient hubRouteFeignClient;
     private final EventPublisher eventPublisher;
@@ -73,6 +73,16 @@ public class DeliveryServiceImpl implements DeliveryService {
         );
 
         Delivery saved = deliveryRepository.save(delivery);
+
+        // 6) 성공 이벤트 발행
+        eventPublisher.publishExternal(DeliveryCreatedEvent.of(
+                saved.getOrderId(),
+                saved.getId(),
+                saved.getSupplierHubId(),
+                saved.getReceiveHubId(),
+                saved.getTotalLogSeq()
+        ));
+
         return DeliveryResponse.Detail.from(saved);
     }
 
@@ -99,7 +109,7 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         try {
             // 1차 방어: eventId 기반 멱등성 체크
-            if (processedEventRepository.existsByEventId(orderEvent.eventId())) {
+            if (deliveryProcessedEventRepository.existsByEventId(orderEvent.eventId())) {
                 log.info("Event already processed, skipping: eventId={}, orderId={}",
                         orderEvent.eventId(), orderEvent.orderId());
 
@@ -116,12 +126,12 @@ public class DeliveryServiceImpl implements DeliveryService {
                     deliveryRepository.findByOrderIdAndDeletedAtIsNull(orderEvent.orderId());
 
             if (existingDelivery.isPresent()) {
-                log.info("Delivery already exists for orderId={}, saving ProcessedEvent and returning existing delivery",
+                log.info("Delivery already exists for orderId={}, saving DeliveryProcessedEvent and returning existing delivery",
                         orderEvent.orderId());
 
                 // 이벤트 기록만 저장하고 기존 배송 반환 (멱등 성공)
-                processedEventRepository.save(
-                        ProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+                deliveryProcessedEventRepository.save(
+                        DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
                 );
 
                 return DeliveryResponse.Detail.from(existingDelivery.get());
@@ -189,8 +199,8 @@ public class DeliveryServiceImpl implements DeliveryService {
                     savedDelivery.getId(), sequence);
 
             // 5) 이벤트 처리 완료 기록 (같은 트랜잭션)
-            processedEventRepository.save(
-                    ProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+            deliveryProcessedEventRepository.save(
+                    org.sparta.delivery.domain.entity.DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
             );
 
             // 6) 성공 이벤트 발행

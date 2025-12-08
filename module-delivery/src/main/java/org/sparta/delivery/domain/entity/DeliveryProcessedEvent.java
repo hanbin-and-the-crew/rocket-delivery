@@ -21,7 +21,7 @@ import java.util.UUID;
 @Table(name = "p_delivery_processed_events",
         indexes = @Index(name = "idx_event_id", columnList = "eventId", unique = true))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProcessedEvent extends BaseEntity {
+public class DeliveryProcessedEvent extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -36,13 +36,13 @@ public class ProcessedEvent extends BaseEntity {
     @Column(nullable = false)
     private Instant processedAt;
 
-    private ProcessedEvent(UUID eventId, String eventType) {
+    private DeliveryProcessedEvent(UUID eventId, String eventType) {
         this.eventId = eventId;
         this.eventType = eventType;
         this.processedAt = Instant.now();
     }
 
-    public static ProcessedEvent of(UUID eventId, String eventType) {
-        return new ProcessedEvent(eventId, eventType);
+    public static DeliveryProcessedEvent of(UUID eventId, String eventType) {
+        return new DeliveryProcessedEvent(eventId, eventType);
     }
 }

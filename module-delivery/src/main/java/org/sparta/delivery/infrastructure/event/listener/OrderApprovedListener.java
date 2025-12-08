@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.delivery.application.service.DeliveryService;
-import org.sparta.delivery.domain.entity.ProcessedEvent;
-import org.sparta.delivery.domain.repository.ProcessedEventRepository;
+import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
+import org.sparta.delivery.domain.repository.DeliveryProcessedEventRepository;
 import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderApprovedListener {
 
     private final DeliveryService deliveryService;
-    private final ProcessedEventRepository processedEventRepository;
+    private final DeliveryProcessedEventRepository deliveryProcessedEventRepository;
     private final ObjectMapper objectMapper;
 
     @KafkaListener(
@@ -44,7 +44,7 @@ public class OrderApprovedListener {
                     event.orderId(), event.eventId());
 
             // 멱등성 체크: eventId로 중복 이벤트 확인
-            if (processedEventRepository.existsByEventId(event.eventId())) {
+            if (deliveryProcessedEventRepository.existsByEventId(event.eventId())) {
                 log.info("Event already processed, skipping: eventId={}, orderId={}",
                         event.eventId(), event.orderId());
                 return;
@@ -56,8 +56,8 @@ public class OrderApprovedListener {
                     event.orderId(), event.eventId());
 
             // 이벤트 처리 완료 기록 (같은 트랜잭션)
-            processedEventRepository.save(
-                    ProcessedEvent.of(event.eventId(), "ORDER_APPROVED")
+            deliveryProcessedEventRepository.save(
+                    DeliveryProcessedEvent.of(event.eventId(), "ORDER_APPROVED")
             );
 
             log.info("OrderApprovedEvent processing completed: orderId={}, eventId={}",
