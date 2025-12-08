@@ -1,6 +1,6 @@
 // 파일 위치: org/sparta/delivery/infrastructure/event/listener/OrderApprovedListener.java
 
-package org.sparta.delivery.infrastructure.event.listener;
+package org.sparta.delivery.application.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

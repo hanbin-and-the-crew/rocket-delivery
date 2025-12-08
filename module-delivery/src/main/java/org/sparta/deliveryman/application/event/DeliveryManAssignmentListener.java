@@ -1,4 +1,4 @@
-package org.sparta.deliveryman.infrastructure.event.listener;
+package org.sparta.deliveryman.application.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
