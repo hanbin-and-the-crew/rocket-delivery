@@ -1,6 +1,5 @@
 package org.sparta.delivery.infrastructure.client;
 
-//import org.sparta.common.route.dto.RoutePlanResponse;
 import org.sparta.common.api.ApiResponse;
 import org.sparta.delivery.presentation.dto.response.HubLegResponse;
 
@@ -37,4 +36,5 @@ public interface HubRouteFeignClient {
                 .toList();
     }
 }
+
 
