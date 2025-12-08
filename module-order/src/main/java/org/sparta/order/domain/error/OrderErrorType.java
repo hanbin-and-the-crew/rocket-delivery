@@ -28,6 +28,8 @@ public enum OrderErrorType implements ErrorType {
     SHIPPED_AT_REQUIRED(HttpStatus.BAD_REQUEST, "출고 시간은 필수입니다"),
     CANCELED_REASON_CODE_REQUIRED(HttpStatus.BAD_REQUEST, "취소 사유 코드는 필수입니다"),
     CANCELED_REASON_MEMO_REQUIRED(HttpStatus.BAD_REQUEST, "취소 사유 상세는 필수입니다"),
+    PAYMENT_ID_REQUIRED(HttpStatus.BAD_REQUEST, "결제 ID는 필수 입니다."),
+
 
     // 예약
     STOCK_RESERVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "재고 예약 실패"),

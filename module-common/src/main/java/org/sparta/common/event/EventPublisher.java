@@ -111,6 +111,11 @@ public class EventPublisher {
             return "delivery-events";
         }
           
+        // Payment 관련 이벤트
+        if (eventType.startsWith("Payment")) {
+            return "payment-events";
+        }
+
         // Coupon 관련 이벤트 (CouponConfirmedEvent, CouponReservationCancelledEvent)
         if (eventType.startsWith("Coupon")) {
             return "coupon-events";

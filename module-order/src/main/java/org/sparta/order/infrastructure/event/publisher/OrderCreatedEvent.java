@@ -10,7 +10,6 @@ import java.util.UUID;
  * 주문 생성 완료 + 결제/포인트/쿠폰 정보 포함 이벤트
  */
 public record OrderCreatedEvent(
-        UUID eventId,
         UUID orderId,
         Long orderAmount,     // 주문 총 금액 (상품가 * 수량)
         Long requestPoint,       // 사용 포인트
@@ -19,6 +18,7 @@ public record OrderCreatedEvent(
         String pointReservationId,
         String couponReservationId,
         String pgToken,
+        UUID eventId,
         Instant occurredAt
 ) implements DomainEvent {
 
@@ -33,7 +33,6 @@ public record OrderCreatedEvent(
             String pgToken
     ) {
         return new OrderCreatedEvent (
-                UUID.randomUUID(),
                 orderId,
                 orderAmount,
                 requestPoint,
@@ -42,6 +41,7 @@ public record OrderCreatedEvent(
                 pointReservationId,
                 couponReservationId,
                 pgToken,
+                UUID.randomUUID(),
                 Instant.now()
         );
     }
