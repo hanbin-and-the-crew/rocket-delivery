@@ -1,0 +1,448 @@
+package org.sparta.delivery.application.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.EventPublisher;
+import org.sparta.delivery.domain.entity.Delivery;
+import org.sparta.delivery.domain.entity.ProcessedEvent;
+import org.sparta.delivery.domain.enumeration.DeliveryStatus;
+import org.sparta.delivery.domain.error.DeliveryErrorType;
+import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
+import org.sparta.delivery.domain.repository.DeliveryRepository;
+import org.sparta.delivery.domain.repository.ProcessedEventRepository;
+import org.sparta.delivery.infrastructure.client.HubRouteFeignClient;
+import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryCompletedEvent;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryFailedEvent;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryLastHubArrivedEvent;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryStartedEvent;
+import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
+import org.sparta.delivery.presentation.dto.response.DeliveryResponse;
+import org.sparta.delivery.presentation.dto.response.HubLegResponse;
+import org.sparta.deliverylog.application.service.DeliveryLogService;
+import org.sparta.deliverylog.presentation.dto.request.DeliveryLogRequest;
+import org.sparta.deliverylog.presentation.dto.response.DeliveryLogResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class DeliveryServiceImpl implements DeliveryService {
+
+    private final DeliveryRepository deliveryRepository;
+    private final ProcessedEventRepository processedEventRepository;
+    private final DeliveryLogService deliveryLogService;
+    private final HubRouteFeignClient hubRouteFeignClient;
+    private final EventPublisher eventPublisher;
+
+    // ================================
+    // 1. 배송 생성 - 단순(테스트용)
+    // ================================
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail createSimple(DeliveryRequest.Create request) {
+        // 주문당 하나만 허용
+        if (deliveryRepository.existsByOrderIdAndDeletedAtIsNull(request.orderId())) {
+            throw new BusinessException(DeliveryErrorType.DELIVERY_ALREADY_EXISTS);
+        }
+
+        Delivery delivery = Delivery.createFromOrderApproved(
+                request.orderId(),
+                request.customerId(),
+                request.supplierCompanyId(),
+                request.supplierHubId(),
+                request.receiveCompanyId(),
+                request.receiveHubId(),
+                request.address(),
+                request.receiverName(),
+                request.receiverSlackId(),
+                request.receiverPhone(),
+                request.dueAt(),
+                request.requestedMemo(),
+                request.totalLogSeq()
+        );
+
+        Delivery saved = deliveryRepository.save(delivery);
+        return DeliveryResponse.Detail.from(saved);
+    }
+
+    // ================================
+    // 2. 배송 생성 - 허브 경로 + 로그 생성 (멱등성 보장)
+    // ================================
+    /**
+     * OrderApprovedEvent를 받아 배송 생성
+     *
+     * 멱등성 보장:
+     * - eventId 기반 중복 이벤트 체크 (1차 방어)
+     * - orderId 기반 중복 배송 체크 (2차 방어)
+     *
+     * 실패 이벤트 발행 정책:
+     * - 복구 불가능한 비즈니스 오류 (NO_ROUTE_AVAILABLE): DeliveryFailedEvent 발행
+     * - 일시적 오류 (Feign 타임아웃, DB 연결 오류 등): 재시도 (이벤트 발행 안함)
+     * - 중복 이벤트 (DELIVERY_ALREADY_EXISTS): 조용히 무시 (이벤트 발행 안함)
+     */
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail createWithRoute(OrderApprovedEvent orderEvent) {
+        log.info("Processing OrderApprovedEvent: orderId={}, eventId={}",
+                orderEvent.orderId(), orderEvent.eventId());
+
+        try {
+            // 1차 방어: eventId 기반 멱등성 체크
+            if (processedEventRepository.existsByEventId(orderEvent.eventId())) {
+                log.info("Event already processed, skipping: eventId={}, orderId={}",
+                        orderEvent.eventId(), orderEvent.orderId());
+
+                // 기존 배송 조회 후 반환 (멱등 성공)
+                Delivery existing = deliveryRepository
+                        .findByOrderIdAndDeletedAtIsNull(orderEvent.orderId())
+                        .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+                return DeliveryResponse.Detail.from(existing);
+            }
+
+            // 2차 방어: orderId 기반 중복 배송 체크
+            Optional<Delivery> existingDelivery =
+                    deliveryRepository.findByOrderIdAndDeletedAtIsNull(orderEvent.orderId());
+
+            if (existingDelivery.isPresent()) {
+                log.info("Delivery already exists for orderId={}, saving ProcessedEvent and returning existing delivery",
+                        orderEvent.orderId());
+
+                // 이벤트 기록만 저장하고 기존 배송 반환 (멱등 성공)
+                processedEventRepository.save(
+                        ProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+                );
+
+                return DeliveryResponse.Detail.from(existingDelivery.get());
+            }
+
+            // 1) 허브 경로 조회
+            List<HubLegResponse> legs = hubRouteFeignClient.getRouteLegs(
+                    orderEvent.supplierHubId(),
+                    orderEvent.receiveHubId()
+            );
+
+            // 복구 불가능한 오류: 경로 없음 → 실패 이벤트 발행
+            if (legs == null || legs.isEmpty()) {
+                log.error("No route available: supplierHubId={}, receiveHubId={}, orderId={}",
+                        orderEvent.supplierHubId(), orderEvent.receiveHubId(), orderEvent.orderId());
+
+                // 실패 이벤트 발행 (주문 쪽에서 처리)
+                eventPublisher.publishExternal(DeliveryFailedEvent.of(
+                        orderEvent.orderId(),
+                        "NO_ROUTE_AVAILABLE"
+                ));
+
+                throw new BusinessException(DeliveryErrorType.NO_ROUTE_AVAILABLE);
+            }
+
+            // 2) Delivery 생성
+            Delivery delivery = Delivery.createFromOrderApproved(
+                    orderEvent.orderId(),
+                    orderEvent.customerId(),
+                    orderEvent.supplierCompanyId(),
+                    orderEvent.supplierHubId(),
+                    orderEvent.receiveCompanyId(),
+                    orderEvent.receiveHubId(),
+                    orderEvent.address(),
+                    orderEvent.receiverName(),
+                    orderEvent.receiverSlackId(),
+                    orderEvent.receiverPhone(),
+                    orderEvent.dueAt(),
+                    orderEvent.requestMemo(),
+                    null  // totalLogSeq는 아래에서 설정
+            );
+
+            Delivery savedDelivery = deliveryRepository.save(delivery);
+            log.info("Delivery created: deliveryId={}, orderId={}",
+                    savedDelivery.getId(), savedDelivery.getOrderId());
+
+            // 3) DeliveryLog 생성
+            int sequence = 0;
+            for (HubLegResponse leg : legs) {
+                DeliveryLogRequest.Create logCreate = new DeliveryLogRequest.Create(
+                        savedDelivery.getId(),
+                        sequence,
+                        leg.sourceHubId(),
+                        leg.targetHubId(),
+                        leg.estimatedKm(),
+                        leg.estimatedMinutes()
+                );
+                deliveryLogService.create(logCreate);
+                sequence++;
+            }
+
+            // 4) totalLogSeq 업데이트
+            savedDelivery.updateTotalLogSeq(sequence);
+            log.info("DeliveryLogs created: deliveryId={}, totalLogSeq={}",
+                    savedDelivery.getId(), sequence);
+
+            // 5) 이벤트 처리 완료 기록 (같은 트랜잭션)
+            processedEventRepository.save(
+                    ProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+            );
+
+            // 6) 성공 이벤트 발행
+            eventPublisher.publishExternal(DeliveryCreatedEvent.of(
+                    savedDelivery.getOrderId(),
+                    savedDelivery.getId(),
+                    savedDelivery.getSupplierHubId(),
+                    savedDelivery.getReceiveHubId(),
+                    savedDelivery.getTotalLogSeq()
+            ));
+
+            log.info("Delivery creation completed successfully: deliveryId={}, orderId={}, eventId={}",
+                    savedDelivery.getId(), savedDelivery.getOrderId(), orderEvent.eventId());
+
+            return DeliveryResponse.Detail.from(savedDelivery);
+
+        } catch (BusinessException e) {
+            // 비즈니스 예외: 로그만 남기고 재던지기
+            log.warn("Business validation failed: orderId={}, errorType={}, message={}",
+                    orderEvent.orderId(), e.getErrorType(), e.getMessage());
+            throw e;
+
+        } catch (feign.RetryableException e) {
+            // 일시적 네트워크 오류: 재시도 가능 (실패 이벤트 발행 안함)
+            log.error("Retryable Feign error creating delivery: orderId={}, message={}",
+                    orderEvent.orderId(), e.getMessage(), e);
+            throw new RuntimeException("Temporary network error - will retry", e);
+
+        } catch (Exception e) {
+            // 예기치 못한 오류: 실패 이벤트 발행 + 재던지기
+            log.error("Unexpected error creating delivery: orderId={}, eventId={}",
+                    orderEvent.orderId(), orderEvent.eventId(), e);
+
+            // 실패 이벤트 발행
+            eventPublisher.publishExternal(DeliveryFailedEvent.of(
+                    orderEvent.orderId(),
+                    "UNEXPECTED_ERROR"
+            ));
+
+            throw new BusinessException(DeliveryErrorType.CREATION_FAILED);
+        }
+    }
+
+    // ================================
+    // 3. 허브 배송 담당자 배정
+    // ================================
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail assignHubDeliveryMan(UUID deliveryId, DeliveryRequest.AssignHubDeliveryMan request) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        delivery.assignHubDeliveryMan(request.hubDeliveryManId());
+        return DeliveryResponse.Detail.from(delivery);
+    }
+
+    // ================================
+    // 4. 업체 배송 담당자 배정
+    // ================================
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail assignCompanyDeliveryMan(UUID deliveryId, DeliveryRequest.AssignCompanyDeliveryMan request) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        delivery.assignCompanyDeliveryMan(request.companyDeliveryManId());
+        return DeliveryResponse.Detail.from(delivery);
+    }
+
+    // ================================
+    // 5. 허브 leg 출발
+    // ================================
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail startHubMoving(UUID deliveryId, DeliveryRequest.StartHubMoving request) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        int seq = request.sequence();
+
+        // Delivery 상태 변경 (HUB_WAITING -> HUB_MOVING, currentLogSeq 세팅)
+        delivery.startHubMoving(seq);
+
+        // DeliveryLog 상태 전이: HUB_WAITING -> HUB_MOVING
+        List<DeliveryLogResponse.Summary> timeline = deliveryLogService.getTimelineByDeliveryId(deliveryId);
+        DeliveryLogResponse.Summary target = timeline.stream()
+                .filter(log -> log.sequence() == seq)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.INVALID_LOG_SEQUENCE));
+
+        deliveryLogService.startLog(target.id());
+
+        // [ 배송 시작 이벤트 ] 첫 허브 출발 시에만 발행
+        if (request.sequence() == 0) {
+            eventPublisher.publishExternal(DeliveryStartedEvent.of(
+                    delivery.getOrderId(),
+                    delivery.getId(),
+                    delivery.getSupplierHubId()
+            ));
+        }
+
+        return DeliveryResponse.Detail.from(delivery);
+    }
+
+    // ================================
+    // 6. 허브 leg 도착
+    // ================================
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail completeHubMoving(UUID deliveryId, DeliveryRequest.CompleteHubMoving request) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        int seq = request.sequence();
+
+        // 전체 leg 개수 기준으로 마지막 leg인지 판단
+        Integer total = delivery.getTotalLogSeq();
+        if (total == null || total <= 0) {
+            throw new BusinessException(DeliveryErrorType.INVALID_TOTAL_LOG_SEQ);
+        }
+        boolean isLastLog = (seq == total - 1);
+
+        // Delivery 상태 전이 (HUB_MOVING -> HUB_WAITING / DEST_HUB_ARRIVED)
+        delivery.completeHubMoving(seq, isLastLog);
+
+        // DeliveryLog 상태 전이 (HUB_MOVING -> HUB_ARRIVED + 실제 거리/시간 기록)
+        List<DeliveryLogResponse.Summary> timeline = deliveryLogService.getTimelineByDeliveryId(deliveryId);
+        DeliveryLogResponse.Summary target = timeline.stream()
+                .filter(log -> log.sequence() == seq)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.INVALID_LOG_SEQUENCE));
+
+        DeliveryLogRequest.Arrive arriveReq = new DeliveryLogRequest.Arrive(
+                request.actualKm(),
+                request.actualMinutes()
+        );
+        deliveryLogService.arriveLog(target.id(), arriveReq);
+
+        // [ 마지막 허브 도착 시 업체 배송 담당자 배정을 위한 이벤트 발행 ]
+        if (isLastLog) {
+            eventPublisher.publishExternal(DeliveryLastHubArrivedEvent.of(
+                    delivery.getOrderId(),
+                    delivery.getId(),
+                    delivery.getReceiveHubId()
+            ));
+        }
+
+        return DeliveryResponse.Detail.from(delivery);
+    }
+
+    // ================================
+    // 7. 업체 구간 시작/완료
+    // ================================
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail startCompanyMoving(UUID deliveryId) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        delivery.startCompanyMoving();
+        return DeliveryResponse.Detail.from(delivery);
+    }
+
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail completeDelivery(UUID deliveryId) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        delivery.completeDelivery();
+
+        // [ 배송 최종 완료 이벤트 ]
+        eventPublisher.publishExternal(DeliveryCompletedEvent.of(
+                delivery.getOrderId(),
+                delivery.getId(),
+                delivery.getReceiveCompanyId()
+        ));
+
+        return DeliveryResponse.Detail.from(delivery);
+    }
+
+    // ================================
+    // 8. 취소/삭제
+    // ================================
+    @Override
+    @Transactional
+    public DeliveryResponse.Detail cancel(UUID deliveryId) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        if (delivery.getStatus() != DeliveryStatus.CREATED &&
+                delivery.getStatus() != DeliveryStatus.HUB_WAITING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_CANCEL);
+        }
+
+        delivery.cancel();
+        return DeliveryResponse.Detail.from(delivery);
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID deliveryId) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        if (delivery.getDeletedAt() != null) {
+            throw new BusinessException(DeliveryErrorType.DELIVERY_ALREADY_DELETED);
+        }
+
+        delivery.delete();
+    }
+
+    // ================================
+    // 9. 조회
+    // ================================
+    @Override
+    public DeliveryResponse.Detail getDetail(UUID deliveryId) {
+        Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
+                .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+        return DeliveryResponse.Detail.from(delivery);
+    }
+
+    @Override
+    public DeliveryResponse.PageResult search(DeliveryRequest.Search request, Pageable pageable) {
+        Sort.Direction direction = parseDirection(request.sortDirection());
+
+        Page<Delivery> page = deliveryRepository.search(
+                request.status(),
+                request.hubId(),
+                request.companyId(),
+                pageable,
+                direction
+        );
+
+        List<DeliveryResponse.Summary> content = page.getContent().stream()
+                .map(DeliveryResponse.Summary::from)
+                .toList();
+
+        return new DeliveryResponse.PageResult(
+                content,
+                page.getTotalElements(),
+                page.getTotalPages()
+        );
+    }
+
+    private Sort.Direction parseDirection(String sortDirection) {
+        if (sortDirection == null) {
+            return Sort.Direction.ASC;
+        }
+        return "DESC".equalsIgnoreCase(sortDirection.trim())
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+    }
+}

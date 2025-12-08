@@ -1,159 +1,122 @@
 package org.sparta.deliverylog.presentation;
 
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.deliverylog.application.dto.DeliveryLogRequest;
-import org.sparta.deliverylog.application.dto.DeliveryLogResponse;
 import org.sparta.deliverylog.application.service.DeliveryLogService;
-import org.springframework.data.domain.Page;
+import org.sparta.deliverylog.presentation.dto.request.DeliveryLogRequest;
+import org.sparta.deliverylog.presentation.dto.response.DeliveryLogResponse;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
-@Tag(name = "배송 경로", description = "배송 경로 관리 API")
 @RestController
-@RequestMapping("/delivery-logs")
+@RequestMapping("/api/delivery-logs")
 @RequiredArgsConstructor
-public class DeliveryLogController {
+public class DeliveryLogController implements DeliveryLogApiSpec {
 
     private final DeliveryLogService deliveryLogService;
 
-    @Operation(summary = "배송 경로 생성", description = "새로운 배송 경로를 생성합니다")
+    @Override
     @PostMapping
-    public ResponseEntity<ApiResponse<DeliveryLogResponse.Detail>> createDeliveryLog(
-            @Valid @RequestBody DeliveryLogRequest.Create request,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
+    public ApiResponse<DeliveryLogResponse.Detail> create(
+            @Valid @RequestBody DeliveryLogRequest.Create request
     ) {
-        DeliveryLogResponse.Detail response = deliveryLogService.createDeliveryLog(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(response));
+        DeliveryLogResponse.Detail response = deliveryLogService.create(request);
+        return ApiResponse.success(response);
     }
 
-    @Operation(summary = "배송 담당자 배정", description = "배송 경로에 배송 담당자를 배정합니다")
-    @PatchMapping("/{deliveryLogId}/assign")
-    public ResponseEntity<ApiResponse<DeliveryLogResponse.Detail>> assignDeliveryMan(
-            @PathVariable UUID deliveryLogId,
-            @Valid @RequestBody DeliveryLogRequest.Assign request,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
+    @Override
+    @GetMapping("/{logId}")
+    public ApiResponse<DeliveryLogResponse.Detail> getDetail(
+            @PathVariable UUID logId
     ) {
-        DeliveryLogResponse.Detail response = deliveryLogService.assignDeliveryMan(
-                deliveryLogId,
-                request.deliveryManId()
-        );
-        return ResponseEntity.ok(ApiResponse.success(response));
+        DeliveryLogResponse.Detail response = deliveryLogService.getDetail(logId);
+        return ApiResponse.success(response);
     }
 
-    @Operation(summary = "배송 시작", description = "배송을 시작합니다")
-    @PatchMapping("/{deliveryLogId}/start")
-    public ResponseEntity<ApiResponse<DeliveryLogResponse.Detail>> startDelivery(
-            @PathVariable UUID deliveryLogId,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
-    ) {
-        DeliveryLogResponse.Detail response = deliveryLogService.startDelivery(deliveryLogId);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @Operation(summary = "배송 완료", description = "배송을 완료하고 실제 거리와 시간을 기록합니다")
-    @PatchMapping("/{deliveryLogId}/complete")
-    public ResponseEntity<ApiResponse<DeliveryLogResponse.Detail>> completeDelivery(
-            @PathVariable UUID deliveryLogId,
-            @Valid @RequestBody DeliveryLogRequest.Complete request,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
-    ) {
-        DeliveryLogResponse.Detail response = deliveryLogService.completeDelivery(
-                deliveryLogId,
-                request
-        );
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @Operation(summary = "배송 경로 단건 조회", description = "배송 경로 상세 정보를 조회합니다")
-    @GetMapping("/{deliveryLogId}")
-    public ResponseEntity<ApiResponse<DeliveryLogResponse.Detail>> getDeliveryLog(
-            @PathVariable UUID deliveryLogId,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
-    ) {
-        DeliveryLogResponse.Detail response = deliveryLogService.getDeliveryLog(deliveryLogId);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @Operation(summary = "배송 ID로 전체 경로 조회", description = "특정 배송의 전체 경로를 순서대로 조회합니다")
+    @Override
     @GetMapping("/delivery/{deliveryId}")
-    public ResponseEntity<ApiResponse<List<DeliveryLogResponse.Summary>>> getDeliveryLogsByDeliveryId(
-            @PathVariable UUID deliveryId,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
+    public ApiResponse<List<DeliveryLogResponse.Summary>> getTimelineByDeliveryId(
+            @PathVariable UUID deliveryId
     ) {
-        List<DeliveryLogResponse.Summary> response = deliveryLogService.getDeliveryLogsByDeliveryId(deliveryId);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        List<DeliveryLogResponse.Summary> response =
+                deliveryLogService.getTimelineByDeliveryId(deliveryId);
+        return ApiResponse.success(response);
     }
 
-    @Operation(summary = "배송 담당자의 진행 중인 경로 조회", description = "배송 담당자가 진행 중인 경로를 조회합니다")
-    @GetMapping("/delivery-man/{deliveryManId}/in-progress")
-    public ResponseEntity<ApiResponse<List<DeliveryLogResponse.Summary>>> getDeliveryManInProgressLogs(
-            @PathVariable UUID deliveryManId,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
-    ) {
-        List<DeliveryLogResponse.Summary> response = deliveryLogService.getDeliveryManInProgressLogs(deliveryManId);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @Operation(summary = "허브의 대기 중인 경로 조회", description = "특정 허브에서 대기 중인 경로를 조회합니다")
-    @GetMapping("/hub/{hubId}/waiting")
-    public ResponseEntity<ApiResponse<List<DeliveryLogResponse.Summary>>> getHubWaitingLogs(
-            @PathVariable UUID hubId,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
-    ) {
-        List<DeliveryLogResponse.Summary> response = deliveryLogService.getHubWaitingLogs(hubId);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @Operation(summary = "전체 경로 목록 조회", description = "모든 배송 경로를 페이징하여 조회합니다")
+    @Override
     @GetMapping
-    public ResponseEntity<ApiResponse<Page<DeliveryLogResponse.Summary>>> getAllDeliveryLogs(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
+    public ApiResponse<DeliveryLogResponse.PageResult> search(
+            @RequestParam(required = false) UUID hubId,
+            @RequestParam(required = false) UUID deliveryManId,
+            @RequestParam(required = false) UUID deliveryId,
+            @RequestParam(required = false, defaultValue = "ASC") String sortDirection,
+            @PageableDefault(size = 10) Pageable pageable
     ) {
-        Page<DeliveryLogResponse.Summary> response = deliveryLogService.getAllDeliveryLogs(pageable);
-        return ResponseEntity.ok(ApiResponse.success(response));
+        DeliveryLogRequest.Search request = new DeliveryLogRequest.Search(
+                hubId,
+                deliveryManId,
+                deliveryId,
+                sortDirection
+        );
+
+        DeliveryLogResponse.PageResult response =
+                deliveryLogService.search(request, pageable);
+        return ApiResponse.success(response);
     }
 
-    @Operation(summary = "배송 경로 취소", description = "배송 경로를 취소합니다")
-    @PatchMapping("/{deliveryLogId}/cancel")
-    public ResponseEntity<ApiResponse<Void>> cancelDeliveryLog(
-            @PathVariable UUID deliveryLogId,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
+    @Override
+    @PostMapping("/{logId}/assign-delivery-man")
+    public ApiResponse<DeliveryLogResponse.Detail> assignDeliveryMan(
+            @PathVariable UUID logId,
+            @Valid @RequestBody DeliveryLogRequest.AssignDeliveryMan request
     ) {
-        deliveryLogService.cancelDeliveryLog(deliveryLogId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        DeliveryLogResponse.Detail response =
+                deliveryLogService.assignDeliveryMan(logId, request);
+        return ApiResponse.success(response);
     }
 
-    @Operation(summary = "배송 경로 삭제", description = "배송 경로를 논리 삭제합니다")
-    @DeleteMapping("/{deliveryLogId}")
-    public ResponseEntity<ApiResponse<Void>> deleteDeliveryLog(
-            @PathVariable UUID deliveryLogId,
-            @RequestHeader("X-User-Id") String userId,
-            @RequestHeader("X-User-Role") String userRole
+    @Override
+    @PostMapping("/{logId}/start")
+    public ApiResponse<DeliveryLogResponse.Detail> startLog(
+            @PathVariable UUID logId
     ) {
-        deliveryLogService.deleteDeliveryLog(deliveryLogId);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        DeliveryLogResponse.Detail response =
+                deliveryLogService.startLog(logId);
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @PostMapping("/{logId}/arrive")
+    public ApiResponse<DeliveryLogResponse.Detail> arriveLog(
+            @PathVariable UUID logId,
+            @Valid @RequestBody DeliveryLogRequest.Arrive request
+    ) {
+        DeliveryLogResponse.Detail response =
+                deliveryLogService.arriveLog(logId, request);
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @PostMapping("/{logId}/cancel")
+    public ApiResponse<DeliveryLogResponse.Detail> cancelFromDelivery(
+            @PathVariable UUID logId
+    ) {
+        DeliveryLogResponse.Detail response =
+                deliveryLogService.cancelFromDelivery(logId);
+        return ApiResponse.success(response);
+    }
+
+    @Override
+    @DeleteMapping("/{logId}")
+    public ApiResponse<Void> delete(
+            @PathVariable UUID logId
+    ) {
+        deliveryLogService.delete(logId);
+        return ApiResponse.success(null);
     }
 }
