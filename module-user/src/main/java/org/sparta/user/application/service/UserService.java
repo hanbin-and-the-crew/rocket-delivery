@@ -96,7 +96,7 @@ public class UserService {
     public UserResponse.UpdateUser updateSelf(CustomUserDetails user, UserCommand.UpdateUser request) {
 
         User userInfo = userRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new BusinessException(UserErrorType.UNAUTHORIZED, "수정할 유저 정보가 없습니다."));
+                .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND, "수정할 유저 정보가 없습니다."));
 
         User updated = updateUserInfo(userInfo, request);
 
@@ -189,7 +189,7 @@ public class UserService {
     })
     public void deleteUser(UUID userId) {
         User userInfo = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(UserErrorType.NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND));
 
         User deletedUser = softDeleteUser(userInfo);
 
