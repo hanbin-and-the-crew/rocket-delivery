@@ -56,4 +56,9 @@ public class UserRepositoryImpl implements UserRepository {
     public void deleteAll() {
         userJpaRepository.deleteAll();
     }
+
+    @Override
+    public long count() {
+        return userJpaRepository.count();
+    }
 }

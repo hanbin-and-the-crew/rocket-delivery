@@ -3,8 +3,10 @@ package org.sparta.order.presentation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.order.application.dto.request.OrderRequest;
-import org.sparta.order.application.dto.response.OrderResponse;
+import org.sparta.order.application.command.OrderCommand;
+import org.sparta.order.presentation.dto.request.OrderRequest;
+import org.sparta.order.presentation.dto.OrderMapper;
+import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.sparta.order.application.service.OrderService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +20,7 @@ import java.util.UUID;
 public class OrderController implements OrderApiSpec {
 
     private final OrderService orderService;
+    private final OrderMapper orderMapper;
 
     // TODO: 현재는 헤더로 X-USER-ID를 받아옴 => security가 공통 모듈에 추가 되면 바꿀 예정
     
@@ -28,10 +31,12 @@ public class OrderController implements OrderApiSpec {
     @PostMapping
     public ApiResponse<OrderResponse.Detail> createOrder(
             @RequestHeader("X-USER-ID") String userIdHeader,
+            @RequestHeader("X-Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody OrderRequest.Create request
     ) {
         UUID customerId = UUID.fromString(userIdHeader);
-        OrderResponse.Detail response = orderService.createOrder(customerId, request);
+        OrderCommand.Create command = orderMapper.toCommand(request);
+        OrderResponse.Detail response = orderService.createOrder(customerId, command, idempotencyKey);
         return ApiResponse.success(response);
     }
 
@@ -72,7 +77,8 @@ public class OrderController implements OrderApiSpec {
             @PathVariable UUID orderId,
             @Valid @RequestBody OrderRequest.ChangeDueAt request
     ) {
-        OrderResponse.Update response = orderService.changeDueAt(orderId, request);
+        OrderCommand.ChangeDueAt command = orderMapper.toCommand(request);
+        OrderResponse.Update response = orderService.changeDueAt(orderId, command);
         return ApiResponse.success(response);
     }
 
@@ -85,7 +91,8 @@ public class OrderController implements OrderApiSpec {
             @PathVariable UUID orderId,
             @Valid @RequestBody OrderRequest.ChangeAddress request
     ) {
-        OrderResponse.Update response = orderService.changeAddress(orderId, request);
+        OrderCommand.ChangeAddress command = orderMapper.toCommand(request);
+        OrderResponse.Update response = orderService.changeAddress(orderId, command);
         return ApiResponse.success(response);
     }
 
@@ -98,7 +105,8 @@ public class OrderController implements OrderApiSpec {
             @PathVariable UUID orderId,
             @Valid @RequestBody OrderRequest.ChangeMemo request
     ) {
-        OrderResponse.Update response = orderService.changeRequestMemo(orderId, request);
+        OrderCommand.changeRequestMemo command = orderMapper.toCommand(request);
+        OrderResponse.Update response = orderService.changeRequestMemo(orderId, command);
         return ApiResponse.success(response);
     }
 
@@ -113,7 +121,7 @@ public class OrderController implements OrderApiSpec {
             @PathVariable UUID orderId,
             @Valid @RequestBody OrderRequest.Cancel request
     ) {
-        OrderRequest.Cancel fixedRequest = new OrderRequest.Cancel(
+        OrderCommand.Cancel fixedRequest = new OrderCommand.Cancel(
                 orderId,
                 request.reasonCode(),
                 request.reasonMemo()
@@ -130,8 +138,8 @@ public class OrderController implements OrderApiSpec {
     public ApiResponse<OrderResponse.Update> shipOrder(
             @PathVariable UUID orderId
     ) {
-        OrderRequest.ShipOrder request = new OrderRequest.ShipOrder(orderId);
-        OrderResponse.Update response = orderService.shipOrder(request);
+        OrderCommand.ShipOrder command = new OrderCommand.ShipOrder(orderId);
+        OrderResponse.Update response = orderService.shipOrder(command);
         return ApiResponse.success(response);
     }
 
@@ -143,8 +151,8 @@ public class OrderController implements OrderApiSpec {
     public ApiResponse<OrderResponse.Update> deliverOrder(
             @PathVariable UUID orderId
     ) {
-        OrderRequest.DeliverOrder request = new OrderRequest.DeliverOrder(orderId);
-        OrderResponse.Update response = orderService.deliverOrder(request);
+        OrderCommand.DeliverOrder command = new OrderCommand.DeliverOrder(orderId);
+        OrderResponse.Update response = orderService.deliverOrder(command);
         return ApiResponse.success(response);
     }
 
@@ -156,8 +164,8 @@ public class OrderController implements OrderApiSpec {
     public ApiResponse<OrderResponse.Update> deleteOrder(
             @PathVariable UUID orderId
     ) {
-        OrderRequest.DeleteOrder request = new OrderRequest.DeleteOrder(orderId);
-        OrderResponse.Update response = orderService.deleteOrder(request);
+        OrderCommand.DeleteOrder command = new OrderCommand.DeleteOrder(orderId);
+        OrderResponse.Update response = orderService.deleteOrder(command);
         return ApiResponse.success(response);
     }
 }
