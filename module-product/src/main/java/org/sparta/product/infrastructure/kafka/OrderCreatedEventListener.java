@@ -1,5 +1,7 @@
 package org.sparta.product.infrastructure.kafka;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -13,6 +15,10 @@ import org.sparta.product.domain.repository.StockRepository;
 import org.sparta.product.domain.repository.StockReservationRepository;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.sparta.product.domain.outbox.ProductOutboxEvent;
+import org.sparta.product.domain.repository.ProductOutboxEventRepository;
+import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.Map;
 import java.util.Optional;
@@ -33,14 +39,14 @@ public class OrderCreatedEventListener {
     private final StockRepository stockRepository;
     private final EventPublisher eventPublisher;
 
+    private final ProductOutboxEventRepository productOutboxEventRepository;
+    private final ObjectMapper objectMapper;
+
     /**
      * order-created 토픽 리스너
-     *
-     * KafkaConfig 설정 기준:
-     * - value는 JsonDeserializer + LinkedHashMap 으로 역직렬화됨
-     *   → record.value()는 Map<String, Object> 형태라고 보면 된다.
      */
     @KafkaListener(topics = "order-created", groupId = "product-service")
+    @Transactional
     public void handleOrderCreated(ConsumerRecord<String, Object> record) {
 
         Object rawValue = record.value();
@@ -127,14 +133,21 @@ public class OrderCreatedEventListener {
         );
 
         // 5. 외부 이벤트 발행 (Kafka: stock-events 토픽)
+        // 5. Outbox 에 이벤트 저장 (재고 차감과 같은 트랜잭션 내)
         try {
-            eventPublisher.publishExternal(stockConfirmedEvent);
-            log.info("[OrderCreatedEventListener] StockConfirmedEvent 발행 완료 - orderId={}, productId={}, quantity={}",
-                    orderId, stock.getProductId(), reservation.getReservedQuantity());
-        } catch (Exception ex) {
-            // 재고는 이미 차감됐고, 이벤트 발행만 실패한 상황
-            // (추후 outbox 패턴으로 개선할 수 있는 포인트)
-            log.error("[OrderCreatedEventListener] StockConfirmedEvent 발행 실패 - orderId={}, productId={}",
+            String payloadJson = objectMapper.writeValueAsString(stockConfirmedEvent);
+
+            ProductOutboxEvent outboxEvent =
+                    ProductOutboxEvent.stockConfirmed(stockConfirmedEvent, payloadJson);
+
+            productOutboxEventRepository.save(outboxEvent);
+
+            log.info("[OrderCreatedEventListener] StockConfirmedEvent Outbox 저장 완료 - outboxId={}, orderId={}, productId={}, quantity={}",
+                    outboxEvent.getId(), orderId, stock.getProductId(), reservation.getReservedQuantity());
+
+        } catch (JsonProcessingException ex) {
+            // 직렬화 실패하면 Kafka 발행도 불가능하므로, 일단 트랜잭션 롤백을 막기 위해 여기서만 로그 후 종료
+            log.error("[OrderCreatedEventListener] StockConfirmedEvent 직렬화 실패 - orderId={}, productId={}",
                     orderId, stock.getProductId(), ex);
         }
     }
