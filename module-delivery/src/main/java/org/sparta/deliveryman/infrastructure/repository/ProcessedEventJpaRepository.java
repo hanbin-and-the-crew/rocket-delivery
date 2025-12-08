@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 /**
- * ProcessedEvent JPA Repository
+ * DeliveryProcessedEvent JPA Repository
  */
 public interface ProcessedEventJpaRepository extends JpaRepository<ProcessedEvent, UUID> {
 

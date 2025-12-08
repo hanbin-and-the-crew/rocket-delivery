@@ -1,7 +1,7 @@
 
 package org.sparta.delivery.domain.repository;
 
-import org.sparta.delivery.domain.entity.ProcessedEvent;
+import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
 
 import java.util.UUID;
 
@@ -10,7 +10,7 @@ import java.util.UUID;
  *
  * 멱등성 체크용
  */
-public interface ProcessedEventRepository {
+public interface DeliveryProcessedEventRepository {
 
     /**
      * 이벤트 ID로 처리 여부 확인
@@ -20,5 +20,5 @@ public interface ProcessedEventRepository {
     /**
      * 처리된 이벤트 저장
      */
-    ProcessedEvent save(ProcessedEvent processedEvent);
+    DeliveryProcessedEvent save(DeliveryProcessedEvent deliveryProcessedEvent);
 }

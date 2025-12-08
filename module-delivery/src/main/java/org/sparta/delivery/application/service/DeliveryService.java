@@ -46,7 +46,7 @@ public interface DeliveryService {
      * 1. Hub FeignClient로 허브 경로 조회
      * 2. Delivery 엔티티 생성 및 저장
      * 3. 각 경로 구간(leg)별 DeliveryLog 생성
-     * 4. ProcessedEvent 기록 (멱등성 보장)
+     * 4. DeliveryProcessedEvent 기록 (멱등성 보장)
      * 5. DeliveryCreatedEvent 발행
      *
      * @param event 주문 승인 이벤트
