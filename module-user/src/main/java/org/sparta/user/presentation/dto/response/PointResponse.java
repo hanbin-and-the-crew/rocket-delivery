@@ -10,13 +10,13 @@ public class PointResponse {
     @Schema(description = "포인트 응답")
     public record PointReservationResult (
             @Schema(description = "예약된 포인트", example = "5000")
-            Long totalReservedAmount,
+            Long discountAmount,
 
             @Schema(description = "예약된 포인트 목록")
             List<PointReservation> reservations
     ) {
-        public static PointReservationResult of(Long totalReservedAmount, List<PointReservation> reservations) {
-            return new PointReservationResult(totalReservedAmount, reservations);
+        public static PointReservationResult of(Long discountAmount, List<PointReservation> reservations) {
+            return new PointReservationResult(discountAmount, reservations);
         }
     }
 
