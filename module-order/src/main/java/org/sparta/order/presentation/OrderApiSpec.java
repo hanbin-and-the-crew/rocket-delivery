@@ -1,5 +1,6 @@
 package org.sparta.order.presentation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -50,7 +51,7 @@ public interface OrderApiSpec {
             )
             String idempotencyKey,
             OrderRequest.Create request
-    );
+    ) throws JsonProcessingException;
 
     @Operation(
             summary = "주문 단건 조회",

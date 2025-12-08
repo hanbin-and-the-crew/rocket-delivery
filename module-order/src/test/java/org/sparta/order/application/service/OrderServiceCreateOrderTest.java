@@ -1,5 +1,6 @@
 package org.sparta.order.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import feign.FeignException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +49,7 @@ class OrderServiceCreateOrderTest {
     private PaymentClient paymentClient;
 
     @Test
-    void createOrder_success_withPointAndCoupon_andPublishOrderCreatedEvent() {
+    void createOrder_success_withPointAndCoupon_andPublishOrderCreatedEvent() throws JsonProcessingException {
         // ===== given =====
         UUID customerId = UUID.randomUUID();
         UUID supplierCompanyId = UUID.randomUUID();

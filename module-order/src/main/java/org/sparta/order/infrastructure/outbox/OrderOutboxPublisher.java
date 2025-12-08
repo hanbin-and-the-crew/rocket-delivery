@@ -1,0 +1,52 @@
+package org.sparta.order.infrastructure.outbox;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.event.EventPublisher;
+import org.sparta.order.domain.entity.OrderOutboxEvent;
+import org.sparta.order.domain.repository.OrderOutboxEventRepository;
+import org.sparta.order.infrastructure.event.publisher.OrderCreatedEvent;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class OrderOutboxPublisher {
+
+    private final OrderOutboxEventRepository outboxRepository;
+    private final EventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
+
+    @Scheduled(fixedDelay = 2000) // 2초마다 체크, 부하 고려해서 주기를 늘려도 됨.
+    @Transactional
+    public void publishReadyEvents() {
+
+        List<OrderOutboxEvent> events =
+                outboxRepository.findReadyEvents(100);
+
+        for (OrderOutboxEvent outbox : events) {
+            try {
+                OrderCreatedEvent event =
+                        objectMapper.readValue(outbox.getPayload(), OrderCreatedEvent.class);
+
+                eventPublisher.publishExternal(event);
+
+                outbox.markSent();
+                outboxRepository.save(outbox);
+
+                log.info("[OrderOutboxPublisher] OrderCreatedEvent 발행 완료 - outboxId={}, orderId={}",
+                        outbox.getId(), event.orderId());
+
+            } catch (Exception ex) {
+                log.error("[OrderOutboxPublisher] 이벤트 발행 실패 - outboxId={}", outbox.getId(), ex);
+                outbox.markFailed();
+                outboxRepository.save(outbox);
+            }
+        }
+    }
+}
