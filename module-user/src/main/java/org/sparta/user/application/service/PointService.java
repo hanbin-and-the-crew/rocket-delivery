@@ -112,6 +112,8 @@ public class PointService {
         );
 
         Long discountAmount = 0L;
+        List<PointServiceResult.PointUsageDetail> confirmedDetails = new ArrayList<>();
+
         for (PointReservation reservation : reservations) {
             Point point = pointRepository.findById(reservation.getPointId())
                     .orElseThrow(() -> new BusinessException(PointErrorType.POINT_NOT_FOUND));
@@ -123,21 +125,12 @@ public class PointService {
 
             reservation.updateStatus(ReservationStatus.CONFIRMED);
             reservationRepository.save(reservation);
+
+            confirmedDetails.add(new PointServiceResult.PointUsageDetail(
+                    reservation.getPointId(),
+                    reservation.getReservedAmount()
+            ));
         }
-
-        // Result로 변환(추후 Mapper로 분리!!!!!!!!!!!!!!!!!!!!)
-        List<PointServiceResult.PointUsageDetail> confirmedDetails =
-                reservations.stream()
-                        .map(r -> {
-                            Point point = pointRepository.findById(r.getPointId())
-                                    .orElseThrow(() -> new BusinessException(PointErrorType.POINT_NOT_FOUND));
-
-                            return new PointServiceResult.PointUsageDetail(
-                                    r.getPointId(),
-                                    r.getReservedAmount()
-                            );
-                        })
-                        .toList();
 
         return new PointServiceResult.Confirm(orderId, discountAmount, confirmedDetails);
     }

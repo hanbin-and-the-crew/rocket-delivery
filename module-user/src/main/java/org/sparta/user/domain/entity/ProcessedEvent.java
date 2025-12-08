@@ -13,7 +13,10 @@ import java.util.UUID;
  * - Kafka 이벤트 멱등성 보장을 위한 엔티티
  */
 @Entity
-@Table(name = "p_point_processed_events")
+@Table(
+        name = "p_point_processed_events",
+        indexes = @Index(name = "idx_event_id", columnList = "event_id", unique = true)
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProcessedEvent {

@@ -7,7 +7,8 @@ public class PointServiceResult {
 
     /**
      * 포인트 예약 결과(Kafka Event)
-     * 예약 자체는 REST API과정으로 이루어지므로 해당 record는 당장 사용하지 않음
+     * 포인트 예약 과정은 현재 REST API과정으로 이루어지므로
+     * @deprecated 현재 REST 기반 예약으로 사용하지 않음.
      */
     public record Reserve(
             UUID orderId,

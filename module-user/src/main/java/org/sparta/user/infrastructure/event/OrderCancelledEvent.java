@@ -6,8 +6,8 @@ import java.util.UUID;
 public record OrderCancelledEvent(
         UUID eventId,
         UUID orderId,
-        //UUID productId,
-        //Integer quantity,
+        UUID productId,
+        Integer quantity,
         Instant occurredAt
 ) {
 }

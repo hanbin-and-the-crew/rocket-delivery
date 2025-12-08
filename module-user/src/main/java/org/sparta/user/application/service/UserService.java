@@ -119,7 +119,7 @@ public class UserService {
      */
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "userCache", key = "#user.Id"),
+            @CacheEvict(value = "userCache", key = "#userDetails.id"),
             @CacheEvict(value = "userListCache", allEntries = true)
     })
     public void deleteSelf(CustomUserDetails userDetails) {
@@ -164,13 +164,13 @@ public class UserService {
      */
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "userCache", key = "#userid"),
+            @CacheEvict(value = "userCache", key = "#userId"),
             @CacheEvict(value = "userListCache", allEntries = true)
     })
     public UserResponse.UpdateUser updateUser(UUID userId, UserCommand.UpdateUser request) {
 
         User userInfo = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(UserErrorType.UNAUTHORIZED, "수정할 유저 정보가 없습니다."));
+                .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND, "수정할 유저 정보가 없습니다."));
 
         User updated = updateUserInfo(userInfo, request);
 
@@ -256,9 +256,10 @@ public class UserService {
         }
 
         // 비밀번호
-        if (request.oldPassword() != null
-                && newPassword != null
-                && passwordEncoder.matches(request.oldPassword(), userInfo.getPassword())) {
+        if (request.oldPassword() != null && newPassword != null) {
+            if (!passwordEncoder.matches(request.oldPassword(), userInfo.getPassword())) {
+                throw new BusinessException(UserErrorType.VALIDATION_FAILED, "기존 비밀번호가 일치하지 않습니다.");
+            }
             userInfo.updatePassword(newPassword);
         }
 
@@ -287,11 +288,12 @@ public class UserService {
             throw new BusinessException(UserErrorType.USER_NOT_FOUND);
         }
 
-        return user; // 이벤트 발행용
+        return userRepository.findByUserId(user.getUserId())
+                .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND));
     }
 
     // 업데이트 인증처리에 대한 추가적인 메서드를 작성하여 기존 인증값과 현재 업데이트 된 값을 가져와서 업데이트 처리
-    protected Authentication updateAuthentication(Authentication authentication, CustomUserDetails userDetails) {
+    private Authentication updateAuthentication(Authentication authentication, CustomUserDetails userDetails) {
         UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
                 userDetails, authentication.getCredentials(), userDetails.getAuthorities());
         newAuth.setDetails(authentication.getDetails());
