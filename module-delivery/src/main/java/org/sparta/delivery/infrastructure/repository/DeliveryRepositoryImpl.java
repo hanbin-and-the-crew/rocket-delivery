@@ -96,4 +96,9 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
 
         return new PageImpl<>(content, pageable, total);
     }
+
+    @Override
+    public Optional<Delivery> findByOrderIdAndDeletedAtIsNull(UUID orderId) {
+        return deliveryJpaRepository.findByOrderIdAndDeletedAtIsNull(orderId);
+    }
 }

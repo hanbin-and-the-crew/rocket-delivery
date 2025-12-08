@@ -24,4 +24,6 @@ public interface DeliveryRepository {
             Pageable pageable,
             Sort.Direction direction
     );
+
+    Optional<Delivery> findByOrderIdAndDeletedAtIsNull(UUID orderId);
 }

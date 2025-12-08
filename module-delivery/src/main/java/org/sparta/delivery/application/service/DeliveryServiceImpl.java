@@ -5,17 +5,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.delivery.domain.entity.Delivery;
+import org.sparta.delivery.domain.entity.ProcessedEvent;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.sparta.delivery.domain.error.DeliveryErrorType;
-import org.sparta.delivery.infrastructure.event.publisher.DeliveryCompletedEvent;
 import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
+import org.sparta.delivery.domain.repository.DeliveryRepository;
+import org.sparta.delivery.domain.repository.ProcessedEventRepository;
+import org.sparta.delivery.infrastructure.client.HubRouteFeignClient;
+import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
+import org.sparta.delivery.infrastructure.event.publisher.DeliveryCompletedEvent;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryFailedEvent;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryLastHubArrivedEvent;
 import org.sparta.delivery.infrastructure.event.publisher.DeliveryStartedEvent;
-import org.sparta.delivery.domain.repository.DeliveryRepository;
-import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
 import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
 import org.sparta.delivery.presentation.dto.response.DeliveryResponse;
+import org.sparta.delivery.presentation.dto.response.HubLegResponse;
 import org.sparta.deliverylog.application.service.DeliveryLogService;
 import org.sparta.deliverylog.presentation.dto.request.DeliveryLogRequest;
 import org.sparta.deliverylog.presentation.dto.response.DeliveryLogResponse;
@@ -24,11 +28,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.sparta.delivery.infrastructure.client.HubRouteFeignClient;
-import org.sparta.delivery.presentation.dto.response.HubLegResponse;
 
-import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -38,18 +40,18 @@ import java.util.UUID;
 public class DeliveryServiceImpl implements DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
+    private final ProcessedEventRepository processedEventRepository;
     private final DeliveryLogService deliveryLogService;
-    private final HubRouteFeignClient hubRouteFeignClient; // 허브 경로 조회용 Feign
+    private final HubRouteFeignClient hubRouteFeignClient;
     private final EventPublisher eventPublisher;
 
     // ================================
-    // 1. 배송 생성 - 단순(테스트용) /TODO: 허브 경로 조회 기능 추가해서 실제 자동으로 실행되는 api와 동일하게 동작하게 하기
+    // 1. 배송 생성 - 단순(테스트용)
     // ================================
     @Override
     @Transactional
     public DeliveryResponse.Detail createSimple(DeliveryRequest.Create request) {
-
-        // 주문당 하나만 허용하고 싶다면 이 검증 사용
+        // 주문당 하나만 허용
         if (deliveryRepository.existsByOrderIdAndDeletedAtIsNull(request.orderId())) {
             throw new BusinessException(DeliveryErrorType.DELIVERY_ALREADY_EXISTS);
         }
@@ -75,22 +77,74 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     // ================================
-    // 2. 배송 생성 - 허브 경로 + 로그 생성까지
+    // 2. 배송 생성 - 허브 경로 + 로그 생성 (멱등성 보장)
     // ================================
+    /**
+     * OrderApprovedEvent를 받아 배송 생성
+     *
+     * 멱등성 보장:
+     * - eventId 기반 중복 이벤트 체크 (1차 방어)
+     * - orderId 기반 중복 배송 체크 (2차 방어)
+     *
+     * 실패 이벤트 발행 정책:
+     * - 복구 불가능한 비즈니스 오류 (NO_ROUTE_AVAILABLE): DeliveryFailedEvent 발행
+     * - 일시적 오류 (Feign 타임아웃, DB 연결 오류 등): 재시도 (이벤트 발행 안함)
+     * - 중복 이벤트 (DELIVERY_ALREADY_EXISTS): 조용히 무시 (이벤트 발행 안함)
+     */
     @Override
     @Transactional
     public DeliveryResponse.Detail createWithRoute(OrderApprovedEvent orderEvent) {
+        log.info("Processing OrderApprovedEvent: orderId={}, eventId={}",
+                orderEvent.orderId(), orderEvent.eventId());
+
         try {
+            // 1차 방어: eventId 기반 멱등성 체크
+            if (processedEventRepository.existsByEventId(orderEvent.eventId())) {
+                log.info("Event already processed, skipping: eventId={}, orderId={}",
+                        orderEvent.eventId(), orderEvent.orderId());
+
+                // 기존 배송 조회 후 반환 (멱등 성공)
+                Delivery existing = deliveryRepository
+                        .findByOrderIdAndDeletedAtIsNull(orderEvent.orderId())
+                        .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
+
+                return DeliveryResponse.Detail.from(existing);
+            }
+
+            // 2차 방어: orderId 기반 중복 배송 체크
+            Optional<Delivery> existingDelivery =
+                    deliveryRepository.findByOrderIdAndDeletedAtIsNull(orderEvent.orderId());
+
+            if (existingDelivery.isPresent()) {
+                log.info("Delivery already exists for orderId={}, saving ProcessedEvent and returning existing delivery",
+                        orderEvent.orderId());
+
+                // 이벤트 기록만 저장하고 기존 배송 반환 (멱등 성공)
+                processedEventRepository.save(
+                        ProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+                );
+
+                return DeliveryResponse.Detail.from(existingDelivery.get());
+            }
+
             // 1) 허브 경로 조회
             List<HubLegResponse> legs = hubRouteFeignClient.getRouteLegs(
                     orderEvent.supplierHubId(),
                     orderEvent.receiveHubId()
             );
 
+            // 복구 불가능한 오류: 경로 없음 → 실패 이벤트 발행
             if (legs == null || legs.isEmpty()) {
-                // 배송 생성 실패 이벤트 발행
-                eventPublisher.publishExternal(DeliveryFailedEvent.of(orderEvent.orderId()));
-                throw new BusinessException(DeliveryErrorType.NO_ROUTE_AVAILABLE);  // 명확한 에러
+                log.error("No route available: supplierHubId={}, receiveHubId={}, orderId={}",
+                        orderEvent.supplierHubId(), orderEvent.receiveHubId(), orderEvent.orderId());
+
+                // 실패 이벤트 발행 (주문 쪽에서 처리)
+                eventPublisher.publishExternal(DeliveryFailedEvent.of(
+                        orderEvent.orderId(),
+                        "NO_ROUTE_AVAILABLE"
+                ));
+
+                throw new BusinessException(DeliveryErrorType.NO_ROUTE_AVAILABLE);
             }
 
             // 2) Delivery 생성
@@ -107,10 +161,12 @@ public class DeliveryServiceImpl implements DeliveryService {
                     orderEvent.receiverPhone(),
                     orderEvent.dueAt(),
                     orderEvent.requestMemo(),
-                    null
+                    null  // totalLogSeq는 아래에서 설정
             );
 
             Delivery savedDelivery = deliveryRepository.save(delivery);
+            log.info("Delivery created: deliveryId={}, orderId={}",
+                    savedDelivery.getId(), savedDelivery.getOrderId());
 
             // 3) DeliveryLog 생성
             int sequence = 0;
@@ -127,9 +183,17 @@ public class DeliveryServiceImpl implements DeliveryService {
                 sequence++;
             }
 
+            // 4) totalLogSeq 업데이트
             savedDelivery.updateTotalLogSeq(sequence);
+            log.info("DeliveryLogs created: deliveryId={}, totalLogSeq={}",
+                    savedDelivery.getId(), sequence);
 
-            // 4) 성공 이벤트 발행
+            // 5) 이벤트 처리 완료 기록 (같은 트랜잭션)
+            processedEventRepository.save(
+                    ProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+            );
+
+            // 6) 성공 이벤트 발행
             eventPublisher.publishExternal(DeliveryCreatedEvent.of(
                     savedDelivery.getOrderId(),
                     savedDelivery.getId(),
@@ -138,22 +202,37 @@ public class DeliveryServiceImpl implements DeliveryService {
                     savedDelivery.getTotalLogSeq()
             ));
 
+            log.info("Delivery creation completed successfully: deliveryId={}, orderId={}, eventId={}",
+                    savedDelivery.getId(), savedDelivery.getOrderId(), orderEvent.eventId());
+
             return DeliveryResponse.Detail.from(savedDelivery);
 
         } catch (BusinessException e) {
-            log.warn("Business validation failed for order: orderId={}, errorType={}, message={}",
+            // 비즈니스 예외: 로그만 남기고 재던지기
+            log.warn("Business validation failed: orderId={}, errorType={}, message={}",
                     orderEvent.orderId(), e.getErrorType(), e.getMessage());
             throw e;
 
+        } catch (feign.RetryableException e) {
+            // 일시적 네트워크 오류: 재시도 가능 (실패 이벤트 발행 안함)
+            log.error("Retryable Feign error creating delivery: orderId={}, message={}",
+                    orderEvent.orderId(), e.getMessage(), e);
+            throw new RuntimeException("Temporary network error - will retry", e);
+
         } catch (Exception e) {
-            // 배송 생성 실패 이벤트 발행
-            eventPublisher.publishExternal(DeliveryFailedEvent.of(orderEvent.orderId()));
-            log.error("Unexpected error creating delivery from order: orderId={}",
-                    orderEvent.orderId(), e);
+            // 예기치 못한 오류: 실패 이벤트 발행 + 재던지기
+            log.error("Unexpected error creating delivery: orderId={}, eventId={}",
+                    orderEvent.orderId(), orderEvent.eventId(), e);
+
+            // 실패 이벤트 발행
+            eventPublisher.publishExternal(DeliveryFailedEvent.of(
+                    orderEvent.orderId(),
+                    "UNEXPECTED_ERROR"
+            ));
+
             throw new BusinessException(DeliveryErrorType.CREATION_FAILED);
         }
     }
-
 
     // ================================
     // 3. 허브 배송 담당자 배정
@@ -195,11 +274,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         // Delivery 상태 변경 (HUB_WAITING -> HUB_MOVING, currentLogSeq 세팅)
         delivery.startHubMoving(seq);
 
-        // DeliveryLog 쪽 상태 전이: HUB_WAITING -> HUB_MOVING
-        // log ID를 알기 위해서는 DeliveryId + seq로 조회하는 로직이 필요하지만,
-        // 지금 구조에서는 DeliveryLogService가 ID 기반이라서
-        // "해당 시퀀스를 가진 로그 ID를 조회하는" 별도 메서드가 필요하다.
-        // 여기서는 예시로, 타임라인 전체를 받아서 해당 seq의 log를 찾는 방식으로 처리한다.
+        // DeliveryLog 상태 전이: HUB_WAITING -> HUB_MOVING
         List<DeliveryLogResponse.Summary> timeline = deliveryLogService.getTimelineByDeliveryId(deliveryId);
         DeliveryLogResponse.Summary target = timeline.stream()
                 .filter(log -> log.sequence() == seq)
@@ -208,7 +283,7 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         deliveryLogService.startLog(target.id());
 
-        // [ 배송 시작 이벤트 ] _ 첫 허브를 출발할 때만 이벤트 발행
+        // [ 배송 시작 이벤트 ] 첫 허브 출발 시에만 발행
         if (request.sequence() == 0) {
             eventPublisher.publishExternal(DeliveryStartedEvent.of(
                     delivery.getOrderId(),
@@ -256,13 +331,11 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         // [ 마지막 허브 도착 시 업체 배송 담당자 배정을 위한 이벤트 발행 ]
         if (isLastLog) {
-            eventPublisher.publishExternal(
-                    DeliveryLastHubArrivedEvent.of(
-                            delivery.getOrderId(),
-                            delivery.getId(),
-                            delivery.getReceiveHubId()
-                    )
-            );
+            eventPublisher.publishExternal(DeliveryLastHubArrivedEvent.of(
+                    delivery.getOrderId(),
+                    delivery.getId(),
+                    delivery.getReceiveHubId()
+            ));
         }
 
         return DeliveryResponse.Detail.from(delivery);
@@ -372,5 +445,4 @@ public class DeliveryServiceImpl implements DeliveryService {
                 ? Sort.Direction.DESC
                 : Sort.Direction.ASC;
     }
-
 }

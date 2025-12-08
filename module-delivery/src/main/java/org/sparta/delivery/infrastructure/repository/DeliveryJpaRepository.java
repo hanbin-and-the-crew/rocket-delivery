@@ -11,4 +11,6 @@ public interface DeliveryJpaRepository extends JpaRepository<Delivery, UUID> {
     Optional<Delivery> findByIdAndDeletedAtIsNull(UUID id);
 
     boolean existsByOrderIdAndDeletedAtIsNull(UUID orderId);
+
+    Optional<Delivery> findByOrderIdAndDeletedAtIsNull(UUID orderId);
 }

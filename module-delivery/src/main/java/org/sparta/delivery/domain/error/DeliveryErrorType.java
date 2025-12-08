@@ -1,5 +1,6 @@
 package org.sparta.delivery.domain.error;
 
+
 import lombok.Getter;
 import org.sparta.common.error.ErrorType;
 import org.springframework.http.HttpStatus;
@@ -24,8 +25,8 @@ public enum DeliveryErrorType implements ErrorType {
     RECEIVER_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "수령인 이름은 필수입니다."),
     RECEIVER_PHONE_REQUIRED(HttpStatus.BAD_REQUEST, "수령인 전화번호는 필수입니다."),
     INVALID_TOTAL_LOG_SEQ(HttpStatus.BAD_REQUEST, "허브 경로 전체 개수(totalLogSeq)는 0 이상이어야 합니다."),
-    CREATION_FAILED(HttpStatus.CREATED, "배송 생성을 실패했습니다."),
-    DELIVERY_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "배송이 이미 존재합니다."),
+    CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "배송 생성을 실패했습니다."),
+    DELIVERY_ALREADY_EXISTS(HttpStatus.CONFLICT, "배송이 이미 존재합니다."), 
     NO_ROUTE_AVAILABLE(HttpStatus.BAD_REQUEST, "가능한 허브 경로가 없습니다."),
 
     // ===== 담당자 배정 =====
@@ -44,6 +45,7 @@ public enum DeliveryErrorType implements ErrorType {
 
     // ===== 취소/삭제 =====
     INVALID_STATUS_FOR_CANCEL(HttpStatus.BAD_REQUEST, "현재 배송 상태에서는 배송을 취소할 수 없습니다.");
+
 
     private final HttpStatus status;
     private final String code;

@@ -36,7 +36,7 @@ public class DeliveryManCompanyAssignmentListener {
 
     @KafkaListener(
             topics = "delivery-events",
-            groupId = "deliveryman-service",
+            groupId = "deliveryman-company-assignment-group",
             containerFactory = "kafkaListenerContainerFactory"
     )
     @Transactional

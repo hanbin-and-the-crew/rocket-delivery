@@ -11,14 +11,17 @@ import java.util.UUID;
  */
 public record DeliveryFailedEvent(
         UUID orderId,
+        String errorReason,
         UUID eventId,
         Instant occurredAt
 ) implements DomainEvent {
     public static DeliveryFailedEvent of(
-            UUID orderId
+            UUID orderId,
+            String errorReason
     ) {
         return new DeliveryFailedEvent(
                 orderId,
+                errorReason,
                 UUID.randomUUID(),
                 Instant.now()
         );

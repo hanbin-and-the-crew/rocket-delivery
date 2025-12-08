@@ -5,7 +5,7 @@ package org.sparta.delivery.infrastructure.event.listener;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.delivery.application.service.DeliveryServiceImpl;
+import org.sparta.delivery.application.service.DeliveryService;
 import org.sparta.delivery.domain.entity.ProcessedEvent;
 import org.sparta.delivery.domain.repository.ProcessedEventRepository;
 import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderApprovedListener {
 
-    private final DeliveryServiceImpl deliveryService;
+    private final DeliveryService deliveryService;
     private final ProcessedEventRepository processedEventRepository;
     private final ObjectMapper objectMapper;
 
