@@ -1,7 +1,7 @@
 package org.sparta.order.infrastructure.outbox;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.transaction.Transactional;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.event.EventPublisher;
@@ -10,6 +10,7 @@ import org.sparta.order.domain.repository.OrderOutboxEventRepository;
 import org.sparta.order.infrastructure.event.publisher.OrderCreatedEvent;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -44,7 +45,11 @@ public class OrderOutboxPublisher {
 
             } catch (Exception ex) {
                 log.error("[OrderOutboxPublisher] 이벤트 발행 실패 - outboxId={}", outbox.getId(), ex);
-                outbox.markFailed();
+                outbox.increaseRetry();
+                if (outbox.getRetryCount() >= 3) {
+                    outbox.markFailed();
+                    log.error("[OrderOutboxPublisher] 최대 재시도 횟수 초과 - outboxId={}", outbox.getId());
+                }
                 outboxRepository.save(outbox);
             }
         }

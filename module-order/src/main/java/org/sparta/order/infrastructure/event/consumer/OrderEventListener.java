@@ -31,7 +31,7 @@ public class OrderEventListener {
      * delivery 모듈에서 최종 배송 완료 이벤트를 받아서 Order 배송 완료 처리
      */
     @KafkaListener(
-            topics = "delivery-events",  // Delivery 모듈의 토픽
+            topics = "delivery-completed",  // Delivery 모듈의 토픽
             groupId = "order-service",
             containerFactory = "kafkaListenerContainerFactory"
     )
@@ -87,7 +87,7 @@ public class OrderEventListener {
      * delivery 모듈에서 배송 출발 이벤트를 받아서 Order 출고 처리
      */
     @KafkaListener(
-            topics = "delivery-events",  // Delivery 모듈의 토픽
+            topics = "delivery-started",  // Delivery 모듈의 토픽
             groupId = "order-service",
             containerFactory = "kafkaListenerContainerFactory"
     )
@@ -143,7 +143,7 @@ public class OrderEventListener {
      * Payment 모듈에서 결제 승인 이벤트를 받아서 Order 승인 처리
      */
     @KafkaListener(
-            topics = "payment-events",  // Payment 모듈의 토픽
+            topics = "payment-completed",  // Payment 모듈의 토픽
             groupId = "order-service",
             containerFactory = "kafkaListenerContainerFactory"
     )
@@ -154,7 +154,7 @@ public class OrderEventListener {
         try {
             event = objectMapper.readValue(message, PaymentApprovedEvent.class);
         } catch (JsonProcessingException e) {
-            log.error("Invalid DeliveryStartedEvent message: {}", message, e);
+            log.error("Invalid PaymentApprovedEvent message: {}", message, e);
             return;
         }
 

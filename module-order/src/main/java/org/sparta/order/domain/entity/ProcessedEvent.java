@@ -18,7 +18,7 @@ import java.util.UUID;
 @Entity
 @Getter
 @Table(name = "p_processed_events",
-        indexes = @Index(name = "idx_event_id", columnList = "eventId", unique = true))
+        indexes = @Index(name = "idx_event_id", columnList = "event_id", unique = true))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ProcessedEvent {
 
