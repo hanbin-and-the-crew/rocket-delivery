@@ -15,6 +15,9 @@ dependencies {
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework:spring-aspects'
 
+    // circuit breaker (Resilience4j)
+    implementation "io.github.resilience4j:resilience4j-circuitbreaker:2.3.0"
+
     // test
     testImplementation project(':module-common')
     testImplementation project(':module-jpa')
