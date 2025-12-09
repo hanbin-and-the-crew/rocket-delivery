@@ -11,36 +11,46 @@ import java.util.UUID;
  */
 public record OrderCreatedEvent(
         UUID orderId,
-        Long orderAmount,     // 주문 총 금액 (상품가 * 수량)
-        Long requestPoint,       // 사용 포인트
-        Long discountAmount,// 사용 쿠폰 할인 금액
-        Long amountPayable,   // 실 PG 결제 금액
-        String pointReservationId,
-        String couponReservationId,
-        String pgToken,
+        Long amountTotal,   // 주문 금액 (단가 * 수량)
+        Long amountCoupon,  // 쿠폰 사용금액
+        Long amountPoint,   // 포인트 사용금액
+        Long amountPayable, // 실제 결제 금액 (주문 금액 - 쿠폰 - 포인트)
+        String methodType,  // 결제 수단
+        String pgProvider,  // PG사
+        String currency,    // 화폐
+        UUID couponId,      // 사용한 쿠폰 id
+        UUID pointUsageId,  // 사용한 포인트 예약 id
+        String paymentKey,  // pg 결제 후 받은 key
         UUID eventId,
         Instant occurredAt
 ) implements DomainEvent {
 
+
     public static OrderCreatedEvent of(
             UUID orderId,
-            Long orderAmount,
-            Long requestPoint,
-            Long discountAmount,
+            Long amountTotal,
+            Long amountCoupon,
+            Long amountPoint,
             Long amountPayable,
-            String pointReservationId,
-            String couponReservationId,
-            String pgToken
+            String methodType,
+            String pgProvider,
+            String currency,
+            UUID couponId,
+            UUID pointUsageId,
+            String paymentKey
     ) {
         return new OrderCreatedEvent (
                 orderId,
-                orderAmount,
-                requestPoint,
-                discountAmount,
+                amountTotal,
+                amountCoupon,
+                amountPoint,
                 amountPayable,
-                pointReservationId,
-                couponReservationId,
-                pgToken,
+                methodType,
+                pgProvider,
+                currency,
+                couponId,
+                pointUsageId,
+                paymentKey,
                 UUID.randomUUID(),
                 Instant.now()
         );
