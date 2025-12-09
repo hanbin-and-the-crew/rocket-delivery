@@ -96,13 +96,6 @@ public class EventPublisher {
             return "hub-events";
         }
 
-        // (stock 쪽 KafkaListener 기준으로 작성)
-        if (eventType.equals("OrderCreatedEvent")) {
-            return "order-created";
-        }
-        if (eventType.equals("OrderCancelledEvent")) {
-            return "order-cancelled";
-        }
         // Order 관련 이벤트
         if (eventType.startsWith("Order")) {
             return "order-events";
@@ -113,6 +106,11 @@ public class EventPublisher {
             return "stock-events";
         }
 
+        // Delivery 토픽 추가
+        if (eventType.startsWith("Delivery")) {
+            return "delivery-events";
+        }
+          
         // Payment 관련 이벤트
         if (eventType.startsWith("Payment")) {
             return "payment-events";
@@ -121,6 +119,11 @@ public class EventPublisher {
         // Coupon 관련 이벤트 (CouponConfirmedEvent, CouponReservationCancelledEvent)
         if (eventType.startsWith("Coupon")) {
             return "coupon-events";
+        }
+
+        // DeliveryMan 토픽 추가
+        if (eventType.startsWith("Deliveryman")) {
+            return "deliveryman-events";
         }
 
         // 기본 토픽
