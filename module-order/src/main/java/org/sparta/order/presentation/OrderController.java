@@ -1,5 +1,6 @@
 package org.sparta.order.presentation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
@@ -33,7 +34,7 @@ public class OrderController implements OrderApiSpec {
             @RequestHeader("X-USER-ID") String userIdHeader,
             @RequestHeader("X-Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody OrderRequest.Create request
-    ) {
+    ) throws JsonProcessingException {
         UUID customerId = UUID.fromString(userIdHeader);
         OrderCommand.Create command = orderMapper.toCommand(request);
         OrderResponse.Detail response = orderService.createOrder(customerId, command, idempotencyKey);
