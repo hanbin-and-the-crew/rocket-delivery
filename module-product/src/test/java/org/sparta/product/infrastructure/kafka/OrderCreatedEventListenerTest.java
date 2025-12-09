@@ -17,6 +17,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.doThrow;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.sparta.product.domain.outbox.ProductOutboxEvent;
+import org.sparta.product.domain.repository.ProductOutboxEventRepository;
 
 import java.util.Map;
 import java.util.Optional;
@@ -46,9 +49,16 @@ class OrderCreatedEventListenerTest {
     @InjectMocks
     private OrderCreatedEventListener listener;
 
+    @Mock
+    private ProductOutboxEventRepository productOutboxEventRepository;
+
+    @Mock
+    private ObjectMapper objectMapper;
+
+
     @Test
-    @DisplayName("정상적인 order-created 이벤트를 받으면 재고 확정 + StockConfirmedEvent 발행")
-    void handleOrderCreated_success() {
+    @DisplayName("정상적인 order-created 이벤트를 받으면 재고 확정 + Outbox 에 StockConfirmedEvent 저장")
+    void handleOrderCreated_success() throws Exception {
         // given
         UUID orderId = UUID.randomUUID();
         String orderIdStr = orderId.toString();
@@ -58,14 +68,12 @@ class OrderCreatedEventListenerTest {
         UUID productId = UUID.randomUUID();
         int reservedQuantity = 3;
 
-        // Kafka ConsumerRecord 가 받은 payload 형태를 흉내낸다.
         Map<String, Object> payload = Map.of(
                 "orderId", orderIdStr
         );
         ConsumerRecord<String, Object> record =
                 new ConsumerRecord<>("order-created", 0, 0L, null, payload);
 
-        // StockReservation, Stock 은 실제 엔티티 대신 mock 으로 대체
         StockReservation reservation = mock(StockReservation.class);
         when(reservation.getStockId()).thenReturn(stockId);
         when(reservation.getReservedQuantity()).thenReturn(reservedQuantity);
@@ -79,35 +87,38 @@ class OrderCreatedEventListenerTest {
         when(stockRepository.findById(stockId))
                 .thenReturn(Optional.of(stock));
 
+        // ObjectMapper 직렬화 stub
+        when(objectMapper.writeValueAsString(any()))
+                .thenReturn("{\"dummy\":\"json\"}");
+
         // when
         listener.handleOrderCreated(record);
 
         // then
-        // 1) 재고 확정 서비스가 올바른 reservationKey 로 호출되었는지
         verify(stockService, times(1)).confirmReservation(reservationKey);
 
-        // 2) 외부 이벤트가 발행되었는지, 그 타입/내용이 올바른지
-        ArgumentCaptor<DomainEvent> eventCaptor =
-                ArgumentCaptor.forClass(DomainEvent.class);
+        ArgumentCaptor<ProductOutboxEvent> outboxCaptor =
+                ArgumentCaptor.forClass(ProductOutboxEvent.class);
 
-        verify(eventPublisher, times(1)).publishExternal(eventCaptor.capture());
+        verify(productOutboxEventRepository, times(1)).save(outboxCaptor.capture());
 
-        DomainEvent published = eventCaptor.getValue();
-        assertThat(published).isInstanceOf(StockConfirmedEvent.class);
+        ProductOutboxEvent saved = outboxCaptor.getValue();
+        assertThat(saved.getAggregateId()).isEqualTo(orderId);
+        assertThat(saved.getEventType()).isEqualTo("STOCK_CONFIRMED");
+        assertThat(saved.getStatus()).isNotNull();
+        assertThat(saved.getPayload()).isEqualTo("{\"dummy\":\"json\"}");
 
-        StockConfirmedEvent stockConfirmedEvent = (StockConfirmedEvent) published;
-        assertThat(stockConfirmedEvent.orderId()).isEqualTo(orderId);
-        assertThat(stockConfirmedEvent.productId()).isEqualTo(productId);
-        assertThat(stockConfirmedEvent.confirmedQuantity()).isEqualTo(reservedQuantity);
-        assertThat(stockConfirmedEvent.occurredAt()).isNotNull(); // 시간은 값만 존재하는지만 체크
+        // Publisher 가 담당하므로 여기서는 eventPublisher 를 직접 검증하지 않는다.
+        verifyNoInteractions(eventPublisher);
     }
+
 
     @Test
     @DisplayName("orderId 가 없는 이벤트이면 아무 작업도 수행하지 않는다")
     void handleOrderCreated_whenOrderIdMissing_shouldDoNothing() {
         // given
         Map<String, Object> payload = Map.of(
-                "foo", "bar"   // orderId 없음
+                "foo", "bar"
         );
         ConsumerRecord<String, Object> record =
                 new ConsumerRecord<>("order-created", 0, 0L, null, payload);
@@ -116,14 +127,20 @@ class OrderCreatedEventListenerTest {
         listener.handleOrderCreated(record);
 
         // then
-        // service / repository / publisher 가 전혀 호출되지 않아야 한다.
-        verifyNoInteractions(stockService, stockReservationRepository, stockRepository, eventPublisher);
+        verifyNoInteractions(
+                stockService,
+                stockReservationRepository,
+                stockRepository,
+                eventPublisher,
+                productOutboxEventRepository
+        );
     }
 
 
 
+
     @Test
-    @DisplayName("재고 확정 중 예외가 발생하면 이벤트를 발행하지 않는다")
+    @DisplayName("재고 확정 중 예외가 발생하면 Outbox 에도 아무 이벤트를 저장하지 않는다")
     void handleOrderCreated_whenConfirmReservationFails_shouldNotPublishEvent() {
         // given
         UUID orderId = UUID.randomUUID();
@@ -136,7 +153,6 @@ class OrderCreatedEventListenerTest {
         ConsumerRecord<String, Object> record =
                 new ConsumerRecord<>("order-created", 0, 0L, null, payload);
 
-        // StockService 가 예외를 던지는 상황을 시뮬레이트 (void 메서드이므로 doThrow 사용)
         doThrow(new RuntimeException("DB down or something"))
                 .when(stockService)
                 .confirmReservation(reservationKey);
@@ -146,11 +162,12 @@ class OrderCreatedEventListenerTest {
 
         // then
         verify(stockService, times(1)).confirmReservation(reservationKey);
-        verifyNoInteractions(stockReservationRepository, stockRepository, eventPublisher);
+        verifyNoInteractions(stockReservationRepository, stockRepository, eventPublisher, productOutboxEventRepository);
     }
 
+
     @Test
-    @DisplayName("reservationKey 로 예약을 찾지 못하면 이벤트를 발행하지 않는다")
+    @DisplayName("reservationKey 로 예약을 찾지 못하면 Outbox 에 이벤트를 저장하지 않는다")
     void handleOrderCreated_whenReservationMissing_shouldNotPublishEvent() {
         // given
         UUID orderId = UUID.randomUUID();
@@ -163,7 +180,6 @@ class OrderCreatedEventListenerTest {
         ConsumerRecord<String, Object> record =
                 new ConsumerRecord<>("order-created", 0, 0L, null, payload);
 
-        // 예약이 없는 상황
         when(stockReservationRepository.findByReservationKey(reservationKey))
                 .thenReturn(Optional.empty());
 
@@ -171,12 +187,11 @@ class OrderCreatedEventListenerTest {
         listener.handleOrderCreated(record);
 
         // then
-        // 재고확정은 호출되어야 하고,
         verify(stockService, times(1)).confirmReservation(reservationKey);
-        // 이후 예약/Stock 조회 결과가 없으므로 이벤트 발행은 하면 안 된다.
-        verify(stockRepository, never()).findById(any());
         verify(eventPublisher, never()).publishExternal(any());
+        verify(productOutboxEventRepository, never()).save(any());
     }
+
 
 
 

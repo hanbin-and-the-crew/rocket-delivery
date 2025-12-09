@@ -16,7 +16,7 @@ public interface StockApiSpec {
             description = """
                     주문 생성 시 재고를 예약합니다.
                     
-                    - 예약 키(reservationKey)는 주문 도메인이 생성하는 값입니다 (예: orderItemId 또는 "orderId:lineNo").
+                    - 예약 키(reservationKey)는 주문 도메인이 생성하는 멱등키입니다 ( 현재 orderId.toString() ).
                     - 같은 reservationKey로 이미 예약된 경우:
                       - 예약 수량이 같으면 멱등하게 기존 예약을 그대로 반환합니다.
                       - 예약 수량이 다르면 에러를 반환합니다.
