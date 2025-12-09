@@ -110,8 +110,8 @@ class PaymentServiceTest {
     }
 
     @Test
-    @DisplayName("storeCompletedPayment - 금액 합이 맞지 않으면 PAYMENT_AMOUNT_MISMATCH 예외")
-    void storeCompletedPayment_invalidAmounts() {
+    @DisplayName("storeCompletedPayment - 금액 합이 맞지 않으면 PAYMENT_AMOUNT_MISMATCH 예외 및 PAYMENT_FAILED Outbox 생성")
+    void storeCompletedPayment_invalidAmounts() throws Exception {
         // given
         UUID orderId = UUID.randomUUID();
         String paymentKey = "pay_key_invalid";
@@ -133,6 +133,12 @@ class PaymentServiceTest {
         when(paymentRepository.findByPaymentKey(paymentKey))
                 .thenReturn(Optional.empty());
 
+        // 실패 이벤트 직렬화는 간단한 JSON 문자열로 stub
+        when(objectMapper.writeValueAsString(any()))
+                .thenReturn("{\"eventType\":\"PAYMENT_FAILED\"}");
+
+        ArgumentCaptor<PaymentOutbox> outboxCaptor = ArgumentCaptor.forClass(PaymentOutbox.class);
+
         // when & then
         assertThatThrownBy(() -> paymentService.storeCompletedPayment(command, paymentKey))
                 .isInstanceOf(BusinessException.class)
@@ -141,9 +147,17 @@ class PaymentServiceTest {
                     assertThat(be.getErrorType()).isEqualTo(PaymentErrorType.PAYMENT_AMOUNT_MISMATCH);
                 });
 
-        // 금액 검증 단계에서 예외가 발생하므로 save / outbox 는 호출되지 않아야 한다.
+        // 결제 엔티티는 저장되지 않는다.
         verify(paymentRepository, never()).save(any());
-        verify(outboxRepository, never()).save(any());
+
+        // 대신 실패 이벤트(PAYMENT_FAILED)가 Outbox 로 한 번 저장된다.
+        verify(outboxRepository, times(1)).save(outboxCaptor.capture());
+        PaymentOutbox outbox = outboxCaptor.getValue();
+        assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.READY);
+        assertThat(outbox.getEventType()).isEqualTo("PAYMENT_FAILED");
+        assertThat(outbox.getAggregateType()).isEqualTo("PAYMENT");
+        assertThat(outbox.getAggregateId()).isEqualTo(orderId);
+        assertThat(outbox.getPayload()).isEqualTo("{\"eventType\":\"PAYMENT_FAILED\"}");
     }
 
 
@@ -204,6 +218,13 @@ class PaymentServiceTest {
         // 이미 취소된 결제라고 가정
         Payment paymentMock = mock(Payment.class);
         when(paymentMock.getStatus()).thenReturn(PaymentStatus.CANCELED);
+
+        // cancelPayment 실패 시 실패 Outbox 를 만들 때 필요한 필드들 세팅 (NPE 방지)
+        UUID orderId = UUID.randomUUID();
+        when(paymentMock.getOrderId()).thenReturn(orderId);
+        when(paymentMock.getAmountPayable()).thenReturn(5_000L);
+        when(paymentMock.getCurrency()).thenReturn("KRW");
+
         when(paymentRepository.findById(paymentId))
                 .thenReturn(Optional.of(paymentMock));
 
