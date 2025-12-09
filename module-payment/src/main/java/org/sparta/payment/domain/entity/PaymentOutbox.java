@@ -1,12 +1,13 @@
 package org.sparta.payment.domain.entity;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.AccessLevel;
 import org.sparta.payment.domain.enumeration.OutboxStatus;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "p_payment_outbox")
@@ -77,5 +78,19 @@ public class PaymentOutbox {
     public void increaseRetry() {
         this.retryCount++;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public static PaymentOutbox create(String aggregateType,
+                                       java.util.UUID aggregateId,
+                                       String eventType,
+                                       String payload,
+                                       OutboxStatus status) {
+        PaymentOutbox outbox = new PaymentOutbox();
+        outbox.aggregateType = aggregateType;
+        outbox.aggregateId = aggregateId;
+        outbox.eventType = eventType;
+        outbox.payload = payload;
+        outbox.status = status;
+        return outbox;
     }
 }

@@ -1,9 +1,7 @@
 package org.sparta.payment.presentation.controller;
 
 import lombok.RequiredArgsConstructor;
-
 import org.sparta.common.api.ApiResponse;
-
 import org.sparta.payment.application.command.payment.*;
 import org.sparta.payment.application.dto.PaymentDetailResult;
 import org.sparta.payment.application.dto.PaymentListResult;

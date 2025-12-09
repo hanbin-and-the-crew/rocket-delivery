@@ -3,9 +3,10 @@ package org.sparta.payment.presentation.dto.request;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.UUID;
 import org.sparta.payment.domain.enumeration.PaymentType;
 import org.sparta.payment.domain.enumeration.PgProvider;
+
+import java.util.UUID;
 
 /**
  * 클라이언트(또는 Order 서버)가 Payment 생성 요청 시 사용하는 DTO
