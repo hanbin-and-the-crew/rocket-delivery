@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.sparta.product.domain.outbox.ProductOutboxEvent;
 import org.sparta.product.domain.repository.ProductOutboxEventRepository;
 import org.springframework.transaction.annotation.Transactional;
+import org.sparta.product.domain.event.StockReservationFailedEvent;
 
 
 import java.util.Map;
@@ -84,21 +85,33 @@ public class OrderCreatedEventListener {
         log.info("[OrderCreatedEventListener] 주문완료 이벤트 수신 - orderId={}, reservationKey={}",
                 orderId, reservationKey);
 
+
         // 2. 재고 예약 확정(실차감)
         try {
-            // 내부에서 낙관적 락 + @Retryable + @Transactional 처리됨
+            // 내부에서 낙관적 락 + @Retryable + @Transactional 처리
             stockService.confirmReservation(reservationKey);
+
         } catch (BusinessException ex) {
-            // 도메인 예외는 경고 로그만 남기고 종료
+            // 도메인 예외는 경고 로그 + 실패 이벤트 Outbox 저장
             log.warn("[OrderCreatedEventListener] 재고 확정 실패 - reservationKey={}, errorType={}",
                     reservationKey, ex.getErrorType(), ex);
+
+            publishStockReservationFailedEvent(
+                    orderId,
+                    reservationKey,
+                    ex.getErrorType().getCode(),
+                    ex.getMessage()
+            );
             return;
+
         } catch (Exception ex) {
-            // 알 수 없는 예외도 여기서 잡고 로그만 남김 (Kafka 컨테이너 죽지 않도록)
+            // 알 수 없는 예외는 Kafka 컨테이너 죽지 않도록 로그만 남기고 종료
             log.error("[OrderCreatedEventListener] 재고 확정 중 알 수 없는 오류 - reservationKey={}",
                     reservationKey, ex);
             return;
         }
+
+
 
         log.info("[OrderCreatedEventListener] 재고 확정 성공 - reservationKey={}", reservationKey);
 
@@ -132,7 +145,6 @@ public class OrderCreatedEventListener {
                 reservation.getReservedQuantity()
         );
 
-        // 5. 외부 이벤트 발행 (Kafka: stock-events 토픽)
         // 5. Outbox 에 이벤트 저장 (재고 차감과 같은 트랜잭션 내)
         try {
             String payloadJson = objectMapper.writeValueAsString(stockConfirmedEvent);
@@ -151,4 +163,42 @@ public class OrderCreatedEventListener {
                     orderId, stock.getProductId(), ex);
         }
     }
+
+
+
+
+    /**
+     * 재고 확정/차감 실패 시 실패 이벤트를 Outbox 에 저장한다.
+     *
+     * - 이 메서드는 Kafka 리스너의 트랜잭션 컨텍스트 안에서 실행된다.
+     * - 이후 ProductOutboxPublisher 가 READY 상태 이벤트를 읽어 외부(Kafka 등)로 발행한다.
+     */
+    private void publishStockReservationFailedEvent(
+            UUID orderId,
+            String reservationKey,
+            String errorCode,
+            String errorMessage
+    ) {
+        StockReservationFailedEvent event =
+                StockReservationFailedEvent.of(orderId, reservationKey, errorCode, errorMessage);
+
+        try {
+            String payloadJson = objectMapper.writeValueAsString(event);
+
+            ProductOutboxEvent outboxEvent =
+                    ProductOutboxEvent.stockReservationFailed(event, payloadJson);
+
+            productOutboxEventRepository.save(outboxEvent);
+
+            log.info("[OrderCreatedEventListener] StockReservationFailedEvent Outbox 저장 완료 - outboxId={}, orderId={}, reservationKey={}, errorCode={}",
+                    outboxEvent.getId(), orderId, reservationKey, errorCode);
+
+        } catch (JsonProcessingException ex) {
+            // 직렬화 실패하면 Kafka 발행도 불가능하므로, 일단 트랜잭션 롤백을 막기 위해 여기서만 로그 후 종료
+            log.error("[OrderCreatedEventListener] StockReservationFailedEvent 직렬화 실패 - orderId={}, reservationKey={}",
+                    orderId, reservationKey, ex);
+        }
+    }
+
+
 }

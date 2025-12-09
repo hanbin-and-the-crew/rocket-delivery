@@ -80,7 +80,7 @@ public class StockService {
     /**
      * 재고 예약 (주문 생성 시)
      * - 주문 생성 시 호출
-     * - reservationKey는 주문 도메인에서 생성한 키 (예: orderItemId, "orderId:lineNo" 등)
+     * - reservationKey는 주문 도메인에서 생성한 멱등키 (현재 orderId.toString())
      * - 멱등성: 같은 reservationKey로 이미 예약이 있으면,
      *   - 수량이 같을 경우 그대로 반환
      *   - 수량이 다르면 예외 (정책상 안전하게 막는다)

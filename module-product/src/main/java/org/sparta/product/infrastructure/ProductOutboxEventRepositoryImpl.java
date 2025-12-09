@@ -30,4 +30,13 @@ public class ProductOutboxEventRepositoryImpl implements ProductOutboxEventRepos
         );
         return page.getContent();
     }
+
+    @Override
+    public List<ProductOutboxEvent> findFailedEvents(int batchSize) {
+        Page<ProductOutboxEvent> page = jpaRepository.findByStatusOrderByCreatedAtAsc(
+                OutboxStatus.FAILED,
+                PageRequest.of(0, batchSize)
+        );
+        return page.getContent();
+    }
 }
