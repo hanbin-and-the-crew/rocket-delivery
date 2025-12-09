@@ -1,93 +1,40 @@
-package com.sparta.rocket.delivery.module.payment.application;
+spring:
+  application:
+    name: payment-service-test
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sparta.rocket.delivery.module.payment.domain.*;
-import com.sparta.rocket.delivery.module.payment.exception.BusinessException;
-import com.sparta.rocket.delivery.module.payment.exception.PaymentErrorType;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
 
-import java.util.Optional;
-import java.util.UUID;
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+  h2:
+    console:
+      enabled: true
 
-class PaymentServiceTest {
+# Eureka 클라이언트 비활성화
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
 
-    @Mock
-    private PaymentRepository paymentRepository;
+# 테스트 포트
+server:
+  port: 0
 
-    @Mock
-    private OutboxRepository outboxRepository;
-
-    @Mock
-    private ObjectMapper objectMapper;
-
-    @InjectMocks
-    private PaymentService paymentService;
-
-    @Test
-    @DisplayName("storeCompletedPayment - 정상 저장")
-    void storeCompletedPayment_success() {
-        // ... existing test code ...
-    }
-
-    @Test
-    @DisplayName("storeCompletedPayment - 중복 결제키 존재 시 예외")
-    void storeCompletedPayment_duplicatePaymentKey() {
-        // ... existing test code ...
-    }
-
-    @Test
-    @DisplayName("storeCompletedPayment - Outbox 직렬화 실패 시 OUTBOX_PUBLISH_FAILED 예외")
-    void storeCompletedPayment_outboxSerializationFailed() throws Exception {
-        // given
-        UUID orderId = UUID.randomUUID();
-        String paymentKey = "pay_key_serialize_fail";
-
-        PaymentCreateCommand command = new PaymentCreateCommand(
-                orderId,
-                10_000L,  // amountTotal
-                2_000L,   // amountCoupon
-                3_000L,   // amountPoint
-                5_000L,   // amountPayable
-                PaymentType.CARD,
-                PgProvider.TOSS,
-                "KRW",
-                null,
-                null
-        );
-
-        // 기존 결제 없음
-        when(paymentRepository.findByPaymentKey(paymentKey))
-                .thenReturn(Optional.empty());
-
-        // Payment 저장은 정상적으로 된다고 가정
-        Payment savedMock = mock(Payment.class);
-        UUID paymentId = UUID.randomUUID();
-        when(savedMock.getPaymentId()).thenReturn(paymentId);
-        when(paymentRepository.save(any(Payment.class))).thenReturn(savedMock);
-
-        // ObjectMapper 직렬화 시 JsonProcessingException 발생
-        when(objectMapper.writeValueAsString(any()))
-                .thenThrow(new JsonProcessingException("serialize fail") {});
-
-        // when & then
-        assertThatThrownBy(() -> paymentService.storeCompletedPayment(command, paymentKey))
-                .isInstanceOf(BusinessException.class)
-                .satisfies(ex -> {
-                    BusinessException be = (BusinessException) ex;
-                    assertThat(be.getErrorType()).isEqualTo(PaymentErrorType.OUTBOX_PUBLISH_FAILED);
-                });
-
-        // Payment 저장은 시도되지만, Outbox 저장은 호출되지 않아야 한다.
-        verify(paymentRepository, times(1)).save(any(Payment.class));
-        verify(outboxRepository, never()).save(any());
-    }
-}
+# 로깅
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace
+    org.sparta.product: debug
