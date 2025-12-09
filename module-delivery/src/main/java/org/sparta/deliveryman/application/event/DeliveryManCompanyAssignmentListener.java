@@ -36,8 +36,7 @@ public class DeliveryManCompanyAssignmentListener {
 
     @KafkaListener(
             topics = "delivery-events",
-            groupId = "deliveryman-company-assignment-group",
-            containerFactory = "kafkaListenerContainerFactory"
+            groupId = "deliveryman-company-assignment-group"
     )
     @Transactional
     public void handleLastHubArrived(String message) {

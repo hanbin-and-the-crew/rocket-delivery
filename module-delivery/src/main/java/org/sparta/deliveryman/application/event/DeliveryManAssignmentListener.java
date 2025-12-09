@@ -3,8 +3,9 @@ package org.sparta.deliveryman.application.event;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.sparta.delivery.application.service.DeliveryService;
-import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
+import org.sparta.deliveryman.infrastructure.event.DeliveryCreatedEvent;
 import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
 import org.sparta.deliveryman.application.service.DeliveryManService;
 import org.sparta.deliveryman.domain.entity.DeliveryMan;
@@ -42,14 +43,19 @@ public class DeliveryManAssignmentListener {
 
     @KafkaListener(
             topics = "delivery-events",
-            groupId = "deliveryman-service",
-            containerFactory = "kafkaListenerContainerFactory"
+            groupId = "deliveryman-service"
     )
     @Transactional
-    public void handleDeliveryCreated(String message) {
+    public void handleDeliveryCreated(ConsumerRecord<String, Object> record) {  // ✅ ConsumerRecord로 받기
         try {
-            DeliveryCreatedEvent event = objectMapper.readValue(message, DeliveryCreatedEvent.class);
-            log.info("Received DeliveryCreatedEvent: deliveryId={}, eventId={}, supplierHubId={}, receiveHubId={}",
+            // Kafka에서 받은 원시 값 가져오기
+            Object payload = record.value();
+
+            // LinkedHashMap을 JSON 문자열로 변환 후 DeliveryCreatedEvent로 역직렬화
+            String jsonString = objectMapper.writeValueAsString(payload);
+            DeliveryCreatedEvent event = objectMapper.readValue(jsonString, DeliveryCreatedEvent.class);
+
+            log.info("Received DeliveryCreatedEvent: deliveryId={}, eventId={}, sourceHubId={}, targetHubId={}",
                     event.deliveryId(), event.eventId(), event.sourceHubId(), event.targetHubId());
 
             // 멱등성 체크: eventId로 중복 이벤트 확인
@@ -65,8 +71,6 @@ public class DeliveryManAssignmentListener {
                     hubAssignedMan.getId(), hubAssignedMan.getSequence(), hubAssignedMan.getDeliveryCount());
 
             // 2. Delivery에 허브 배송 담당자 배정
-            //    - Delivery.hubDeliveryManId 저장
-            //    - Delivery.status: CREATED -> HUB_WAITING
             DeliveryRequest.AssignHubDeliveryMan hubRequest =
                     new DeliveryRequest.AssignHubDeliveryMan(hubAssignedMan.getId());
             deliveryService.assignHubDeliveryMan(event.deliveryId(), hubRequest);
@@ -76,7 +80,7 @@ public class DeliveryManAssignmentListener {
             // 3. 모든 DeliveryLog에 허브 배송 담당자 배정
             assignHubDeliveryManToLogs(event.deliveryId(), hubAssignedMan.getId());
 
-            // 이벤트 처리 완료 기록 (같은 트랜잭션)
+            // 이벤트 처리 완료 기록
             processedEventRepository.save(
                     ProcessedEvent.of(event.eventId(), "DELIVERY_CREATED")
             );
@@ -85,23 +89,19 @@ public class DeliveryManAssignmentListener {
                     event.deliveryId(), hubAssignedMan.getId());
 
         } catch (Exception e) {
-            log.error("Failed to handle delivery created event: {}", message, e);
-            // 예외 발생 시 전체 트랜잭션 롤백 + Kafka 재처리
+            log.error("Failed to handle delivery created event: topic={}, partition={}, offset={}",
+                    record.topic(), record.partition(), record.offset(), e);
             throw new RuntimeException("DeliveryMan assignment failed", e);
         }
     }
 
     /**
      * 모든 DeliveryLog에 허브 배송 담당자 배정
-     * - DeliveryLog.deliveryManId 저장
-     * - DeliveryLog.status: CREATED -> HUB_WAITING
      */
     private void assignHubDeliveryManToLogs(UUID deliveryId, UUID hubDeliveryManId) {
-        // Delivery의 모든 DeliveryLog 조회 (sequence 오름차순)
         List<DeliveryLogResponse.Summary> timeline =
                 deliveryLogService.getTimelineByDeliveryId(deliveryId);
 
-        // 타임라인이 없으면 예외 발생 (데이터 정합성 보장)
         if (timeline == null || timeline.isEmpty()) {
             log.error("No DeliveryLogs found for deliveryId={} when assigning hub deliveryMan. " +
                             "This indicates data inconsistency - 배송은 존재하지만 배송 로그가 존재하지 않습니다.",
@@ -112,7 +112,6 @@ public class DeliveryManAssignmentListener {
             );
         }
 
-        // 각 DeliveryLog에 허브 배송 담당자 배정
         for (DeliveryLogResponse.Summary logSummary : timeline) {
             DeliveryLogRequest.AssignDeliveryMan assignRequest =
                     new DeliveryLogRequest.AssignDeliveryMan(hubDeliveryManId);
