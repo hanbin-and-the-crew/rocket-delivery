@@ -12,7 +12,7 @@ import java.util.UUID;
 )
 public interface StockClient {
 
-    @PostMapping("/product/stocks/reserve")
+    @PostMapping("/api/product/stocks/reserve")
     StockReserveResponse reserveStock(@RequestBody StockReserveRequest request);
 
     record StockReserveRequest(
