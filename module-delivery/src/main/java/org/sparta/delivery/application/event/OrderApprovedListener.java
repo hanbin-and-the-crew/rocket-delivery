@@ -1,5 +1,3 @@
-// 파일 위치: org/sparta/delivery/infrastructure/event/listener/OrderApprovedListener.java
-
 package org.sparta.delivery.application.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,13 +31,12 @@ public class OrderApprovedListener {
 
     @KafkaListener(
             topics = "order-events",
-            groupId = "delivery-order-approved-group",
-            containerFactory = "kafkaListenerContainerFactory"
+            groupId = "delivery-order-approved-group"
     )
     @Transactional
-    public void handleOrderApproved(String message) {
+    public void handleOrderApproved(OrderApprovedEvent event) {
         try {
-            OrderApprovedEvent event = objectMapper.readValue(message, OrderApprovedEvent.class);
+//            OrderApprovedEvent event = objectMapper.readValue(message, OrderApprovedEvent.class);
             log.info("OrderApprovedEvent received: orderId={}, eventId={}",
                     event.orderId(), event.eventId());
 
@@ -64,8 +61,8 @@ public class OrderApprovedListener {
                     event.orderId(), event.eventId());
 
         } catch (Exception e) {
-            log.error("Failed to handle order approved event: orderId={}, message={}",
-                    extractOrderId(message), message, e);
+//            log.error("Failed to handle order approved event: orderId={}, message={}",
+//                    extractOrderId(message), message, e);
             // 예외 발생 시 전체 트랜잭션 롤백 + Kafka 재시도
             throw new RuntimeException("Order approved event processing failed", e);
         }
