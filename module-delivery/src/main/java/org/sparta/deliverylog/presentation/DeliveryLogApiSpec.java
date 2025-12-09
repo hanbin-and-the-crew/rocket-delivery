@@ -1,103 +1,98 @@
 package org.sparta.deliverylog.presentation;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.deliverylog.application.dto.DeliveryLogRequest;
-import org.sparta.deliverylog.application.dto.DeliveryLogResponse;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Page;
+import org.sparta.deliverylog.presentation.dto.request.DeliveryLogRequest;
+import org.sparta.deliverylog.presentation.dto.response.DeliveryLogResponse;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.UUID;
 
-/**
- * 배송 경로 관리 API 명세 (Controller와 1:1 매핑)
- */
-@Tag(name = "배송 경로", description = "배송 경로 관리 API")
+@Tag(name = "DeliveryLog API", description = "배송 로그 관리 API")
 public interface DeliveryLogApiSpec {
 
-    @Operation(summary = "배송 경로 생성")
-    ApiResponse<DeliveryLogResponse.Detail> createDeliveryLog(
-            @Valid @RequestBody DeliveryLogRequest.Create request,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
+    @Operation(
+            summary = "배송 로그 생성",
+            description = "관리자/테스트용으로 배송 로그를 직접 생성합니다."
+    )
+    ApiResponse<DeliveryLogResponse.Detail> create(
+            @Valid @RequestBody DeliveryLogRequest.Create request
     );
 
-    @Operation(summary = "배송 담당자 배정")
+    @Operation(
+            summary = "배송 로그 단건 조회",
+            description = "배송 로그 ID로 상세 정보를 조회합니다."
+    )
+    ApiResponse<DeliveryLogResponse.Detail> getDetail(
+            @PathVariable UUID logId
+    );
+
+    @Operation(
+            summary = "특정 배송의 로그 타임라인 조회",
+            description = "deliveryId 기준으로 전체 로그를 sequence 오름차순으로 조회합니다."
+    )
+    ApiResponse<List<DeliveryLogResponse.Summary>> getTimelineByDeliveryId(
+            @PathVariable UUID deliveryId
+    );
+
+    @Operation(
+            summary = "배송 로그 검색",
+            description = "허브 ID, 배송 담당자 ID, 배송 ID로 배송 로그를 검색합니다. createdAt 기준 정렬/페이징을 지원합니다."
+    )
+    ApiResponse<DeliveryLogResponse.PageResult> search(
+            @RequestParam(required = false) UUID hubId,
+            @RequestParam(required = false) UUID deliveryManId,
+            @RequestParam(required = false) UUID deliveryId,
+            @RequestParam(required = false, defaultValue = "ASC") String sortDirection,
+            @PageableDefault(size = 10) Pageable pageable
+    );
+
+    @Operation(
+            summary = "배송 로그 담당자 배정",
+            description = "배송 로그에 허브 배송 담당자를 배정합니다. (CREATED → HUB_WAITING)"
+    )
     ApiResponse<DeliveryLogResponse.Detail> assignDeliveryMan(
-            @Parameter(description = "배송 경로 ID") @PathVariable UUID deliveryLogId,
-            @Valid @RequestBody DeliveryLogRequest.Assign request,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
+            @PathVariable UUID logId,
+            @Valid @RequestBody DeliveryLogRequest.AssignDeliveryMan request
     );
 
-    @Operation(summary = "배송 시작")
-    ApiResponse<DeliveryLogResponse.Detail> startDelivery(
-            @Parameter(description = "배송 경로 ID") @PathVariable UUID deliveryLogId,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
+    @Operation(
+            summary = "허브 leg 출발 처리",
+            description = "해당 배송 로그를 허브 출발 상태로 변경합니다. (HUB_WAITING → HUB_MOVING)"
+    )
+    ApiResponse<DeliveryLogResponse.Detail> startLog(
+            @PathVariable UUID logId
     );
 
-    @Operation(summary = "배송 완료(실제 거리/시간 기록)")
-    ApiResponse<DeliveryLogResponse.Detail> completeDelivery(
-            @Parameter(description = "배송 경로 ID") @PathVariable UUID deliveryLogId,
-            @Valid @RequestBody DeliveryLogRequest.Complete request,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
+    @Operation(
+            summary = "허브 leg 도착 처리",
+            description = "해당 배송 로그를 허브 도착 상태로 변경하고, 실제 거리/시간을 기록합니다. (HUB_MOVING → HUB_ARRIVED)"
+    )
+    ApiResponse<DeliveryLogResponse.Detail> arriveLog(
+            @PathVariable UUID logId,
+            @Valid @RequestBody DeliveryLogRequest.Arrive request
     );
 
-    @Operation(summary = "배송 경로 단건 조회")
-    ApiResponse<DeliveryLogResponse.Detail> getDeliveryLog(
-            @Parameter(description = "배송 경로 ID") @PathVariable UUID deliveryLogId,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
+    @Operation(
+            summary = "배송 취소에 따른 로그 취소",
+            description = "배송 또는 주문 취소에 따라 배송 로그를 취소 상태로 변경합니다. (CREATED/HUB_WAITING → CANCELED)"
+    )
+    ApiResponse<DeliveryLogResponse.Detail> cancelFromDelivery(
+            @PathVariable UUID logId
     );
 
-    @Operation(summary = "배송 ID로 전체 경로 조회")
-    ApiResponse<List<DeliveryLogResponse.Summary>> getDeliveryLogsByDeliveryId(
-            @Parameter(description = "배송 ID") @PathVariable UUID deliveryId,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
-    );
-
-    @Operation(summary = "배송 담당자의 진행 중인 경로 조회")
-    ApiResponse<List<DeliveryLogResponse.Summary>> getDeliveryManInProgressLogs(
-            @Parameter(description = "배송 담당자 ID") @PathVariable UUID deliveryManId,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
-    );
-
-    @Operation(summary = "허브의 대기 중인 경로 조회")
-    ApiResponse<List<DeliveryLogResponse.Summary>> getHubWaitingLogs(
-            @Parameter(description = "허브 ID") @PathVariable UUID hubId,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
-    );
-
-    @Operation(summary = "전체 경로 목록 조회")
-    ApiResponse<Page<DeliveryLogResponse.Summary>> getAllDeliveryLogs(
-            @ParameterObject Pageable pageable,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
-    );
-
-    @Operation(summary = "배송 경로 취소(Soft Cancel)")
-    ApiResponse<Void> cancelDeliveryLog(
-            @Parameter(description = "배송 경로 ID") @PathVariable UUID deliveryLogId,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
-    );
-
-    @Operation(summary = "배송 경로 삭제(Soft Delete)")
-    ApiResponse<Void> deleteDeliveryLog(
-            @Parameter(description = "배송 경로 ID") @PathVariable UUID deliveryLogId,
-            @Parameter(hidden = true) String userId,
-            @Parameter(hidden = true) String userRole
+    @Operation(
+            summary = "배송 로그 삭제",
+            description = "배송 로그를 소프트 삭제합니다."
+    )
+    ApiResponse<Void> delete(
+            @PathVariable UUID logId
     );
 }

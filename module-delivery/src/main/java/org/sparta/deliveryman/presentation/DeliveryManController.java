@@ -1,48 +1,91 @@
-package org.sparta.deliveryman.application.controller;
+package org.sparta.deliveryman.presentation;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.deliveryman.application.dto.DeliveryManRequest;
-import org.sparta.deliveryman.application.dto.DeliveryManResponse;
 import org.sparta.deliveryman.application.service.DeliveryManService;
-import org.sparta.deliveryman.presentation.DeliveryManApiSpec;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
+import org.sparta.deliveryman.domain.entity.DeliveryMan;
+import org.sparta.deliveryman.domain.enumeration.DeliveryManStatus;
+import org.sparta.deliveryman.domain.enumeration.DeliveryManType;
+import org.sparta.deliveryman.presentation.dto.request.DeliveryManRequest;
+import org.sparta.deliveryman.presentation.dto.response.DeliveryManResponse;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
+@RequestMapping("/api/delivery-men")
 @RequiredArgsConstructor
 public class DeliveryManController implements DeliveryManApiSpec {
 
     private final DeliveryManService deliveryManService;
 
     @Override
-    public ResponseEntity<ApiResponse<DeliveryManResponse.Detail>> create(@Valid @RequestBody DeliveryManRequest.Create request) {
-        return ResponseEntity.ok(ApiResponse.success(deliveryManService.createDeliveryMan(request)));
+    @PostMapping
+    public ApiResponse<DeliveryManResponse.Detail> createDeliveryMan(
+            @Valid @RequestBody DeliveryManRequest.Create request
+    ) {
+        DeliveryManResponse.Detail response = deliveryManService.createManually(request);
+        return ApiResponse.success(response);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<DeliveryManResponse.Detail>> findById(UUID id) {
-        return ResponseEntity.ok(ApiResponse.success(deliveryManService.getDeliveryMan(id)));
+    @PatchMapping("/{deliveryManId}/status")
+    public ApiResponse<DeliveryManResponse.Detail> updateStatus(
+            @PathVariable UUID deliveryManId,
+            @Valid @RequestBody DeliveryManRequest.UpdateStatus request
+    ) {
+        DeliveryManResponse.Detail response =
+                deliveryManService.changeStatus(deliveryManId, request);
+        return ApiResponse.success(response);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<Page<DeliveryManResponse.Summary>>> search(Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(deliveryManService.getAllDeliveryMen(pageable)));
+    @GetMapping("/{deliveryManId}")
+    public ApiResponse<DeliveryManResponse.Detail> getDetail(
+            @PathVariable UUID deliveryManId
+    ) {
+        DeliveryManResponse.Detail response = deliveryManService.getDetail(deliveryManId);
+        return ApiResponse.success(response);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<DeliveryManResponse.Detail>> update(UUID id, @Valid DeliveryManRequest.Update request) {
-        return ResponseEntity.ok(ApiResponse.success(deliveryManService.updateDeliveryMan(id, request)));
+    @GetMapping
+    public ApiResponse<List<DeliveryManResponse.Summary>> search(
+            @RequestParam(required = false) UUID hubId,
+            @RequestParam(required = false) DeliveryManType type,
+            @RequestParam(required = false) DeliveryManStatus status,
+            @RequestParam(required = false) String realName
+    ) {
+        DeliveryManRequest.Search request = new DeliveryManRequest.Search(
+                hubId,
+                type,
+                status,
+                realName
+        );
+
+        List<DeliveryManResponse.Summary> response = deliveryManService.search(request);
+        return ApiResponse.success(response);
+    }
+
+
+    @Override
+    @PostMapping("/assign/hub")
+    public ApiResponse<DeliveryManResponse.AssignResult> assignHubDeliveryMan(
+    ) {
+        DeliveryMan deliveryMan = deliveryManService.assignHubDeliveryMan();
+        DeliveryManResponse.AssignResult response = DeliveryManResponse.AssignResult.from(deliveryMan);
+        return ApiResponse.success(response);
     }
 
     @Override
-    public ResponseEntity<ApiResponse<Object>> delete(UUID id) {
-        deliveryManService.deleteDeliveryMan(id);
-        return ResponseEntity.ok(ApiResponse.success());
+    @PostMapping("/assign/company")
+    public ApiResponse<DeliveryManResponse.AssignResult> assignCompanyDeliveryMan(
+            @RequestParam UUID hubId
+    ) {
+        DeliveryMan deliveryMan = deliveryManService.assignCompanyDeliveryMan(hubId);
+        DeliveryManResponse.AssignResult response = DeliveryManResponse.AssignResult.from(deliveryMan);
+        return ApiResponse.success(response);
     }
 }
