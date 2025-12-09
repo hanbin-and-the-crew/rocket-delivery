@@ -73,7 +73,6 @@ public class PointEventHandler {
             log.warn("포인트 사용 확정 실패 (예약 없음 또는 만료): orderId={}, error={}",
                     event.orderId(), e.getMessage());
         }
-
     }
 
     /**
