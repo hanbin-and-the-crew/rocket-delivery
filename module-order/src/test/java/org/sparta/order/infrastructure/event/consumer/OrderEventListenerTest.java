@@ -60,7 +60,6 @@ class OrderEventListenerTest {
         return UUID.fromString("50000000-0000-0000-0000-000000000005");
     }
 
-
     // ================================
     // 1~3: DeliveryCompleted 테스트
     // ================================

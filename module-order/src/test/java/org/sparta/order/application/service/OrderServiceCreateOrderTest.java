@@ -1,7 +1,10 @@
 package org.sparta.order.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import feign.FeignException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -11,7 +14,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
 import org.sparta.order.domain.entity.Order;
+import org.sparta.order.domain.entity.OrderOutboxEvent;
+import org.sparta.order.domain.enumeration.OutboxStatus;
 import org.sparta.order.domain.error.OrderErrorType;
+import org.sparta.order.domain.repository.OrderOutboxEventRepository;
 import org.sparta.order.domain.repository.OrderRepository;
 import org.sparta.order.infrastructure.client.CouponClient;
 import org.sparta.order.infrastructure.client.PaymentClient;
@@ -19,6 +25,7 @@ import org.sparta.order.infrastructure.client.PointClient;
 import org.sparta.order.infrastructure.client.StockClient;
 import org.sparta.order.infrastructure.event.publisher.OrderCreatedEvent;
 import org.sparta.order.presentation.dto.response.OrderResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Field;
 import java.time.LocalDateTime;
@@ -37,6 +44,8 @@ class OrderServiceCreateOrderTest {
     @Mock
     private OrderRepository orderRepository;
     @Mock
+    private OrderOutboxEventRepository outboxRepository;
+    @Mock
     private EventPublisher eventPublisher;
 
     @Mock
@@ -48,8 +57,19 @@ class OrderServiceCreateOrderTest {
     @Mock
     private PaymentClient paymentClient;
 
+    private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setUp() {
+        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+        // OrderService 에 ObjectMapper 주입이 생성자 기반이면 이렇게 넣어야 함
+        // 생성자에 ObjectMapper 포함이면 @InjectMocks 자동 주입됨 → 아래 필요 없음.
+        ReflectionTestUtils.setField(orderService, "objectMapper", objectMapper);
+    }
+
     @Test
-    void createOrder_success_withPointAndCoupon_andPublishOrderCreatedEvent() throws JsonProcessingException {
+    void createOrder_success_withPointAndCoupon_andPublishOrderCreatedEvent() {
         // ===== given =====
         UUID customerId = UUID.randomUUID();
         UUID supplierCompanyId = UUID.randomUUID();
@@ -192,21 +212,60 @@ class OrderServiceCreateOrderTest {
         assertEquals(command.pgProvider(), payReq.pgProvider());
         assertEquals(command.currency(), payReq.currency());
 
-        // 6) OrderCreatedEvent 발행 검증
-        ArgumentCaptor<OrderCreatedEvent> eventCaptor =
-                ArgumentCaptor.forClass(OrderCreatedEvent.class);
-        verify(eventPublisher, times(1)).publishExternal(eventCaptor.capture());
+        // Outbox Pattern이므로 eventPublisher는 여기서 이루어지지 않음.
+//        ArgumentCaptor<OrderCreatedEvent> eventCaptor =
+//                ArgumentCaptor.forClass(OrderCreatedEvent.class);
+//        verify(eventPublisher, times(1)).publishExternal(eventCaptor.capture());
 
-        OrderCreatedEvent event = eventCaptor.getValue();
-        assertNotNull(event.eventId());
-        assertEquals(result.orderId(), event.orderId());
-        assertEquals(totalPrice, event.orderAmount());
-        assertEquals(requestPoint, event.requestPoint());
-        assertEquals(couponDiscount, event.discountAmount());
-        assertEquals(expectedAmountPayable, event.amountPayable());
-        assertEquals(pointReservationId, event.pointReservationId());
-        assertEquals(couponReservationId, event.couponReservationId());
-        assertEquals(pgToken, event.pgToken());
+        // 8) Outbox 저장 검증
+        ArgumentCaptor<OrderOutboxEvent> outboxCaptor =
+                ArgumentCaptor.forClass(OrderOutboxEvent.class);
+
+        verify(outboxRepository, times(1)).save(outboxCaptor.capture());
+
+        OrderOutboxEvent savedOutbox = outboxCaptor.getValue();
+
+        // === Outbox 기본 필드 검증 ===
+        assertEquals("ORDER", savedOutbox.getAggregateType());
+        assertEquals(result.orderId(), savedOutbox.getAggregateId());
+        assertEquals("OrderCreatedEvent", savedOutbox.getEventType());
+        assertEquals(OutboxStatus.READY, savedOutbox.getStatus());
+        assertNotNull(savedOutbox.getPayload());
+
+        // === payload 검증 ===
+        OrderCreatedEvent deserializedEvent = null;
+        try {
+            deserializedEvent = objectMapper.readValue(savedOutbox.getPayload(), OrderCreatedEvent.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        // 6) OrderCreatedEvent 발행 검증
+        OrderCreatedEvent eventFromPayload = null;
+        try {
+            eventFromPayload = objectMapper.readValue(savedOutbox.getPayload(), OrderCreatedEvent.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+        assertNotNull(eventFromPayload.eventId());
+        assertEquals(result.orderId(), eventFromPayload.orderId());
+        assertEquals(totalPrice, eventFromPayload.orderAmount());
+        assertEquals(requestPoint, eventFromPayload.requestPoint());
+        assertEquals(couponDiscount, eventFromPayload.discountAmount());
+        assertEquals(expectedAmountPayable, eventFromPayload.amountPayable());
+        assertEquals(pointReservationId, eventFromPayload.pointReservationId());
+        assertEquals(couponReservationId, eventFromPayload.couponReservationId());
+        assertEquals(pgToken, eventFromPayload.pgToken());
+
+        assertEquals(result.orderId(), deserializedEvent.orderId());
+        assertEquals(totalPrice, deserializedEvent.orderAmount());
+        assertEquals(requestPoint, deserializedEvent.requestPoint());
+        assertEquals(couponDiscount, deserializedEvent.discountAmount());
+        assertEquals(expectedAmountPayable, deserializedEvent.amountPayable());
+        assertEquals(pointReservationId, deserializedEvent.pointReservationId());
+        assertEquals(couponReservationId, deserializedEvent.couponReservationId());
+        assertEquals(pgToken, deserializedEvent.pgToken());
+
 
         // 7) 응답 객체 기본 검증 (서비스 리턴 값)
         assertNotNull(result.orderId());

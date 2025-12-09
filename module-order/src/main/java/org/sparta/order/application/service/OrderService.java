@@ -132,7 +132,7 @@ public class OrderService {
      * 주문 생성
      * - 상태: CREATED
      */
-    public OrderResponse.Detail createOrder(UUID customerId, OrderCommand.Create request) throws JsonProcessingException {
+    public OrderResponse.Detail createOrder(UUID customerId, OrderCommand.Create request) {
         // 엔티티 생성
         Order order = Order.create(
                 customerId,
@@ -262,7 +262,12 @@ public class OrderService {
 
 
         // ===================== 8. Outbox 패턴 적용 =====================
-        String payload = objectMapper.writeValueAsString(event);
+        String payload = null;
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
 
         OrderOutboxEvent outbox = OrderOutboxEvent.ready(
                 "ORDER",
@@ -273,7 +278,7 @@ public class OrderService {
 
         outboxRepository.save(outbox);
 
-        //eventPublisher.publishExternal(event);
+        // eventPublisher.publishExternal(event);
 
         return OrderResponse.Detail.from(savedOrder);
     }
