@@ -166,7 +166,10 @@ public class Payment {
             throw new IllegalStateException("결제를 완료할 수 없는 상태입니다. status=" + status);
         }
         if (approvedAmount != this.amountPayable) {
-            throw new IllegalArgumentException("approvedAmount != amountPayable");
+            throw new BusinessException(
+                    PaymentErrorType.PAYMENT_AMOUNT_MISMATCH,
+                    "approvedAmount != amountPayable"
+            );
         }
         this.paymentKey = paymentKey;
         this.amountPaid = approvedAmount;
@@ -203,10 +206,16 @@ public class Payment {
      */
     public void applyRefund(long refundAmount) {
         if (refundAmount <= 0) {
-            throw new IllegalArgumentException("refundAmount must be positive");
+            throw new BusinessException(
+                    PaymentErrorType.REFUND_AMOUNT_INVALID,
+                    "refundAmount must be positive"
+            );
         }
         if (refundAmount > this.amountPaid) {
-            throw new IllegalArgumentException("refundAmount > amountPaid");
+            throw new BusinessException(
+                    PaymentErrorType.REFUND_AMOUNT_EXCEEDED,
+                    "refundAmount > amountPaid"
+            );
         }
 
         this.amountPaid -= refundAmount;

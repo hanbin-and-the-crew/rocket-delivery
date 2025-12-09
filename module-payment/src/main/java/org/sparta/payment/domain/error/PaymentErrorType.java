@@ -1,14 +1,12 @@
 package org.sparta.payment.domain.error;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.ErrorType;
 import org.springframework.http.HttpStatus;
 
 import java.util.Locale;
 
 @Getter
-@RequiredArgsConstructor
 public enum PaymentErrorType implements ErrorType {
 
     // ===========================
@@ -17,6 +15,7 @@ public enum PaymentErrorType implements ErrorType {
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "결제를 찾을 수 없습니다."),
     PAYMENT_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "이미 완료된 결제입니다."),
     PAYMENT_ALREADY_CANCELED(HttpStatus.BAD_REQUEST, "이미 취소된 결제입니다."),
+    PAYMENT_CANCEL_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "해당 결제는 현재 취소할 수 없는 상태입니다."),
     PAYMENT_ALREADY_REFUNDED(HttpStatus.BAD_REQUEST, "이미 전액 환불된 결제입니다."),
     PAYMENT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "결제 상태가 유효하지 않습니다."),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 일치하지 않습니다."),

@@ -19,14 +19,14 @@ public class StockResponse {
             @Schema(description = "재고 ID", example = "3f1a2b3c-4d5e-6f70-8a9b-0c1d2e3f4a5b")
             UUID stockId,
 
-            @Schema(description = "예약 키 (orderItemId 등)", example = "orderItem-20251203-0001")
+            @Schema(description = "예약 키 (orderId 등)", example = "orderItem-20251203-0001")
             String reservationKey,
 
             @Schema(description = "예약 수량", example = "3")
             int reservedQuantity,
 
             @Schema(description = "예약 상태", example = "RESERVED")
-            StockReservationStatus status
+            String status
     ) {
         public static Reserve of(StockReservation reservation) {
             return new Reserve(
@@ -34,7 +34,7 @@ public class StockResponse {
                     reservation.getStockId(),
                     reservation.getReservationKey(),
                     reservation.getReservedQuantity(),
-                    reservation.getStatus()
+                    reservation.getStatus().name()
             );
         }
     }

@@ -4,9 +4,8 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.sparta.jpa.entity.BaseEntity;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -19,27 +18,27 @@ import java.util.UUID;
 @Entity
 @Getter
 @Table(name = "p_processed_events",
-        indexes = @Index(name = "idx_event_id", columnList = "eventId", unique = true))
+        indexes = @Index(name = "idx_event_id", columnList = "event_id", unique = true))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ProcessedEvent extends BaseEntity {
+public class ProcessedEvent {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "event_id", nullable = false, unique = true)
     private UUID eventId;
 
-    @Column(nullable = false)
+    @Column(name = "event_type", nullable = false, length = 100)
     private String eventType;
 
-    @Column(nullable = false)
-    private Instant processedAt;
+    @Column(name = "processed_at", nullable = false)
+    private LocalDateTime processedAt;
 
     private ProcessedEvent(UUID eventId, String eventType) {
         this.eventId = eventId;
         this.eventType = eventType;
-        this.processedAt = Instant.now();
+        this.processedAt = LocalDateTime.now();
     }
 
     public static ProcessedEvent of(UUID eventId, String eventType) {

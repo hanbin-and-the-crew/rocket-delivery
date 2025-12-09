@@ -2,7 +2,6 @@ package org.sparta.payment.presentation.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import org.sparta.common.api.ApiResponse;
 import org.sparta.payment.application.command.refund.RefundCreateCommand;
 import org.sparta.payment.application.command.refund.RefundGetByIdCommand;
@@ -15,8 +14,6 @@ import org.sparta.payment.presentation.dto.request.RefundCreateRequest;
 import org.sparta.payment.presentation.dto.response.RefundDetailResponse;
 import org.sparta.payment.presentation.dto.response.RefundListResponse;
 import org.springframework.web.bind.annotation.*;
-
-import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.UUID;
 

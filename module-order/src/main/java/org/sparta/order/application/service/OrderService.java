@@ -1,5 +1,7 @@
 package org.sparta.order.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +9,8 @@ import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
 import org.sparta.order.application.error.OrderApplicationErrorType;
+import org.sparta.order.domain.entity.OrderOutboxEvent;
+import org.sparta.order.domain.repository.OrderOutboxEventRepository;
 import org.sparta.order.infrastructure.client.CouponClient;
 import org.sparta.order.infrastructure.client.PaymentClient;
 import org.sparta.order.infrastructure.client.PointClient;
@@ -38,7 +42,9 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final OrderOutboxEventRepository outboxRepository;
     private final EventPublisher eventPublisher; // Kafka + Spring Event 래퍼 (이미 common 모듈에 있음)
+    private final ObjectMapper objectMapper;
 
     private final IdempotencyService idempotencyService;
 
@@ -85,7 +91,7 @@ public class OrderService {
      * - 동일한 idempotencyKey로 재요청 시 기존 결과 반환
      */
     public OrderResponse.Detail createOrder(UUID customerId, OrderCommand.Create request,
-                                            String idempotencyKey) {
+                                            String idempotencyKey) throws JsonProcessingException {
         // 1. 이미 처리된 요청인지 확인
         Optional<OrderResponse.Detail> existingResponse =
                 idempotencyService.findExistingResponse(idempotencyKey);
@@ -415,7 +421,25 @@ public class OrderService {
                 paymentKey
         );
 
-        eventPublisher.publishExternal(event);
+
+        // ===================== 8. Outbox 패턴 적용 =====================
+        String payload = null;
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        OrderOutboxEvent outbox = OrderOutboxEvent.ready(
+                "ORDER",
+                orderId,
+                "OrderCreatedEvent",
+                payload
+        );
+
+        outboxRepository.save(outbox);
+
+        // eventPublisher.publishExternal(event);
 
 
         log.info("[이벤트] 생성 완료 - event={}", event);

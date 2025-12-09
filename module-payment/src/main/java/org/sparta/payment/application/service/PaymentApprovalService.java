@@ -3,7 +3,6 @@ package org.sparta.payment.application.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
-
 import org.sparta.payment.application.command.payment.PaymentApprovalCommand;
 import org.sparta.payment.application.dto.PaymentApprovalResult;
 import org.sparta.payment.domain.error.PaymentErrorType;

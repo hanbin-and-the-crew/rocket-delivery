@@ -1,9 +1,5 @@
 package org.sparta.payment.domain.entity;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.common.error.BusinessException;
@@ -11,6 +7,11 @@ import org.sparta.payment.domain.enumeration.PaymentStatus;
 import org.sparta.payment.domain.enumeration.PaymentType;
 import org.sparta.payment.domain.enumeration.PgProvider;
 import org.sparta.payment.domain.error.PaymentErrorType;
+
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PaymentTest {
 
