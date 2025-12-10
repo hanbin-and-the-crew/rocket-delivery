@@ -20,7 +20,7 @@ public interface StockClient {
             UUID productId,
             String reservationKey,  // orderId를 String으로 변환한거
             Integer quantity
-    ){}
+    ){} 
 
 
     record StockReserveResponse(
