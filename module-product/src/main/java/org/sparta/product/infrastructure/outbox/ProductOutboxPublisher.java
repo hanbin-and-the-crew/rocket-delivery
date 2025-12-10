@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.event.EventPublisher;
-import org.sparta.product.domain.event.StockConfirmedEvent;
+import org.sparta.common.event.product.StockConfirmedEvent;
 import org.sparta.product.domain.outbox.ProductOutboxEvent;
 import org.sparta.product.domain.repository.ProductOutboxEventRepository;
 import org.springframework.retry.annotation.Backoff;

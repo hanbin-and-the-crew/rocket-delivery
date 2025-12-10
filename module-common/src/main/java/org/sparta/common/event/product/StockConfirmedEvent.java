@@ -1,4 +1,4 @@
-package org.sparta.product.domain.event;
+package org.sparta.common.event.product;
 
 import org.sparta.common.event.DomainEvent;
 
