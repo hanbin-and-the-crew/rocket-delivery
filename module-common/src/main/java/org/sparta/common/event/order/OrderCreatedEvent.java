@@ -24,7 +24,6 @@ public record OrderCreatedEvent(
         Instant occurredAt
 ) implements DomainEvent {
 
-
     public static OrderCreatedEvent of(
             UUID orderId,
             Long amountTotal,

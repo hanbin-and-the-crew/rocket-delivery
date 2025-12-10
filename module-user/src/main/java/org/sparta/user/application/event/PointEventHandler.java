@@ -35,7 +35,7 @@ public class PointEventHandler {
     /**
      * 주문 승인 이벤트 처리
      */
-    @KafkaListener(topics = "order.orderApproved", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
+    @KafkaListener(topics = "order.orderApprove", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
     public void handleOrderApproved(OrderApprovedEvent event) {
         log.info("주문 승인 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());
@@ -78,7 +78,7 @@ public class PointEventHandler {
     /**
      * 주문 취소 이벤트 처리
      */
-    @KafkaListener(topics = "order.orderCancelled", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
+    @KafkaListener(topics = "order.orderCancel", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
     public void handleOrderCancelled(OrderCancelledEvent event) {
         log.info("주문 취소 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());
