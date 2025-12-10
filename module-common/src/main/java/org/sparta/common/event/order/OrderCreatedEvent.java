@@ -1,7 +1,6 @@
-package org.sparta.order.infrastructure.event.publisher;
+package org.sparta.common.event.order;
 
 import org.sparta.common.event.DomainEvent;
-import org.sparta.order.domain.entity.Order;
 
 import java.time.Instant;
 import java.util.UUID;
