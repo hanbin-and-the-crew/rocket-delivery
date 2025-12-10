@@ -9,9 +9,9 @@ import org.sparta.product.application.dto.ProductDetailInfo;
 import org.sparta.product.application.dto.ProductUpdateCommand;
 import org.sparta.product.application.service.ProductService;
 import org.sparta.product.presentation.dto.product.ProductRequest;
-import org.sparta.product.presentation.dto.product.ProductResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -34,10 +34,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * ProductController WebMvc 슬라이스 테스트
+ * ProductController 통합 + MockMvc 테스트
  * - HTTP 계층에서 JSON <-> DTO 바인딩과 ProductService 호출 여부를 검증
+ * - ProductService 는 @MockBean 으로 대체해서 DB/Outbox 로직은 타지 않음
  */
-@WebMvcTest(ProductController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 class ProductControllerTest {
 

@@ -11,4 +11,7 @@ import java.util.UUID;
 public interface ProductOutboxEventJpaRepository extends JpaRepository<ProductOutboxEvent, UUID> {
 
     Page<ProductOutboxEvent> findByStatusOrderByCreatedAtAsc(OutboxStatus status, Pageable pageable);
+
+    long countByStatus(OutboxStatus status);
+
 }

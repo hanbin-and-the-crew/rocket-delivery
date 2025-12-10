@@ -7,9 +7,9 @@ import org.mockito.ArgumentCaptor;
 import org.sparta.product.application.service.StockService;
 import org.sparta.product.domain.entity.StockReservation;
 import org.sparta.product.presentation.dto.stock.StockRequest;
-import org.sparta.product.presentation.dto.stock.StockResponse;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -28,10 +28,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * StockController WebMvc 슬라이스 테스트
- * - 재고 예약/확정/취소 API 의 HTTP 레이어 검증
+ * StockController 통합 + MockMvc 테스트
+ * - HTTP 레이어와 StockService 간 계약을 검증
+ * - StockService 는 @MockBean 으로 대체해서 DB/Outbox 로직은 타지 않음
  */
-@WebMvcTest(StockController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 class StockControllerTest {
 
@@ -41,6 +43,7 @@ class StockControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // 실제 빈 대신 목으로 교체 → 서비스 레이어부터 아래는 호출 안됨
     @MockBean
     private StockService stockService;
 
@@ -59,7 +62,6 @@ class StockControllerTest {
                 quantity
         );
 
-        // 엔티티 팩토리 메서드 사용 (id 는 null 이어도 상관 없음)
         StockReservation reservation = StockReservation.create(
                 stockId,
                 reservationKey,
@@ -76,11 +78,10 @@ class StockControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json))
                 .andExpect(status().isOk())
-                // ApiResponse 구조는 몰라도, 예약 키/수량이 포함되는지만 확인
                 .andExpect(content().string(containsString(reservationKey)))
                 .andExpect(content().string(containsString(String.valueOf(quantity))));
 
-        // then - 서비스 호출 인자 검증
+        // then
         ArgumentCaptor<UUID> productIdCaptor = ArgumentCaptor.forClass(UUID.class);
         ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> quantityCaptor = ArgumentCaptor.forClass(Integer.class);
