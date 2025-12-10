@@ -7,6 +7,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.common.event.order.OrderApprovedEvent;
+import org.sparta.common.event.order.OrderCancelledEvent;
+import org.sparta.common.event.order.OrderCreatedEvent;
+import org.sparta.common.event.order.OrderDeletedEvent;
 import org.sparta.order.application.command.OrderCommand;
 import org.sparta.order.application.error.OrderApplicationErrorType;
 import org.sparta.order.domain.entity.OrderOutboxEvent;
@@ -15,15 +19,11 @@ import org.sparta.order.infrastructure.client.CouponClient;
 import org.sparta.order.infrastructure.client.PaymentClient;
 import org.sparta.order.infrastructure.client.PointClient;
 import org.sparta.order.infrastructure.client.StockClient;
-import org.sparta.order.infrastructure.event.publisher.OrderDeletedEvent;
 import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
 import org.sparta.order.domain.error.OrderErrorType;
 import org.sparta.order.domain.repository.OrderRepository;
-import org.sparta.order.infrastructure.event.publisher.OrderApprovedEvent;
-import org.sparta.order.infrastructure.event.publisher.OrderCancelledEvent;
-import org.sparta.order.infrastructure.event.publisher.OrderCreatedEvent;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -490,7 +490,21 @@ public class OrderService {
 
         // OrderApprovedEvent 발행 (배송/Slack 모듈 사용)
         // TODO: delivery에서 필요한 정보 확인 후 추가
-        eventPublisher.publishExternal(OrderApprovedEvent.of(order));
+        OrderApprovedEvent event = OrderApprovedEvent.of(
+                order.getId(),                 // orderId
+                order.getCustomerId(),         // customerId
+                order.getSupplierCompanyId(),  // supplierCompanyId
+                order.getSupplierHubId(),      // supplierHubId
+                order.getReceiveCompanyId(),   // receiveCompanyId
+                order.getReceiveHubId(),       // receiveHubId
+                order.getAddress(),            // address
+                order.getUserName(),           // receiverName
+                order.getSlackId(),            // receiverSlackId
+                order.getUserPhoneNumber(),    // receiverPhone
+                order.getDueAt().getTime(),    // dueAt (LocalDateTime)
+                order.getRequestMemo()         // requestMemo
+        );
+        eventPublisher.publishExternal(event);
     }
 
     // 주문 취소 처리
@@ -509,7 +523,12 @@ public class OrderService {
         order.cancel(reasonCode, request.reasonMemo());
 
         // 재고/예약 취소, 결제 취소를 위한 이벤트 발행
-        eventPublisher.publishExternal(OrderCancelledEvent.of(order));
+        OrderCancelledEvent event = OrderCancelledEvent.of(
+                order.getId(),
+                order.getProductId(),
+                order.getQuantity().getValue()
+        );
+        eventPublisher.publishExternal(event);
 
         return OrderResponse.Update.of(order, "주문이 취소되었습니다.");
     }
@@ -548,7 +567,10 @@ public class OrderService {
         order.markAsDeleted();
 
         // 주문 삭제 이벤트 발행
-        eventPublisher.publishExternal(OrderDeletedEvent.of(order));
+        OrderDeletedEvent event = OrderDeletedEvent.of(
+                order.getId()
+        );
+        eventPublisher.publishExternal(event);
 
         return OrderResponse.Update.of(order, "주문이 삭제되었습니다.");
     }

@@ -1,7 +1,7 @@
 package org.sparta.user.presentation.dto;
 
+import org.sparta.common.event.order.OrderApprovedEvent;
 import org.sparta.user.application.command.PointCommand;
-import org.sparta.user.infrastructure.event.OrderApprovedEvent;
 import org.sparta.user.presentation.dto.request.PointRequest;
 import org.springframework.stereotype.Component;
 

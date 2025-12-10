@@ -4,13 +4,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.common.event.order.OrderApprovedEvent;
+import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.application.dto.PointServiceResult;
 import org.sparta.user.application.service.PointService;
 import org.sparta.user.domain.entity.ProcessedEvent;
 import org.sparta.user.domain.repository.ProcessedEventRepository;
-import org.sparta.user.infrastructure.event.OrderApprovedEvent;
-import org.sparta.user.infrastructure.event.OrderCancelledEvent;
 import org.sparta.user.infrastructure.event.publisher.PointConfirmedEvent;
 import org.sparta.user.infrastructure.event.publisher.PointReservationCancelledEvent;
 import org.sparta.user.presentation.dto.PointMapper;
@@ -35,7 +35,7 @@ public class PointEventHandler {
     /**
      * 주문 승인 이벤트 처리
      */
-    @KafkaListener(topics = "payment-events", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
+    @KafkaListener(topics = "order.orderApprove", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
     public void handleOrderApproved(OrderApprovedEvent event) {
         log.info("주문 승인 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());
@@ -73,13 +73,12 @@ public class PointEventHandler {
             log.warn("포인트 사용 확정 실패 (예약 없음 또는 만료): orderId={}, error={}",
                     event.orderId(), e.getMessage());
         }
-
     }
 
     /**
      * 주문 취소 이벤트 처리
      */
-    @KafkaListener(topics = "order-events", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
+    @KafkaListener(topics = "order.orderCancel", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
     public void handleOrderCancelled(OrderCancelledEvent event) {
         log.info("주문 취소 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());

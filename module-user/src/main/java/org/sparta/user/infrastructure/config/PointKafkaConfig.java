@@ -37,7 +37,7 @@ public class PointKafkaConfig {
         return new DefaultKafkaConsumerFactory<>(
                 config,
                 new StringDeserializer(),
-                (Deserializer<Object>) (Object) new StringDeserializer()  // Value도 String으로 역직렬화
+                (Deserializer<Object>) (Object) new StringDeserializer()
         );
     }
 

@@ -10,12 +10,20 @@ import java.util.UUID;
  * 사용자의 주문 취소 Kafka 이벤트
  * 파일 이름은 product에 있는 것과 동일하게 맞춤
  */
-public record OrderCanceledEvent(
+public record OrderCancelledEvent(
         UUID eventId,
         UUID orderId,
         UUID productId,
         Integer quantity,
         Instant occurredAt
 ) implements DomainEvent {
-
+    public static OrderCancelledEvent of(UUID orderId, UUID productId, Integer quantity) {
+        return new OrderCancelledEvent(
+                UUID.randomUUID(),   // eventId
+                orderId,
+                productId,
+                quantity,
+                Instant.now()        // occurredAt
+        );
+    }
 }

@@ -10,8 +10,10 @@ import org.sparta.user.domain.entity.PointReservation;
 import org.sparta.user.domain.enums.PointStatus;
 import org.sparta.user.domain.enums.ReservationStatus;
 import org.sparta.user.domain.error.PointErrorType;
+import org.sparta.user.domain.error.UserErrorType;
 import org.sparta.user.domain.repository.PointRepository;
 import org.sparta.user.domain.repository.PointReservationRepository;
+import org.sparta.user.domain.repository.UserRepository;
 import org.sparta.user.presentation.dto.response.PointResponse;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,7 @@ import static org.springframework.data.domain.Sort.Direction.ASC;
 @RequiredArgsConstructor
 public class PointService {
     private final PointRepository pointRepository;
+    private final UserRepository userRepository;
     private final PointReservationRepository reservationRepository;
 
     /**
@@ -44,10 +47,13 @@ public class PointService {
         UUID orderId = command.orderId();
 
         // orderId 기반 중복 체크
-        boolean exists = reservationRepository.existsByOrderId(orderId);
-        if (exists) {
+        if (reservationRepository.existsByOrderId(orderId)) {
             throw new BusinessException(PointErrorType.DUPLICATE_ORDER_ID);
         }
+
+        // User 존재하는지 확인
+        userRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND));
 
         // FIFO: AVAILABLE이고 만료되지 않은 포인트를 유효 기간이 오래된 순서로 조회
         List<Point> availablePoints = pointRepository.findUsablePoints(
