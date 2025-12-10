@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.api.ApiResponse;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
@@ -158,9 +159,9 @@ public class OrderService {
         long requestPoint = request.requestPoint() != null ? request.requestPoint() : 0L;
 
         // ===================== 2. 재고 예약 =====================
-        StockClient.StockReserveResponse stockRes;
+        ApiResponse<StockClient.StockReserveResponse> stockResResponse;
         try {
-            stockRes = stockClient.reserveStock(new StockClient.StockReserveRequest(
+            stockResResponse = stockClient.reserveStock(new StockClient.StockReserveRequest(
                     savedOrder.getProductId(),
                     orderId.toString(),
                     savedOrder.getQuantity().getValue()
@@ -170,10 +171,21 @@ public class OrderService {
             throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
         }
 
-//        if (!"RESERVED".equalsIgnoreCase(stockRes.status())) {
-//            log.error("재고 예약 상태 비정상 - status={}", stockRes.status());
-//            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
-//        }
+        // 1) meta.result 가 SUCCESS 인지 먼저 확인
+        if (stockResResponse.meta().result() != ApiResponse.Metadata.Result.SUCCESS) {
+            log.error("재고 예약 API 응답 실패 - result={}, errorCode={}",
+                    stockResResponse.meta().result(),
+                    stockResResponse.meta().errorCode()
+            );
+            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
+        }
+
+        // 2) data 꺼내서  실제 예약 상태 확인
+        StockClient.StockReserveResponse stockRes = stockResResponse.data();
+        if (stockRes == null || !"RESERVED".equalsIgnoreCase(stockRes.status())) {
+            log.error("재고 예약 상태 비정상 - status={}", stockRes != null ? stockRes.status() : null);
+            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
+        }
 
         // ===================== 3. 포인트 예약 =====================
         Long usedPointAmount = 0L;
