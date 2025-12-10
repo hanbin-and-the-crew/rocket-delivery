@@ -12,11 +12,22 @@ spring:
   application:
     name: delivery-service
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000   # ms, 연결 타임아웃
+            read-timeout: 10000     # ms, 읽기 타임아웃
+            logger-level: BASIC     # (선택) 로깅 레벨
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: delivery-service
-
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db

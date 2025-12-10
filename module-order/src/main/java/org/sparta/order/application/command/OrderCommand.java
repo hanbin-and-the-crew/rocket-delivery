@@ -23,7 +23,7 @@ public class OrderCommand {
             String methodType,
             String pgProvider,
             String currency,
-            String couponId
+            UUID couponId
     ) {}
 
     public record ChangeDueAt(
