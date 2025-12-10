@@ -1,6 +1,9 @@
 package org.sparta.common.event;
 
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.event.order.OrderApprovedEvent;
+import org.sparta.common.event.order.OrderCanceledEvent;
+import org.sparta.common.event.order.OrderCreatedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
@@ -96,7 +99,22 @@ public class EventPublisher {
             return "hub-events";
         }
 
-        // Order 관련 이벤트
+        // Order 도메인: 주문 생성 이벤트
+        if (event instanceof OrderCreatedEvent) {
+            return "order.orderCreated";
+        }
+
+        // Order 도메인: 주문 승인 이벤트
+        if (event instanceof OrderApprovedEvent) {
+            return "order.orderApproved";
+        }
+
+        // Order 도메인: 주문 취소 이벤트
+        if (event instanceof OrderCanceledEvent) {
+            return "order.orderCanceled";
+        }
+
+        // Order 관련 나머지 이벤트
         if (eventType.startsWith("Order")) {
             return "order-events";
         }

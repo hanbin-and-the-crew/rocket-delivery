@@ -1,8 +1,5 @@
 package org.sparta.user.application.event;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,19 +9,19 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.common.event.order.OrderApprovedEvent;
+import org.sparta.common.event.order.OrderCanceledEvent;
 import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.application.dto.PointServiceResult;
 import org.sparta.user.application.service.PointService;
 import org.sparta.user.domain.error.PointErrorType;
 import org.sparta.user.domain.repository.ProcessedEventRepository;
-import org.sparta.user.infrastructure.event.OrderApprovedEvent;
-import org.sparta.user.infrastructure.event.OrderCancelledEvent;
 import org.sparta.user.infrastructure.event.publisher.PointConfirmedEvent;
 import org.sparta.user.infrastructure.event.publisher.PointReservationCancelledEvent;
 import org.sparta.user.presentation.dto.PointMapper;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,8 +31,6 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PointEventHandlerTest {
-
-
 
     @Mock
     private ProcessedEventRepository processedEventRepository;
@@ -53,29 +48,30 @@ class PointEventHandlerTest {
     private PointEventHandler handler;
 
     private OrderApprovedEvent approvedEvent;
-    private OrderCancelledEvent cancelledEvent;
+    private OrderCanceledEvent canceledEvent;
     private PointCommand.ConfirmPoint confirmCommand;
     private PointServiceResult.Confirm confirmResult;
 
-    private ObjectMapper objectMapper;
+    // private ObjectMapper objectMapper;
 
     @BeforeEach
     void setup() {
 
         approvedEvent = new OrderApprovedEvent(
-                UUID.randomUUID(),       // eventId
-                Instant.now(),           // occurredAt
-                UUID.randomUUID(),       // orderId
-                UUID.randomUUID(),       // customerId
-                UUID.randomUUID(),       // receiveHubId
-                UUID.randomUUID(),       // receiveCompanyId
-                UUID.randomUUID(),       // supplierHubId
-                UUID.randomUUID(),       // supplierCompanyId
-                "서울시 강남구 테헤란로",    // address
-                "010-1234-5678",         // receiverPhone
-                "2025-12-30T10:00:00",   // dueAt
-                "현관문 앞",              // requestedMemo
-                "U1234567"               // receiverSlackId
+                UUID.randomUUID(),            // orderId: 주문 ID
+                UUID.randomUUID(),            // customerId: 고객 ID
+                UUID.randomUUID(),            // supplierCompanyId: 공급 업체 회사 ID
+                UUID.randomUUID(),            // supplierHubId: 공급 허브 ID
+                UUID.randomUUID(),            // receiveCompanyId: 수령 업체 회사 ID
+                UUID.randomUUID(),            // receiveHubId: 수령 허브 ID
+                "서울시 강남구 테헤란로",       // address: 배송지 주소
+                "홍길동",                       // receiverName: 수령자 이름
+                "U1234567",                    // receiverSlackId: 수령자 슬랙 ID
+                "010-1234-5678",              // receiverPhone: 수령자 연락처
+                LocalDateTime.of(2025, 12, 30, 10, 0), // dueAt: 배송 예정 시간
+                "현관문 앞에 놓아주세요",        // requestMemo: 고객 요청 사항
+                UUID.randomUUID(),            // eventId: 이벤트 고유 ID
+                Instant.now()                 // occurredAt: 이벤트 발생 시각
         );
 
         // ConfirmPoint Command
@@ -101,7 +97,7 @@ class PointEventHandlerTest {
                 .thenReturn(confirmResult);
 
         // --------- Cancelled Event ---------
-        cancelledEvent = new OrderCancelledEvent(
+        canceledEvent = new OrderCanceledEvent(
                 UUID.randomUUID(),     // eventId
                 UUID.randomUUID(),     // orderId
                 UUID.randomUUID(),     // productId
@@ -109,8 +105,8 @@ class PointEventHandlerTest {
                 Instant.now()          // occurredAt
         );
 
-        objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
-        handler = new PointEventHandler(processedEventRepository, eventPublisher, pointService, pointMapper, objectMapper);
+        //objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        //handler = new PointEventHandler(processedEventRepository, eventPublisher, pointService, pointMapper, objectMapper);
     }
 
     // -------------------------------------------------------
@@ -119,12 +115,11 @@ class PointEventHandlerTest {
 
     @Test
     @DisplayName("이미 처리된 주문 승인 이벤트는 재처리하지 않는다")
-    void handleOrderApproved_alreadyProcessed_doNothing() throws JsonProcessingException {
+    void handleOrderApproved_alreadyProcessed_doNothing() {
         when(processedEventRepository.existsByEventId(approvedEvent.eventId()))
                 .thenReturn(true);
 
-        String message = objectMapper.writeValueAsString(approvedEvent);
-        handler.handleOrderApproved(message);
+        handler.handleOrderApproved(approvedEvent);
 
         verify(pointService, never()).confirmPointUsage(any());
         verify(eventPublisher, never()).publishExternal(any());
@@ -133,15 +128,14 @@ class PointEventHandlerTest {
 
     @Test
     @DisplayName("주문 승인 이벤트가 들어오면 포인트 사용을 확정하고 이벤트를 발행한다")
-    void handleOrderApproved_successFlow() throws JsonProcessingException {
+    void handleOrderApproved_successFlow() {
 
         when(processedEventRepository.existsByEventId(approvedEvent.eventId()))
                 .thenReturn(false);
         when(pointService.confirmPointUsage(confirmCommand))
                 .thenReturn(confirmResult);
 
-        String message = objectMapper.writeValueAsString(approvedEvent);
-        handler.handleOrderApproved(message);
+        handler.handleOrderApproved(approvedEvent);
 
         // 포인트 서비스 호출
         verify(pointService).confirmPointUsage(confirmCommand);
@@ -162,7 +156,7 @@ class PointEventHandlerTest {
 
     @Test
     @DisplayName("포인트 사용 확정 시 비즈니스 예외가 발생하면 이벤트는 기록하지만 포인트 확정은 처리하지 않는다")
-    void handleOrderApproved_businessException_stillSaveProcessedEvent() throws JsonProcessingException {
+    void handleOrderApproved_businessException_stillSaveProcessedEvent() {
 
         when(processedEventRepository.existsByEventId(approvedEvent.eventId()))
                 .thenReturn(false);
@@ -170,8 +164,7 @@ class PointEventHandlerTest {
         when(pointService.confirmPointUsage(confirmCommand))
                 .thenThrow(new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT));
 
-        String message = objectMapper.writeValueAsString(approvedEvent);
-        handler.handleOrderApproved(message);
+        handler.handleOrderApproved(approvedEvent);
 
         // 멱등성 저장됨
         verify(processedEventRepository).save(
@@ -188,12 +181,11 @@ class PointEventHandlerTest {
 
     @Test
     @DisplayName("이미 처리된 주문 취소 이벤트는 재처리하지 않는다")
-    void handleOrderCancelled_alreadyProcessed_doNothing() throws JsonProcessingException {
-        when(processedEventRepository.existsByEventId(cancelledEvent.eventId()))
+    void handleOrderCancelled_alreadyProcessed_doNothing() {
+        when(processedEventRepository.existsByEventId(canceledEvent.eventId()))
                 .thenReturn(true);
 
-        String message = objectMapper.writeValueAsString(cancelledEvent);
-        handler.handleOrderCancelled(message);
+        handler.handleOrderCancelled(canceledEvent);
 
         verify(pointService, never()).rollbackReservations(any());
         verify(eventPublisher, never()).publishExternal(any());
@@ -202,47 +194,45 @@ class PointEventHandlerTest {
 
     @Test
     @DisplayName("주문 취소 이벤트가 들어오면 포인트 예약을 취소한다")
-    void handleOrderCancelled_successFlow() throws JsonProcessingException {
+    void handleOrderCancelled_successFlow() {
 
-        when(processedEventRepository.existsByEventId(cancelledEvent.eventId()))
+        when(processedEventRepository.existsByEventId(canceledEvent.eventId()))
                 .thenReturn(false);
 
-        String message = objectMapper.writeValueAsString(cancelledEvent);
-        handler.handleOrderCancelled(message);
+        handler.handleOrderCancelled(canceledEvent);
 
         // 서비스 호출
-        verify(pointService).rollbackReservations(cancelledEvent.orderId());
+        verify(pointService).rollbackReservations(canceledEvent.orderId());
 
         // 멱등성 저장
         verify(processedEventRepository).save(
-                argThat(e -> e.getEventId().equals(cancelledEvent.eventId()))
+                argThat(e -> e.getEventId().equals(canceledEvent.eventId()))
         );
 
         // 외부 이벤트 발행 확인
         verify(eventPublisher).publishExternal(
                 argThat(event ->
                         event instanceof PointReservationCancelledEvent &&
-                                ((PointReservationCancelledEvent) event).orderId().equals(cancelledEvent.orderId())
+                                ((PointReservationCancelledEvent) event).orderId().equals(canceledEvent.orderId())
                 )
         );
     }
 
     @Test
     @DisplayName("포인트 취소 처리 중 비즈니스 예외가 발생하더라도 이벤트는 기록된다")
-    void handleOrderCancelled_businessException_stillSaveProcessedEvent() throws JsonProcessingException {
+    void handleOrderCancelled_businessException_stillSaveProcessedEvent() {
 
-        when(processedEventRepository.existsByEventId(cancelledEvent.eventId()))
+        when(processedEventRepository.existsByEventId(canceledEvent.eventId()))
                 .thenReturn(false);
 
         doThrow(new BusinessException(PointErrorType.POINT_NOT_FOUND))
-                .when(pointService).rollbackReservations(cancelledEvent.orderId());
+                .when(pointService).rollbackReservations(canceledEvent.orderId());
 
-        String message = objectMapper.writeValueAsString(cancelledEvent);
-        handler.handleOrderCancelled(message);
+        handler.handleOrderCancelled(canceledEvent);
 
         // 멱등성 저장됨
         verify(processedEventRepository).save(
-                argThat(e -> e.getEventId().equals(cancelledEvent.eventId()))
+                argThat(e -> e.getEventId().equals(canceledEvent.eventId()))
         );
 
         // 외부 이벤트 발행 안 됨

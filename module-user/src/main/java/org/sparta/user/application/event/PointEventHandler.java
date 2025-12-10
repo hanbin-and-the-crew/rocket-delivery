@@ -1,17 +1,16 @@
 package org.sparta.user.application.event;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.common.event.order.OrderApprovedEvent;
+import org.sparta.common.event.order.OrderCanceledEvent;
 import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.application.dto.PointServiceResult;
 import org.sparta.user.application.service.PointService;
 import org.sparta.user.domain.entity.ProcessedEvent;
 import org.sparta.user.domain.repository.ProcessedEventRepository;
-import org.sparta.user.infrastructure.event.OrderApprovedEvent;
-import org.sparta.user.infrastructure.event.OrderCancelledEvent;
 import org.sparta.user.infrastructure.event.publisher.PointConfirmedEvent;
 import org.sparta.user.infrastructure.event.publisher.PointReservationCancelledEvent;
 import org.sparta.user.presentation.dto.PointMapper;
@@ -32,23 +31,13 @@ public class PointEventHandler {
     private final EventPublisher eventPublisher;
     private final PointService pointService;
     private final PointMapper pointMapper;
-    private final ObjectMapper objectMapper;
 
     /**
      * 주문 승인 이벤트 처리
      */
-    @KafkaListener(topics = "order-events", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
+    @KafkaListener(topics = "order.orderApproved", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
-    public void handleOrderApproved(String message) {
-        log.info("[PointKafkaOrderApproved] 수신 메시지 = {}", message);
-
-        OrderApprovedEvent event;
-        try {
-            event = objectMapper.readValue(message, OrderApprovedEvent.class);
-        } catch (Exception e) {
-            return;
-        }
-
+    public void handleOrderApproved(OrderApprovedEvent event) {
         log.info("주문 승인 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());
 
         // 멱등성 체크
@@ -89,18 +78,9 @@ public class PointEventHandler {
     /**
      * 주문 취소 이벤트 처리
      */
-    @KafkaListener(topics = "order-events", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
+    @KafkaListener(topics = "order.orderCancelled", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
-    public void handleOrderCancelled(String message) {
-        log.info("[PointKafkaOrderCancelled] 수신 메시지 = {}", message);
-
-        OrderCancelledEvent event;
-        try {
-            event = objectMapper.readValue(message, OrderCancelledEvent.class);
-        } catch (Exception e) {
-            return;
-        }
-
+    public void handleOrderCancelled(OrderCanceledEvent event) {
         log.info("주문 취소 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());
 
         // 멱등성 체크
