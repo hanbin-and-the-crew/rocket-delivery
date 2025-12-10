@@ -3,8 +3,6 @@ package org.sparta.product.support;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
 import org.sparta.product.domain.entity.Category;
 import org.sparta.product.domain.entity.Product;
 import org.sparta.product.domain.entity.Stock;
@@ -12,6 +10,11 @@ import org.sparta.product.domain.repository.CategoryRepository;
 import org.sparta.product.domain.repository.ProductRepository;
 import org.sparta.product.domain.repository.StockRepository;
 import org.sparta.product.domain.vo.Money;
+import org.springframework.context.annotation.Profile;
+import org.springframework.context.event.EventListener;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,13 +29,14 @@ public class ProductSeedInitializer {
     private final ProductRepository productRepository;
     private final StockRepository stockRepository;
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
+    @Transactional
     public void init() {
         log.info("[INIT] ProductSeedInitializer 시작");
 
-        // 이미 Category가 있다면 Seed 데이터가 존재한다고 간주 → 스킵
+
         if (categoryRepository.count() > 0) {
-            log.info("[INIT] 기존 Category 데이터 존재 → Seed 생성 스킵");
+            log.info("[INIT] 기존 카테고리 존재 → Seed 전체 스킵");
             return;
         }
 
@@ -45,7 +49,7 @@ public class ProductSeedInitializer {
         List<UUID> categories = List.of(category1, category2, category3);
         log.info("[INIT] Category 생성 완료");
 
-        // 공통 테스트용 companyId / hubId
+        // 테스트용 companyId / hubId
         UUID companyId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         UUID hubId = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
@@ -56,11 +60,11 @@ public class ProductSeedInitializer {
 
             Product product = Product.create(
                     "테스트상품 " + i,
-                    Money.of(1000L * i),  // Long 타입 적용
+                    Money.of(1000L * i),  // 가격
                     categoryId,
                     companyId,
                     hubId,
-                    50                 // initial quantity 검증용
+                    50  // initialQuantity
             );
 
             productRepository.save(product);
@@ -69,7 +73,7 @@ public class ProductSeedInitializer {
                     product.getId(),
                     companyId,
                     hubId,
-                    50 + i     // 실제 재고
+                    50 + i  // 재고 수량
             );
 
             stockRepository.save(stock);

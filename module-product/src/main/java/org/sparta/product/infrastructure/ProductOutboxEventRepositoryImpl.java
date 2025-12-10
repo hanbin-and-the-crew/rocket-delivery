@@ -39,4 +39,11 @@ public class ProductOutboxEventRepositoryImpl implements ProductOutboxEventRepos
         );
         return page.getContent();
     }
+
+    @Override
+    public long countByStatus(OutboxStatus status) {
+        return jpaRepository.countByStatus(status);
+    }
+
+
 }
