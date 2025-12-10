@@ -11,6 +11,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.sparta.common.api.ApiResponse;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
 import org.sparta.order.domain.entity.Order;
@@ -124,14 +125,19 @@ class OrderServiceCreateOrderTest {
 
         // --- FeignClient 스텁: 재고 예약 ---
         UUID fakeStockReservationId = UUID.randomUUID();
-        when(stockClient.reserveStock(any(StockClient.StockReserveRequest.class)))
-                .thenReturn(new StockClient.StockReserveResponse(
-                        fakeStockReservationId,
-                        UUID.randomUUID(),   // stockId
-                        "dummy-reservation-key",
-                        quantity,
-                        "RESERVED"
-                ));
+
+        when(stockClient.reserveStock(any()))
+                .thenReturn(
+                        ApiResponse.success(
+                                new StockClient.StockReserveResponse(
+                                        fakeStockReservationId,
+                                        UUID.randomUUID(),
+                                        "reservation-key",
+                                        quantity,
+                                        "RESERVED"
+                                )
+                        )
+                );
 
         // --- FeignClient 스텁: 포인트 예약 ---
         String pointReservationId = "POINT-RES-001";

@@ -101,9 +101,14 @@ public class EventPublisher {
             return "order-events";
         }
 
-        // Stock 관련 이벤트 (StockConfirmedEvent, StockReservedEvent, …)
-        if (eventType.startsWith("Stock")) {
-            return "stock-events";
+        // Product 도메인: 재고 차감 성공
+        if (event instanceof org.sparta.common.event.product.StockConfirmedEvent) {
+            return "product.orderCreate";
+        }
+
+        // Product 도메인: 재고 차감 실패
+        if (event instanceof org.sparta.common.event.product.StockReservationFailedEvent) {
+            return "product.orderCreateFail";
         }
 
         // Delivery 토픽 추가

@@ -10,7 +10,7 @@ import org.sparta.common.event.EventPublisher;
 import org.sparta.product.application.service.StockService;
 import org.sparta.product.domain.entity.Stock;
 import org.sparta.product.domain.entity.StockReservation;
-import org.sparta.product.domain.event.StockConfirmedEvent;
+import org.sparta.common.event.product.StockConfirmedEvent;
 import org.sparta.product.domain.repository.StockRepository;
 import org.sparta.product.domain.repository.StockReservationRepository;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 import org.sparta.product.domain.outbox.ProductOutboxEvent;
 import org.sparta.product.domain.repository.ProductOutboxEventRepository;
 import org.springframework.transaction.annotation.Transactional;
-import org.sparta.product.domain.event.StockReservationFailedEvent;
+import org.sparta.common.event.product.StockReservationFailedEvent;
 
 
 import java.util.Map;
@@ -46,7 +46,7 @@ public class OrderCreatedEventListener {
     /**
      * order-created 토픽 리스너
      */
-    @KafkaListener(topics = "order-created", groupId = "product-service")
+    @KafkaListener(topics = "order.orderCreate", groupId = "product-service")
     @Transactional
     public void handleOrderCreated(ConsumerRecord<String, Object> record) {
 

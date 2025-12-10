@@ -6,9 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.sparta.product.domain.event.StockConfirmedEvent;
-import org.sparta.product.domain.event.StockConfirmedEvent;
-import org.sparta.product.domain.event.StockReservationFailedEvent;
+import org.sparta.common.event.product.StockConfirmedEvent;
+import org.sparta.common.event.product.StockReservationFailedEvent;
 
 import java.time.Instant;
 import java.util.UUID;

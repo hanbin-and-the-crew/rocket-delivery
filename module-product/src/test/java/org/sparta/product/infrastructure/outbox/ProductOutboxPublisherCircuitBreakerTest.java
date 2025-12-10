@@ -5,10 +5,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.sparta.common.event.EventPublisher;
-import org.sparta.product.domain.event.StockConfirmedEvent;
-import org.sparta.product.domain.outbox.OutboxStatus;
+import org.sparta.common.event.product.StockConfirmedEvent;
 import org.sparta.product.domain.outbox.ProductOutboxEvent;
 import org.sparta.product.domain.repository.ProductOutboxEventRepository;
 
