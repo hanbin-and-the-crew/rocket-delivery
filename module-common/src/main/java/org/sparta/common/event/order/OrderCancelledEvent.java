@@ -17,5 +17,13 @@ public record OrderCancelledEvent(
         Integer quantity,
         Instant occurredAt
 ) implements DomainEvent {
-
+    public static OrderCancelledEvent of(UUID orderId, UUID productId, Integer quantity) {
+        return new OrderCancelledEvent(
+                UUID.randomUUID(),   // eventId
+                orderId,
+                productId,
+                quantity,
+                Instant.now()        // occurredAt
+        );
+    }
 }

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.order.application.command.OrderCommand;
 import org.sparta.order.application.error.OrderApplicationErrorType;
 import org.sparta.order.domain.entity.OrderOutboxEvent;
@@ -22,7 +23,6 @@ import org.sparta.order.domain.enumeration.CanceledReasonCode;
 import org.sparta.order.domain.error.OrderErrorType;
 import org.sparta.order.domain.repository.OrderRepository;
 import org.sparta.order.infrastructure.event.publisher.OrderApprovedEvent;
-import org.sparta.order.infrastructure.event.publisher.OrderCancelledEvent;
 import org.sparta.order.infrastructure.event.publisher.OrderCreatedEvent;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -509,7 +509,13 @@ public class OrderService {
         order.cancel(reasonCode, request.reasonMemo());
 
         // 재고/예약 취소, 결제 취소를 위한 이벤트 발행
-        eventPublisher.publishExternal(OrderCancelledEvent.of(order));
+        eventPublisher.publishExternal(
+                OrderCancelledEvent.of(
+                        order.getId(),
+                        order.getProductId(),
+                        order.getQuantity().getValue()
+                )
+        );
 
         return OrderResponse.Update.of(order, "주문이 취소되었습니다.");
     }
