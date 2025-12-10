@@ -10,7 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.common.event.order.OrderApprovedEvent;
-import org.sparta.common.event.order.OrderCanceledEvent;
+import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.application.dto.PointServiceResult;
 import org.sparta.user.application.service.PointService;
@@ -48,7 +48,7 @@ class PointEventHandlerTest {
     private PointEventHandler handler;
 
     private OrderApprovedEvent approvedEvent;
-    private OrderCanceledEvent canceledEvent;
+    private OrderCancelledEvent canceledEvent;
     private PointCommand.ConfirmPoint confirmCommand;
     private PointServiceResult.Confirm confirmResult;
 
@@ -97,7 +97,7 @@ class PointEventHandlerTest {
                 .thenReturn(confirmResult);
 
         // --------- Cancelled Event ---------
-        canceledEvent = new OrderCanceledEvent(
+        canceledEvent = new OrderCancelledEvent(
                 UUID.randomUUID(),     // eventId
                 UUID.randomUUID(),     // orderId
                 UUID.randomUUID(),     // productId

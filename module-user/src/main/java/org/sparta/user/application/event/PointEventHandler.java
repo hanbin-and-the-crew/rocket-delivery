@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.common.event.order.OrderApprovedEvent;
-import org.sparta.common.event.order.OrderCanceledEvent;
+import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.user.application.command.PointCommand;
 import org.sparta.user.application.dto.PointServiceResult;
 import org.sparta.user.application.service.PointService;
@@ -80,7 +80,7 @@ public class PointEventHandler {
      */
     @KafkaListener(topics = "order.orderCancelled", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
-    public void handleOrderCancelled(OrderCanceledEvent event) {
+    public void handleOrderCancelled(OrderCancelledEvent event) {
         log.info("주문 취소 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());
 
         // 멱등성 체크
