@@ -9,7 +9,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.event.EventPublisher;
-import org.sparta.product.domain.event.StockConfirmedEvent;
+import org.sparta.common.event.product.StockConfirmedEvent;
 import org.sparta.product.domain.outbox.OutboxStatus;
 import org.sparta.product.domain.outbox.ProductOutboxEvent;
 import org.sparta.product.domain.repository.ProductOutboxEventRepository;

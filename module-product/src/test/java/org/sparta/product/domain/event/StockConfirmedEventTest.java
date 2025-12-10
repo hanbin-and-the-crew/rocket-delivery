@@ -2,6 +2,7 @@ package org.sparta.product.domain.event;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.sparta.common.event.product.StockConfirmedEvent;
 
 import java.util.UUID;
 
