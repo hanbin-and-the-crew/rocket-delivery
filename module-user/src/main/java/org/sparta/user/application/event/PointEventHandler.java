@@ -1,5 +1,6 @@
 package org.sparta.user.application.event;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
@@ -31,13 +32,23 @@ public class PointEventHandler {
     private final EventPublisher eventPublisher;
     private final PointService pointService;
     private final PointMapper pointMapper;
+    private final ObjectMapper objectMapper;
 
     /**
      * 주문 승인 이벤트 처리
      */
-    @KafkaListener(topics = "payment-events", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
+    @KafkaListener(topics = "order-events", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
-    public void handleOrderApproved(OrderApprovedEvent event) {
+    public void handleOrderApproved(String message) {
+        log.info("[PointKafkaOrderApproved] 수신 메시지 = {}", message);
+
+        OrderApprovedEvent event;
+        try {
+            event = objectMapper.readValue(message, OrderApprovedEvent.class);
+        } catch (Exception e) {
+            return;
+        }
+
         log.info("주문 승인 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());
 
         // 멱등성 체크
@@ -80,7 +91,16 @@ public class PointEventHandler {
      */
     @KafkaListener(topics = "order-events", groupId = "user-service", containerFactory = "pointKafkaListenerContainerFactory")
     @Transactional
-    public void handleOrderCancelled(OrderCancelledEvent event) {
+    public void handleOrderCancelled(String message) {
+        log.info("[PointKafkaOrderCancelled] 수신 메시지 = {}", message);
+
+        OrderCancelledEvent event;
+        try {
+            event = objectMapper.readValue(message, OrderCancelledEvent.class);
+        } catch (Exception e) {
+            return;
+        }
+
         log.info("주문 취소 이벤트 수신: orderId={}, eventId={}", event.orderId(), event.eventId());
 
         // 멱등성 체크

@@ -28,7 +28,7 @@ public class PointKafkaConfig {
      * - Value를 String으로 역직렬화
      */
     @Bean
-    public ConsumerFactory<String, Object> pointConsumerFactory() {
+    public ConsumerFactory<String, String> pointConsumerFactory() {
         Map<String, Object> config = new HashMap<>();
         config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.put(ConsumerConfig.GROUP_ID_CONFIG, "user-service");
@@ -37,7 +37,7 @@ public class PointKafkaConfig {
         return new DefaultKafkaConsumerFactory<>(
                 config,
                 new StringDeserializer(),
-                (Deserializer<Object>) (Object) new StringDeserializer()  // Value도 String으로 역직렬화
+                new StringDeserializer() //(Deserializer<Object>) (Object) new StringDeserializer()
         );
     }
 
@@ -45,18 +45,18 @@ public class PointKafkaConfig {
      * Point 전용 KafkaListenerContainerFactory
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> pointKafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+    public ConcurrentKafkaListenerContainerFactory<String, String> pointKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(pointConsumerFactory());
 
-        // ObjectMapper 설정
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-
-        // JsonMessageConverter 사용 (String JSON -> POJO 변환)
-        RecordMessageConverter converter = new JsonMessageConverter(objectMapper);
-        factory.setRecordMessageConverter(converter);
+//        // ObjectMapper 설정
+//        ObjectMapper objectMapper = new ObjectMapper();
+//        objectMapper.registerModule(new JavaTimeModule());
+//
+//        // JsonMessageConverter 사용 (String JSON -> POJO 변환)
+//        RecordMessageConverter converter = new JsonMessageConverter(objectMapper);
+//        factory.setRecordMessageConverter(converter);
 
         return factory;
     }
