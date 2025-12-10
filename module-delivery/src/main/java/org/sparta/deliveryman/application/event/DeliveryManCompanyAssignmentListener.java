@@ -1,4 +1,4 @@
-package org.sparta.deliveryman.infrastructure.event.listener;
+package org.sparta.deliveryman.application.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -36,8 +36,7 @@ public class DeliveryManCompanyAssignmentListener {
 
     @KafkaListener(
             topics = "delivery-events",
-            groupId = "deliveryman-company-assignment-group",
-            containerFactory = "kafkaListenerContainerFactory"
+            groupId = "deliveryman-company-assignment-group"
     )
     @Transactional
     public void handleLastHubArrived(String message) {

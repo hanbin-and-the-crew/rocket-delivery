@@ -8,9 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-// TODO : Orer쪽에서 필드 추가해야 됨
 public record OrderApprovedEvent(
-        UUID eventId,
         UUID orderId,
         UUID customerId,
         UUID supplierCompanyId,
@@ -23,9 +21,10 @@ public record OrderApprovedEvent(
         String receiverPhone,
         LocalDateTime dueAt,
         String requestMemo,
+        UUID eventId,
         Instant occurredAt
 ) implements DomainEvent {
-    public static OrderApprovedEvent of(UUID eventId,
+    public static OrderApprovedEvent of(
                                         UUID orderId,
                                         UUID customerId,
                                         UUID supplierCompanyId,
@@ -37,10 +36,9 @@ public record OrderApprovedEvent(
                                         String receiverSlackId,
                                         String receiverPhone,
                                         LocalDateTime dueAt,
-                                        String requestMemo,
-                                        Instant occurredAt) {
+                                        String requestMemo
+                                        ) {
         return new OrderApprovedEvent(
-                UUID.randomUUID(),
                 orderId,
                 customerId,
                 supplierCompanyId,
@@ -53,6 +51,7 @@ public record OrderApprovedEvent(
                 receiverPhone,
                 dueAt,
                 requestMemo,
+                UUID.randomUUID(),
                 Instant.now()
         );
     }

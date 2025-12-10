@@ -28,6 +28,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -74,14 +76,20 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         Delivery saved = deliveryRepository.save(delivery);
 
-        // 6) 성공 이벤트 발행
-        eventPublisher.publishExternal(DeliveryCreatedEvent.of(
-                saved.getOrderId(),
-                saved.getId(),
-                saved.getSupplierHubId(),
-                saved.getReceiveHubId(),
-                saved.getTotalLogSeq()
-        ));
+        // 트랜잭션 커밋 후 이벤트 발행
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                eventPublisher.publishExternal(DeliveryCreatedEvent.of(
+                        saved.getOrderId(),
+                        saved.getId(),
+                        saved.getSupplierHubId(),
+                        saved.getReceiveHubId(),
+                        saved.getTotalLogSeq()
+                ));
+                log.info("DeliveryCreatedEvent published after commit: deliveryId={}", saved.getId());
+            }
+        });
 
         return DeliveryResponse.Detail.from(saved);
     }
@@ -200,17 +208,30 @@ public class DeliveryServiceImpl implements DeliveryService {
 
             // 5) 이벤트 처리 완료 기록 (같은 트랜잭션)
             deliveryProcessedEventRepository.save(
-                    org.sparta.delivery.domain.entity.DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+                    DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
             );
 
-            // 6) 성공 이벤트 발행
-            eventPublisher.publishExternal(DeliveryCreatedEvent.of(
-                    savedDelivery.getOrderId(),
-                    savedDelivery.getId(),
-                    savedDelivery.getSupplierHubId(),
-                    savedDelivery.getReceiveHubId(),
-                    savedDelivery.getTotalLogSeq()
-            ));
+            // 6) 트랜잭션 커밋 후 이벤트 발행
+            UUID deliveryId = savedDelivery.getId();
+            UUID orderId = savedDelivery.getOrderId();
+            UUID supplierHubId = savedDelivery.getSupplierHubId();
+            UUID receiveHubId = savedDelivery.getReceiveHubId();
+            Integer totalLogSeq = savedDelivery.getTotalLogSeq();
+
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    eventPublisher.publishExternal(DeliveryCreatedEvent.of(
+                            orderId,
+                            deliveryId,
+                            supplierHubId,
+                            receiveHubId,
+                            totalLogSeq
+                    ));
+                    log.info("DeliveryCreatedEvent published after transaction commit: deliveryId={}, orderId={}",
+                            deliveryId, orderId);
+                }
+            });
 
             log.info("Delivery creation completed successfully: deliveryId={}, orderId={}, eventId={}",
                     savedDelivery.getId(), savedDelivery.getOrderId(), orderEvent.eventId());

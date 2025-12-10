@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.common.api.ApiResponse;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
@@ -159,117 +158,287 @@ public class OrderService {
         long requestPoint = request.requestPoint() != null ? request.requestPoint() : 0L;
 
         // ===================== 2. 재고 예약 =====================
-        ApiResponse<StockClient.StockReserveResponse> stockResResponse;
+        StockClient.StockReserveResponse stockRes;
+        UUID reservationId;
+
         try {
-            stockResResponse = stockClient.reserveStock(new StockClient.StockReserveRequest(
-                    savedOrder.getProductId(),
-                    orderId.toString(),
-                    savedOrder.getQuantity().getValue()
-            ));
-        } catch (FeignException e) {
-            log.error("재고 예약 실패 - productId={}, quantity={}", savedOrder.getProductId(), savedOrder.getQuantity(), e);
-            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
-        }
-
-        // 1) meta.result 가 SUCCESS 인지 먼저 확인
-        if (stockResResponse.meta().result() != ApiResponse.Metadata.Result.SUCCESS) {
-            log.error("재고 예약 API 응답 실패 - result={}, errorCode={}",
-                    stockResResponse.meta().result(),
-                    stockResResponse.meta().errorCode()
+            StockClient.ApiResponse<StockClient.StockReserveResponse> response = stockClient.reserveStock(
+                    new StockClient.StockReserveRequest(
+                            savedOrder.getProductId(),
+                            orderId.toString(),
+                            savedOrder.getQuantity().getValue()
+                    )
             );
+
+            // ApiResponse 검증
+            if (!response.isSuccess()) {
+                log.error("재고 예약 API 실패 - productId={}, errorCode={}, message={}",
+                        savedOrder.getProductId(), response.errorCode(), response.message());
+                throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
+            }
+
+            stockRes = response.data();
+            reservationId = stockRes.reservationId();
+
+            // 재고 예약 상태 검증
+            if (!"RESERVED".equalsIgnoreCase(stockRes.status())) {
+                log.error("재고 예약 상태 비정상 - status={}, reservationKey={}",
+                        stockRes.status(), stockRes.reservationKey());
+                throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
+            }
+
+            log.info("재고 예약 성공 - reservationId={}, quantity={}", reservationId, stockRes.reservedQuantity());
+
+        } catch (FeignException e) {
+            log.error("재고 예약 통신 실패 - productId={}, quantity={}, status={}",
+                    savedOrder.getProductId(), savedOrder.getQuantity().getValue(), e.status(), e);
             throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
         }
-
-        // 2) data 꺼내서  실제 예약 상태 확인
-        StockClient.StockReserveResponse stockRes = stockResResponse.data();
-        if (stockRes == null || !"RESERVED".equalsIgnoreCase(stockRes.status())) {
-            log.error("재고 예약 상태 비정상 - status={}", stockRes != null ? stockRes.status() : null);
-            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
-        }
-
+        
         // ===================== 3. 포인트 예약 =====================
-        PointClient.PointReserveResponse pointRes = null;
+        Long usedPointAmount = 0L;
+        String pointReservationId = null;
+
         if (requestPoint > 0) {
+            log.info("[포인트] 예약 시작 - customerId={}, orderId={}, requestPoint={}",
+                    savedOrder.getCustomerId(), orderId, requestPoint);
+
             try {
-                pointRes = pointClient.reservePoint(new PointClient.PointReserveRequest(
-                        savedOrder.getCustomerId().toString(),
-                        orderId.toString(),
-                        savedOrder.getTotalPrice().getAmount(),
-                        requestPoint
-                ));
+                PointClient.ApiResponse<PointClient.PointResponse.PointReservationResult> apiResponse =
+                        pointClient.reservePoint(
+                                new PointClient.PointRequest.Reserve(
+                                        savedOrder.getCustomerId(),
+                                        orderId,
+                                        savedOrder.getTotalPrice().getAmount(),
+                                        requestPoint
+                                )
+                        );
+
+                log.info("[포인트] API 응답 - result={}, errorCode={}, message={}",
+                        apiResponse.result(), apiResponse.errorCode(), apiResponse.message());
+
+                if (!apiResponse.isSuccess()) {
+                    log.error("[포인트] API 호출 실패 - errorCode={}, message={}",
+                            apiResponse.errorCode(), apiResponse.message());
+                    throw new BusinessException(OrderErrorType.POINT_RESERVATION_FAILED);
+                }
+
+                PointClient.PointResponse.PointReservationResult pointData = apiResponse.data();
+
+                if (pointData == null) {
+                    log.error("[포인트] 응답 데이터가 null");
+                    throw new BusinessException(OrderErrorType.POINT_RESERVATION_FAILED);
+                }
+
+                log.info("[포인트] 데이터 추출 - discountAmount={}, reservations size={}",
+                        pointData.discountAmount(),
+                        pointData.reservations() != null ? pointData.reservations().size() : 0);
+
+                // 실제 사용된 포인트 금액
+                usedPointAmount = pointData.discountAmount() != null
+                        ? pointData.discountAmount()
+                        : 0L;
+
+                // 첫 번째 예약의 ID 추출 (여러 예약이 있을 경우)
+                if (pointData.reservations() != null && !pointData.reservations().isEmpty()) {
+                    PointClient.PointResponse.PointReservation firstReservation =
+                            pointData.reservations().get(0);
+
+                    pointReservationId = firstReservation.id() != null
+                            ? firstReservation.id().toString()
+                            : null;
+
+                    log.info("[포인트] 예약 상세 - reservationId={}, pointId={}, reservedAmount={}, status={}",
+                            firstReservation.id(),
+                            firstReservation.pointId(),
+                            firstReservation.reservedAmount(),
+                            firstReservation.status());
+                } else {
+                    log.warn("[포인트] 예약 목록이 비어있음");
+                }
+
+                log.info("[포인트] 예약 완료 - usedPointAmount={}, pointReservationId={}",
+                        usedPointAmount, pointReservationId);
+
+                if (usedPointAmount == 0L) {
+                    log.warn("[포인트] 사용된 포인트가 0원 - requestPoint={}", requestPoint);
+                }
+
             } catch (FeignException e) {
-                log.error("포인트 예약 실패 - customerId={}, usedPoint={}", savedOrder.getCustomerId(), requestPoint, e);
+                log.error("[포인트] Feign 호출 실패 - status={}, message={}",
+                        e.status(), e.contentUTF8(), e);
                 throw new BusinessException(OrderErrorType.POINT_RESERVATION_FAILED);
             }
+        } else {
+            log.info("[포인트] 미사용 - requestPoint={}", requestPoint);
         }
 
-        String pointReservationId = pointRes != null ? pointRes.reservationId() : null;
-
+        log.info("[포인트] 최종 값 - usedPointAmount={}, pointReservationId={}",
+                usedPointAmount, pointReservationId);
         // ===================== 4. 쿠폰 예약 =====================
-        CouponClient.CouponReserveResponse couponRes = null;
         Long usedCouponAmount = 0L;
-        String couponReservationId = null;
+        UUID couponReservationId = null;
 
         if (request.couponId() != null) {
+            log.info("쿠폰 예약 시작 - couponId={}", request.couponId());
+
             try {
-                couponRes = couponClient.reserveCoupon(
-                        request.couponId(),
-                        new CouponClient.CouponReserveRequest(
-                                savedOrder.getCustomerId().toString(),
-                                orderId.toString(),
-                                savedOrder.getTotalPrice().getAmount()
-                        )
-                );
+                // ApiResponse로 받기 (reserveCoupon의 실제 반환 타입)
+                CouponClient.ApiResponse<CouponClient.CouponReserveResponse.Reserve> apiResponse =
+                        couponClient.reserveCoupon(
+                                request.couponId(),
+                                new CouponClient.CouponRequest.Reverse(
+                                        savedOrder.getCustomerId(),
+                                        orderId,
+                                        savedOrder.getTotalPrice().getAmount()
+                                )
+                        );
+
+                log.info("쿠폰 API 응답 - result={}, errorCode={}, message={}",
+                        apiResponse.result(), apiResponse.errorCode(), apiResponse.message());
+
+                //API 호출 결과 확인
+                if (!"SUCCESS".equals(apiResponse.result())) {
+                    log.error("쿠폰 API 호출 실패 - errorCode={}, message={}",
+                            apiResponse.errorCode(), apiResponse.message());
+                    throw new BusinessException(OrderErrorType.COUPON_RESERVATION_FAILED);
+                }
+
+                // data에서 실제 쿠폰 데이터 추출
+                CouponClient.CouponReserveResponse.Reserve couponData = apiResponse.data();
+
+                if (couponData == null) {
+                    log.error("쿠폰 데이터가 null - couponId={}", request.couponId());
+                    throw new BusinessException(OrderErrorType.COUPON_RESERVATION_FAILED);
+                }
+
+                log.info("쿠폰 데이터 추출 - valid={}, reservationId={}, discountAmount={}",
+                        couponData.valid(), couponData.reservationId(), couponData.discountAmount());
+
+                // 쿠폰 유효성 확인
+                if (!couponData.valid()) {
+                    log.warn("쿠폰 검증 실패 - errorCode={}, message={}",
+                            couponData.errorCode(), couponData.message());
+                    throw new BusinessException(OrderErrorType.COUPON_VALIDATION_FAILED);
+                }
+
+                // 할인액과 예약 ID 할당
+                usedCouponAmount = couponData.discountAmount() != null
+                        ? couponData.discountAmount()
+                        : 0L;
+                couponReservationId = couponData.reservationId();
+
+                log.info("쿠폰 할인 적용 완료 - usedCouponAmount={}, couponReservationId={}",
+                        usedCouponAmount, couponReservationId);
+
+                // 0원 할인 경고
+                if (usedCouponAmount == 0L) {
+                    log.warn("쿠폰 할인액이 0원 - couponId={}, 쿠폰 정책 확인 필요",
+                            request.couponId());
+                }
+
             } catch (FeignException e) {
-                log.error("쿠폰 예약 실패 - couponId={}", request.couponId(), e);
+                log.error("쿠폰 Feign 호출 실패 - couponId={}, status={}, message={}",
+                        request.couponId(), e.status(), e.contentUTF8(), e);
                 throw new BusinessException(OrderErrorType.COUPON_RESERVATION_FAILED);
             }
-
-            if (!couponRes.valid()) {
-                log.warn("쿠폰 검증 실패 - couponId={}, errorCode={}",
-                        request.couponId(), couponRes.errorCode());
-                throw new BusinessException(OrderErrorType.COUPON_VALIDATION_FAILED);
-            }
-
-            usedCouponAmount = couponRes.discountAmount();
-            couponReservationId = couponRes.reservationId();
+        } else {
+            log.info("쿠폰 미사용 - couponId is null");
         }
 
-        // ===================== 5. 결제 승인 =====================
+// ===================== 5. 결제 승인 =====================
         long amountPayable = savedOrder.getTotalPrice().getAmount() - requestPoint - usedCouponAmount;
         if (amountPayable < 0) {
+            log.warn("[결제] 결제액이 음수 - 0으로 조정: {}", amountPayable);
             amountPayable = 0;
         }
 
-        PaymentClient.PaymentApproveResponse paymentRes;
+        log.info("[결제] 결제 승인 시작 - orderId={}, amountPayable={}, customerId={}",
+                orderId, amountPayable, customerId);
+
+        String paymentKey = null;
+
         try {
-            paymentRes = paymentClient.approvePayment(
-                    orderId.toString(),
-                    new PaymentClient.PaymentApproveRequest(
-//                            orderId.toString(),
-                            amountPayable,
-                            request.methodType(),
-                            request.pgProvider(),
-                            request.currency()
-                    )
-            );
+            // pgToken 생성 (실제로는 클라이언트로부터 받아야 함)
+            String pgToken = UUID.randomUUID().toString();
+
+            log.info("[결제] 요청 생성 - orderId={}, pgToken={}, methodType={}, pgProvider={}, currency={}",
+                    orderId, pgToken, request.methodType(), request.pgProvider(), request.currency());
+
+            PaymentClient.ApiResponse<PaymentClient.PaymentResponse.Approval> apiResponse =
+                    paymentClient.approve(
+                            new PaymentClient.PaymentRequest.Approval(
+                                    orderId,
+                                    pgToken,
+                                    amountPayable,
+                                    request.methodType(),      // "CARD" 등
+                                    request.pgProvider(),      // "TOSS" 등
+                                    request.currency()         // "KRW"
+                            ),
+                            customerId  // X-User-Id 헤더 (필수!)
+                    );
+
+            log.info("[결제] API 응답 수신 - result={}, errorCode={}, message={}",
+                    apiResponse.result(), apiResponse.errorCode(), apiResponse.message());
+
+            if (!apiResponse.isSuccess()) {
+                log.error("[결제] API 호출 실패 - errorCode={}, message={}",
+                        apiResponse.errorCode(), apiResponse.message());
+                throw new BusinessException(OrderErrorType.PAYMENT_APPROVE_FAILED);
+            }
+
+            PaymentClient.PaymentResponse.Approval paymentData = apiResponse.data();
+
+            if (paymentData == null) {
+                log.error("[결제] 응답 데이터가 null");
+                throw new BusinessException(OrderErrorType.PAYMENT_APPROVE_FAILED);
+            }
+
+            log.info("[결제] 데이터 추출 - orderId={}, approved={}, paymentKey={}, approvedAt={}",
+                    paymentData.orderId(), paymentData.approved(),
+                    paymentData.paymentKey(), paymentData.approvedAt());
+
+            if (!paymentData.approved()) {
+                log.error("[결제] 결제 승인 거부 - failureCode={}, failureMessage={}",
+                        paymentData.failureCode(), paymentData.failureMessage());
+                throw new BusinessException(OrderErrorType.PAYMENT_APPROVE_FAILED);
+            }
+
+            paymentKey = paymentData.paymentKey();
+
+            log.info("[결제] 승인 완료 - orderId={}, paymentKey={}", orderId, paymentKey);
+
         } catch (FeignException e) {
-            log.error("결제 승인 실패 - orderId={}, amountPayable={}", orderId, amountPayable, e);
+            log.error("[결제] Feign 호출 실패 - orderId={}, status={}, message={}",
+                    orderId, e.status(), e.contentUTF8(), e);
             throw new BusinessException(OrderErrorType.PAYMENT_APPROVE_FAILED);
         }
 
-        String pgToken = paymentRes.pgToken();
 
         // ===================== 7. OrderCreatedEvent 발행 =====================
+
+        log.info("[이벤트] 발행 준비");
+        log.info("[이벤트] - orderId: {}", orderId);
+        log.info("[이벤트] - totalAmount: {}", savedOrder.getTotalPrice().getAmount());
+        log.info("[이벤트] - requestPoint: {}", requestPoint);
+        log.info("[이벤트] - usedCouponAmount: {}", usedCouponAmount);
+        log.info("[이벤트] - amountPayable: {}", amountPayable);
+        log.info("[이벤트] - pointReservationId: {}", pointReservationId);
+        log.info("[이벤트] - couponReservationId: {}", couponReservationId);
+        log.info("[이벤트] - paymentKey: {}", paymentKey);
+
         OrderCreatedEvent event = OrderCreatedEvent.of(
                 orderId,
                 savedOrder.getTotalPrice().getAmount(), // 주문 총액
-                requestPoint,   // 사용할 포인트
                 usedCouponAmount,   // 쿠폰 차감액
+                requestPoint,   // 사용할 포인트
                 amountPayable,  // 실제 결제 액수 (주문 총액 - 사용 포인트 - 쿠폰 차감액)
-                pointReservationId, // 포인트 예약 Id
-                couponReservationId,    // 쿠폰 예약 Id
-                pgToken
+                request.methodType(),
+                request.pgProvider(),
+                request.currency(),
+                request.couponId(),    // 쿠폰 예약 Id
+                UUID.fromString(pointReservationId), // 포인트 예약 Id
+                paymentKey
         );
 
 
@@ -291,6 +460,17 @@ public class OrderService {
         outboxRepository.save(outbox);
 
         // eventPublisher.publishExternal(event);
+
+
+        log.info("[이벤트] 생성 완료 - event={}", event);
+
+        try {
+            eventPublisher.publishExternal(event);
+            log.info("[이벤트] Kafka 발행 성공 - eventId={}", event.eventId());
+        } catch (Exception e) {
+            log.error("[이벤트] Kafka 발행 실패", e);
+            throw e;
+        }
 
         return OrderResponse.Detail.from(savedOrder);
     }

@@ -2,41 +2,44 @@ package org.sparta.order.infrastructure.event.publisher;
 
 import org.sparta.common.event.DomainEvent;
 import org.sparta.order.domain.entity.Order;
+import org.springframework.cglib.core.Local;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record OrderApprovedEvent(
-        UUID eventId,
-        Instant occurredAt,
         UUID orderId,
         UUID customerId,
-        UUID receiveHubId,
-        UUID receiveCompanyId,
-        UUID supplierHubId,
         UUID supplierCompanyId,
+        UUID supplierHubId,
+        UUID receiveCompanyId,
+        UUID receiveHubId,
         String address,
+        String receiverName,
+        String receiverSlackId,
         String receiverPhone,
-        String dueAt,
-        String requestedMemo,
-        String receiverSlackId
+        LocalDateTime dueAt,
+        String requestMemo,
+        UUID eventId,
+        Instant occurredAt
 ) implements DomainEvent {
     public static OrderApprovedEvent of(Order order) {
         return new OrderApprovedEvent(
-                UUID.randomUUID(),              // eventId (멱등성 보장용)
-                Instant.now(),
                 order.getId(),
                 order.getCustomerId(),
-                order.getReceiveHubId(),
-                order.getReceiveCompanyId(),
-                order.getSupplierHubId(),
                 order.getSupplierCompanyId(),
+                order.getSupplierHubId(),
+                order.getReceiveCompanyId(),
+                order.getReceiveHubId(),
                 order.getAddress(),
+                order.getUserName(),
+                order.getSlackId(),
                 order.getUserPhoneNumber(),
-                order.getDueAt().toString(),
+                order.getDueAt().getTime(),
                 order.getRequestMemo(),
-                order.getSlackId()
+                UUID.randomUUID(),              // eventId (멱등성 보장용)
+                Instant.now()
         );
     }
 }

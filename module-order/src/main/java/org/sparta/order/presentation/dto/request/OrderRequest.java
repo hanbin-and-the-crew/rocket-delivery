@@ -82,7 +82,7 @@ public class OrderRequest {
             String currency,
 
             @Schema(description = "사용할 쿠폰 ID", example = "COUPON-RES-456")
-            String couponId
+            UUID couponId
     ) {
     }
 
