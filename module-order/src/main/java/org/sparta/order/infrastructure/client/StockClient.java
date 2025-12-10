@@ -9,26 +9,52 @@ import java.util.UUID;
 
 @FeignClient(
         name = "product-service"
-//        url = "http://localhost:19506"
 )
 public interface StockClient {
 
     @PostMapping("/api/product/stocks/reserve")
-    StockReserveResponse reserveStock(@RequestBody StockReserveRequest request);
+    ApiResponse<StockReserveResponse> reserveStock(@RequestBody StockReserveRequest request);
 
     record StockReserveRequest(
             UUID productId,
-            String reservationKey,  // orderId를 String으로 변환한거
+            String reservationKey,
             Integer quantity
-    ){} 
-
+    ) {}
 
     record StockReserveResponse(
-            UUID reservationId, // OrderCreatedEvent에서 사용
+            UUID reservationId,
             UUID stockId,
             String reservationKey,
             Integer reservedQuantity,
-            String status // "RESERVED"
+            String status
+    ) {}
+
+    // ===== ApiResponse 래퍼 (meta로 감싸진 구조) =====
+    record ApiResponse<T>(
+            PointClient.Meta meta,
+            T data
+    ) {
+        public boolean isSuccess() {
+            return meta != null && "SUCCESS".equals(meta.result());
+        }
+
+        public String result() {
+            return meta != null ? meta.result() : null;
+        }
+
+        public String errorCode() {
+            return meta != null ? meta.errorCode() : null;
+        }
+
+        public String message() {
+            return meta != null ? meta.message() : null;
+        }
+    }
+
+    record Meta(
+            String result,
+            String errorCode,
+            String message
     ) {}
 
 }

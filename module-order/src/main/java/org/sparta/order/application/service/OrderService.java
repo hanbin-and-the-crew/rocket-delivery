@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.common.api.ApiResponse;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.order.application.command.OrderCommand;
@@ -159,34 +158,43 @@ public class OrderService {
         long requestPoint = request.requestPoint() != null ? request.requestPoint() : 0L;
 
         // ===================== 2. 재고 예약 =====================
-        ApiResponse<StockClient.StockReserveResponse> stockResResponse;
+        StockClient.StockReserveResponse stockRes;
+        UUID reservationId;
+
         try {
-            stockResResponse = stockClient.reserveStock(new StockClient.StockReserveRequest(
-                    savedOrder.getProductId(),
-                    orderId.toString(),
-                    savedOrder.getQuantity().getValue()
-            ));
-        } catch (FeignException e) {
-            log.error("재고 예약 실패 - productId={}, quantity={}", savedOrder.getProductId(), savedOrder.getQuantity(), e);
-            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
-        }
-
-        // 1) meta.result 가 SUCCESS 인지 먼저 확인
-        if (stockResResponse.meta().result() != ApiResponse.Metadata.Result.SUCCESS) {
-            log.error("재고 예약 API 응답 실패 - result={}, errorCode={}",
-                    stockResResponse.meta().result(),
-                    stockResResponse.meta().errorCode()
+            StockClient.ApiResponse<StockClient.StockReserveResponse> response = stockClient.reserveStock(
+                    new StockClient.StockReserveRequest(
+                            savedOrder.getProductId(),
+                            orderId.toString(),
+                            savedOrder.getQuantity().getValue()
+                    )
             );
+
+            // ApiResponse 검증
+            if (!response.isSuccess()) {
+                log.error("재고 예약 API 실패 - productId={}, errorCode={}, message={}",
+                        savedOrder.getProductId(), response.errorCode(), response.message());
+                throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
+            }
+
+            stockRes = response.data();
+            reservationId = stockRes.reservationId();
+
+            // 재고 예약 상태 검증
+            if (!"RESERVED".equalsIgnoreCase(stockRes.status())) {
+                log.error("재고 예약 상태 비정상 - status={}, reservationKey={}",
+                        stockRes.status(), stockRes.reservationKey());
+                throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
+            }
+
+            log.info("재고 예약 성공 - reservationId={}, quantity={}", reservationId, stockRes.reservedQuantity());
+
+        } catch (FeignException e) {
+            log.error("재고 예약 통신 실패 - productId={}, quantity={}, status={}",
+                    savedOrder.getProductId(), savedOrder.getQuantity().getValue(), e.status(), e);
             throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
         }
-
-        // 2) data 꺼내서  실제 예약 상태 확인
-        StockClient.StockReserveResponse stockRes = stockResResponse.data();
-        if (stockRes == null || !"RESERVED".equalsIgnoreCase(stockRes.status())) {
-            log.error("재고 예약 상태 비정상 - status={}", stockRes != null ? stockRes.status() : null);
-            throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
-        }
-
+        
         // ===================== 3. 포인트 예약 =====================
         Long usedPointAmount = 0L;
         String pointReservationId = null;
