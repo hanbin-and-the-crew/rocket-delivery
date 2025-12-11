@@ -16,8 +16,8 @@ import org.sparta.user.application.dto.PointServiceResult;
 import org.sparta.user.application.service.PointService;
 import org.sparta.user.domain.error.PointErrorType;
 import org.sparta.user.domain.repository.ProcessedEventRepository;
-import org.sparta.user.infrastructure.event.publisher.PointConfirmedEvent;
-import org.sparta.user.infrastructure.event.publisher.PointReservationCancelledEvent;
+import org.sparta.common.event.user.PointConfirmedEvent;
+import org.sparta.common.event.user.PointReservationCancelledEvent;
 import org.sparta.user.presentation.dto.PointMapper;
 
 import java.time.Instant;
