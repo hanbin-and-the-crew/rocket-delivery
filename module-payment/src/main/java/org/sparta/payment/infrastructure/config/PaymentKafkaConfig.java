@@ -24,7 +24,7 @@ public class PaymentKafkaConfig {
     private String bootstrapServers;
 
     /**
-     * Coupon 전용 ConsumerFactory
+     * payment 전용 ConsumerFactory
      * - Value를 String으로 역직렬화
      */
     @Bean
@@ -42,7 +42,7 @@ public class PaymentKafkaConfig {
     }
 
     /**
-     * Coupon 전용 KafkaListenerContainerFactory
+     * payment 전용 KafkaListenerContainerFactory
      */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> paymentKafkaListenerContainerFactory() {

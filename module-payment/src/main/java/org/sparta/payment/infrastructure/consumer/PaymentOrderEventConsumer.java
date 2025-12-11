@@ -15,8 +15,11 @@ import org.sparta.payment.application.command.payment.PaymentCancelCommand;
 import org.sparta.payment.application.command.payment.PaymentGetByOrderIdCommand;
 import org.sparta.payment.application.dto.PaymentDetailResult;
 import org.sparta.payment.application.service.PaymentService;
+import org.sparta.payment.domain.error.PaymentErrorType;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+
+import static org.apache.commons.lang3.EnumUtils.isValidEnum;
 
 @Slf4j
 @Component
@@ -48,7 +51,19 @@ public class PaymentOrderEventConsumer {
                 event.orderId(), event.paymentKey());
 
         try {
-
+                        // 1) ENUM 유효성 검증
+           if (!isValidEnum(PaymentType.class, event.methodType().toUpperCase())) {
+                throw new BusinessException(
+                           PaymentErrorType.INVALID_PAYMENT_METHOD,
+                            "Invalid methodType: " + event.methodType()
+                                );
+            }
+            if (!isValidEnum(PgProvider.class, event.pgProvider().toUpperCase())) {
+               throw new BusinessException(
+                            PaymentErrorType.INVALID_PG_PROVIDER,
+                            "Invalid pgProvider: " + event.pgProvider()
+                                );
+            }
             // 2) ENUM 변환 (String → Enum)
             PaymentType methodType = PaymentType.valueOf(event.methodType().toUpperCase());
             PgProvider pgProvider = PgProvider.valueOf(event.pgProvider().toUpperCase());
