@@ -11,7 +11,7 @@ import org.sparta.payment.application.dto.RefundListResult;
 import org.sparta.payment.domain.entity.Payment;
 import org.sparta.payment.domain.entity.PaymentOutbox;
 import org.sparta.payment.domain.entity.Refund;
-import org.sparta.payment.domain.enumeration.OutboxStatus;
+import org.sparta.common.domain.OutboxStatus;
 import org.sparta.payment.domain.error.PaymentErrorType;
 import org.sparta.payment.domain.repository.PaymentOutboxRepository;
 import org.sparta.payment.domain.repository.PaymentRepository;

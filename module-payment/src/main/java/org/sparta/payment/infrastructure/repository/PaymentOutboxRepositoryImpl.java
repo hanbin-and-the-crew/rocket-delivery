@@ -2,7 +2,7 @@ package org.sparta.payment.infrastructure.repository;
 
 import lombok.RequiredArgsConstructor;
 import org.sparta.payment.domain.entity.PaymentOutbox;
-import org.sparta.payment.domain.enumeration.OutboxStatus;
+import org.sparta.common.domain.OutboxStatus;
 import org.sparta.payment.domain.repository.PaymentOutboxRepository;
 import org.springframework.stereotype.Repository;
 

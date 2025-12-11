@@ -15,10 +15,10 @@ import org.sparta.payment.application.dto.PaymentDetailResult;
 import org.sparta.payment.domain.entity.Payment;
 import org.sparta.payment.domain.entity.PaymentOutbox;
 import org.sparta.payment.domain.entity.Refund;
-import org.sparta.payment.domain.enumeration.OutboxStatus;
+import org.sparta.common.domain.OutboxStatus;
 import org.sparta.payment.domain.enumeration.PaymentStatus;
-import org.sparta.payment.domain.enumeration.PaymentType;
-import org.sparta.payment.domain.enumeration.PgProvider;
+import org.sparta.common.domain.PaymentType;
+import org.sparta.common.domain.PgProvider;
 import org.sparta.payment.domain.error.PaymentErrorType;
 import org.sparta.payment.domain.repository.PaymentOutboxRepository;
 import org.sparta.payment.domain.repository.PaymentRepository;
@@ -101,7 +101,7 @@ class PaymentServiceTest {
         assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.READY);
         assertThat(outbox.getAggregateType()).isEqualTo("PAYMENT");
         assertThat(outbox.getAggregateId()).isEqualTo(paymentId);
-        assertThat(outbox.getEventType()).isEqualTo("PAYMENT_COMPLETED");
+        assertThat(outbox.getEventType()).isEqualTo("payment.orderCreate.paymentCompleted");
         assertThat(outbox.getPayload()).isEqualTo("{\"dummy\":\"json\"}");
 
         // 결과 객체가 null 이 아니고, paymentId 가 세팅되어 있는지 정도까지 확인
@@ -135,7 +135,7 @@ class PaymentServiceTest {
 
         // 실패 이벤트 직렬화는 간단한 JSON 문자열로 stub
         when(objectMapper.writeValueAsString(any()))
-                .thenReturn("{\"eventType\":\"PAYMENT_FAILED\"}");
+                .thenReturn("{\"eventType\":\"payment.orderCreateFail.paymentFail\"}");
 
         ArgumentCaptor<PaymentOutbox> outboxCaptor = ArgumentCaptor.forClass(PaymentOutbox.class);
 
@@ -154,10 +154,10 @@ class PaymentServiceTest {
         verify(outboxRepository, times(1)).save(outboxCaptor.capture());
         PaymentOutbox outbox = outboxCaptor.getValue();
         assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.READY);
-        assertThat(outbox.getEventType()).isEqualTo("PAYMENT_FAILED");
+        assertThat(outbox.getEventType()).isEqualTo("payment.orderCreateFail.paymentFail");
         assertThat(outbox.getAggregateType()).isEqualTo("PAYMENT");
         assertThat(outbox.getAggregateId()).isEqualTo(orderId);
-        assertThat(outbox.getPayload()).isEqualTo("{\"eventType\":\"PAYMENT_FAILED\"}");
+        assertThat(outbox.getPayload()).isEqualTo("{\"eventType\":\"payment.orderCreateFail.paymentFail\"}");
     }
 
 
