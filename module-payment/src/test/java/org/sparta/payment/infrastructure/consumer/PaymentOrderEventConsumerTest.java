@@ -1,4 +1,4 @@
-package org.sparta.payment;
+package org.sparta.payment.infrastructure.consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
