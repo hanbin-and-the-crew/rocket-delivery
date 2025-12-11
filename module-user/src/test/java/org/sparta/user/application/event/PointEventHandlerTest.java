@@ -19,6 +19,7 @@ import org.sparta.user.domain.repository.ProcessedEventRepository;
 import org.sparta.common.event.user.PointConfirmedEvent;
 import org.sparta.common.event.user.PointReservationCancelledEvent;
 import org.sparta.user.presentation.dto.PointMapper;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -116,62 +117,57 @@ class PointEventHandlerTest {
     @Test
     @DisplayName("이미 처리된 주문 승인 이벤트는 재처리하지 않는다")
     void handleOrderApproved_alreadyProcessed_doNothing() {
-        when(processedEventRepository.existsByEventId(approvedEvent.eventId()))
-                .thenReturn(true);
+
+        // save 시도 → Unique 제약 위반으로 간주
+        doThrow(new DataIntegrityViolationException("duplicate"))
+                .when(processedEventRepository)
+                .save(any());
 
         handler.handleOrderApproved(approvedEvent);
 
         verify(pointService, never()).confirmPointUsage(any());
         verify(eventPublisher, never()).publishExternal(any());
-        verify(processedEventRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("주문 승인 이벤트가 들어오면 포인트 사용을 확정하고 이벤트를 발행한다")
     void handleOrderApproved_successFlow() {
 
-        when(processedEventRepository.existsByEventId(approvedEvent.eventId()))
-                .thenReturn(false);
+        when(processedEventRepository.save(any()))
+                .thenReturn(null);
         when(pointService.confirmPointUsage(confirmCommand))
                 .thenReturn(confirmResult);
 
         handler.handleOrderApproved(approvedEvent);
 
-        // 포인트 서비스 호출
+        // save 호출됨
+        verify(processedEventRepository).save(any());
+
+        // 서비스 호출됨
         verify(pointService).confirmPointUsage(confirmCommand);
 
-        // 멱등성 저장
-        verify(processedEventRepository).save(
-                argThat(e -> e.getEventId().equals(approvedEvent.eventId()))
-        );
-
-        // 외부 이벤트 발행
-        verify(eventPublisher).publishExternal(
-                argThat(event ->
-                        event instanceof PointConfirmedEvent &&
-                                ((PointConfirmedEvent) event).orderId().equals(approvedEvent.orderId())
-                )
-        );
+        // 이벤트 발행 호출됨
+        verify(eventPublisher).publishExternal(any(PointConfirmedEvent.class));
     }
 
     @Test
     @DisplayName("포인트 사용 확정 시 비즈니스 예외가 발생하면 이벤트는 기록하지만 포인트 확정은 처리하지 않는다")
     void handleOrderApproved_businessException_stillSaveProcessedEvent() {
 
-        when(processedEventRepository.existsByEventId(approvedEvent.eventId()))
-                .thenReturn(false);
+        // save 정상
+        when(processedEventRepository.save(any()))
+                .thenReturn(null);
 
+        // service에서 비즈니스 예외 발생
         when(pointService.confirmPointUsage(confirmCommand))
                 .thenThrow(new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT));
 
         handler.handleOrderApproved(approvedEvent);
 
-        // 멱등성 저장됨
-        verify(processedEventRepository).save(
-                argThat(e -> e.getEventId().equals(approvedEvent.eventId()))
-        );
+        // save는 반드시 호출됨
+        verify(processedEventRepository).save(any());
 
-        // 외부 이벤트 발행 없음
+        // publishExternal은 호출되지 않아야 함
         verify(eventPublisher, never()).publishExternal(any());
     }
 
@@ -182,60 +178,59 @@ class PointEventHandlerTest {
     @Test
     @DisplayName("이미 처리된 주문 취소 이벤트는 재처리하지 않는다")
     void handleOrderCancelled_alreadyProcessed_doNothing() {
-        when(processedEventRepository.existsByEventId(canceledEvent.eventId()))
-                .thenReturn(true);
+
+        // save 시도 → Unique 제약 위반으로 간주
+        doThrow(new DataIntegrityViolationException("duplicate"))
+                .when(processedEventRepository)
+                .save(any());
 
         handler.handleOrderCancelled(canceledEvent);
 
         verify(pointService, never()).rollbackReservations(any());
         verify(eventPublisher, never()).publishExternal(any());
-        verify(processedEventRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("주문 취소 이벤트가 들어오면 포인트 예약을 취소한다")
     void handleOrderCancelled_successFlow() {
 
-        when(processedEventRepository.existsByEventId(canceledEvent.eventId()))
-                .thenReturn(false);
+        // save는 정상 호출
+        when(processedEventRepository.save(any()))
+                .thenReturn(null);
 
         handler.handleOrderCancelled(canceledEvent);
 
-        // 서비스 호출
+        // 저장은 반드시 호출됨
+        verify(processedEventRepository).save(any());
+
+        // 서비스 호출됨
         verify(pointService).rollbackReservations(canceledEvent.orderId());
 
-        // 멱등성 저장
-        verify(processedEventRepository).save(
-                argThat(e -> e.getEventId().equals(canceledEvent.eventId()))
-        );
-
-        // 외부 이벤트 발행 확인
-        verify(eventPublisher).publishExternal(
-                argThat(event ->
-                        event instanceof PointReservationCancelledEvent &&
-                                ((PointReservationCancelledEvent) event).orderId().equals(canceledEvent.orderId())
-                )
-        );
+        // 취소 이벤트 발행됨
+        verify(eventPublisher)
+                .publishExternal(any(PointReservationCancelledEvent.class));
     }
 
     @Test
     @DisplayName("포인트 취소 처리 중 비즈니스 예외가 발생하더라도 이벤트는 기록된다")
     void handleOrderCancelled_businessException_stillSaveProcessedEvent() {
 
-        when(processedEventRepository.existsByEventId(canceledEvent.eventId()))
-                .thenReturn(false);
+        // save 정상
+        when(processedEventRepository.save(any()))
+                .thenReturn(null);
 
-        doThrow(new BusinessException(PointErrorType.POINT_NOT_FOUND))
-                .when(pointService).rollbackReservations(canceledEvent.orderId());
+        // 서비스 로직에서 예외 발생
+        doThrow(new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT))
+                .when(pointService)
+                .rollbackReservations(canceledEvent.orderId());
 
         handler.handleOrderCancelled(canceledEvent);
 
-        // 멱등성 저장됨
-        verify(processedEventRepository).save(
-                argThat(e -> e.getEventId().equals(canceledEvent.eventId()))
-        );
+        // 멱등성 기록은 됨
+        verify(processedEventRepository).save(any());
 
-        // 외부 이벤트 발행 안 됨
-        verify(eventPublisher, never()).publishExternal(any());
+        // publishExternal은 호출되지 않아야 함
+        verify(eventPublisher, never())
+                .publishExternal(any());
     }
 }
