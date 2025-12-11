@@ -135,7 +135,7 @@ class PaymentServiceTest {
 
         // 실패 이벤트 직렬화는 간단한 JSON 문자열로 stub
         when(objectMapper.writeValueAsString(any()))
-                .thenReturn("{\"eventType\":\"PAYMENT_FAILED\"}");
+                .thenReturn("{\"eventType\":\"payment.orderCreateFail.paymentFail\"}");
 
         ArgumentCaptor<PaymentOutbox> outboxCaptor = ArgumentCaptor.forClass(PaymentOutbox.class);
 
@@ -154,10 +154,10 @@ class PaymentServiceTest {
         verify(outboxRepository, times(1)).save(outboxCaptor.capture());
         PaymentOutbox outbox = outboxCaptor.getValue();
         assertThat(outbox.getStatus()).isEqualTo(OutboxStatus.READY);
-        assertThat(outbox.getEventType()).isEqualTo("PAYMENT_FAILED");
+        assertThat(outbox.getEventType()).isEqualTo("payment.orderCreateFail.paymentFail");
         assertThat(outbox.getAggregateType()).isEqualTo("PAYMENT");
         assertThat(outbox.getAggregateId()).isEqualTo(orderId);
-        assertThat(outbox.getPayload()).isEqualTo("{\"eventType\":\"PAYMENT_FAILED\"}");
+        assertThat(outbox.getPayload()).isEqualTo("{\"eventType\":\"payment.orderCreateFail.paymentFail\"}");
     }
 
 

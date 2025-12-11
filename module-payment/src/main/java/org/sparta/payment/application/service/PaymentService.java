@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.DomainEvent;
-import org.sparta.common.event.EventEnvelope;
 import org.sparta.common.event.payment.GenericDomainEvent;
 import org.sparta.payment.application.command.payment.*;
 import org.sparta.payment.application.dto.PaymentDetailResult;
@@ -163,19 +162,15 @@ public class PaymentService {
                 message
         );
 
-        EventEnvelope<PaymentFailedEvent> envelope =
-                EventEnvelope.of(
-                        "PAYMENT_FAILED",
-                        "PAYMENT",
-                        command.orderId().toString(),
-                        "payment-service",
-                        1,
-                        payload
-                );
+        // DomainEvent 래핑 (토픽 라우팅은 Publisher 단계에서 처리)
+        DomainEvent event = new GenericDomainEvent(
+                "payment.orderCreateFail.paymentFail",
+                payload
+        );
 
         String json;
         try {
-            json = objectMapper.writeValueAsString(envelope);
+            json = objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException e) {
             // 실패 이벤트 직렬화까지 실패한 경우에는 더 이상 할 수 있는 것이 없으므로 조용히 넘긴다.
             // (로그 정도만 남길 수 있음)
@@ -184,14 +179,12 @@ public class PaymentService {
         }
 
         PaymentOutbox outbox = PaymentOutbox.ready(
-                envelope.aggregateType(),
+                "PAYMENT",
                 command.orderId(), // 실패 이벤트는 orderId 기준으로 Aggregate 식별
-                envelope.eventType(),
+                event.eventType(),
                 json
         );
         paymentOutboxRepository.save(outbox);
-
-        // log.info("[PaymentService] PAYMENT_FAILED Outbox 저장 완료. outboxId={}", outbox.getPaymentOutboxId());
     }
 
     private void createPaymentFailedOutboxForCancel(
@@ -208,28 +201,24 @@ public class PaymentService {
                 message
         );
 
-        EventEnvelope<PaymentFailedEvent> envelope =
-                EventEnvelope.of(
-                        "PAYMENT_FAILED",
-                        "PAYMENT",
-                        payment.getOrderId().toString(),
-                        "payment-service",
-                        1,
-                        payload
-                );
+        // DomainEvent 래핑 (토픽 라우팅은 Publisher 단계에서 처리)
+        DomainEvent event = new GenericDomainEvent(
+                "payment.orderCancelFail.paymentCancelFail",
+                payload
+        );
 
         String json;
         try {
-            json = objectMapper.writeValueAsString(envelope);
+            json = objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException e) {
             // 실패 이벤트 직렬화까지 실패한 경우에는 더 이상 할 수 있는 것이 없으므로 조용히 넘긴다.
             return;
         }
 
         PaymentOutbox outbox = PaymentOutbox.ready(
-                envelope.aggregateType(),
+                "PAYMENT",
                 payment.getOrderId(), // 취소 실패 이벤트도 orderId 기준으로 Aggregate 식별
-                envelope.eventType(),
+                event.eventType(),
                 json
         );
         paymentOutboxRepository.save(outbox);

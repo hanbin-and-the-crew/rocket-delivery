@@ -21,6 +21,7 @@ public enum PaymentErrorType implements ErrorType {
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "결제 금액이 일치하지 않습니다."),
     PAYMENT_METHOD_NOT_SUPPORTED(HttpStatus.BAD_REQUEST, "지원하지 않는 결제 방식입니다."),
     INVALID_PAYMENT_METHOD(HttpStatus.BAD_REQUEST, "결제 방식이 유효하지 않습니다."),
+    INVALID_PG_PROVIDER(HttpStatus.BAD_REQUEST, "유효하지 않은 PG사입니다."),
     PAYMENT_APPROVAL_FAILED(HttpStatus.BAD_GATEWAY, "PG 결제 승인에 실패했습니다."),
     PAYMENT_CANCEL_FAILED(HttpStatus.BAD_GATEWAY, "PG 결제 취소에 실패했습니다."),
     PAYMENT_INSUFFICIENT_AMOUNT(HttpStatus.BAD_REQUEST, "환불 가능한 금액이 부족합니다."),
