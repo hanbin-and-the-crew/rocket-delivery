@@ -46,14 +46,20 @@ public class PointService {
         Long requiredAmount = command.requestPoint();
         UUID orderId = command.orderId();
 
+        log.info("[PointReserve] 예약 요청 시작 - userId={}, orderId={}, requiredAmount={}", userId, orderId, requiredAmount);
+
         // orderId 기반 중복 체크
         if (reservationRepository.existsByOrderId(orderId)) {
+            log.warn("[PointReserve] 중복 예약 요청 발생 - orderId={}", orderId);
             throw new BusinessException(PointErrorType.DUPLICATE_ORDER_ID);
         }
 
         // User 존재하는지 확인
         userRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(UserErrorType.USER_NOT_FOUND));
+                .orElseThrow(() -> {
+                    log.warn("[PointReserve] 존재하지 않는 사용자 - userId={}", userId);
+                    return new BusinessException(UserErrorType.USER_NOT_FOUND);
+                });
 
         // FIFO: AVAILABLE이고 만료되지 않은 포인트를 유효 기간이 오래된 순서로 조회
         List<Point> availablePoints = pointRepository.findUsablePoints(
@@ -70,7 +76,7 @@ public class PointService {
 
         // 포인트가 부족한 경우
         if (totalAvailable < requiredAmount) {
-            log.info("사용 가능한 총 포인트: {}, 요청 포인트: {}", totalAvailable, requiredAmount);
+            log.info("[PointReserve] 사용 가능한 총 포인트: {}, 요청 포인트: {}", totalAvailable, requiredAmount);
             throw new BusinessException(PointErrorType.POINT_IS_INSUFFICIENT);
         }
 
@@ -100,6 +106,9 @@ public class PointService {
 
             reservations.add(reservation);
             remainingAmount -= reserveAmount;
+
+            log.info("[PointReserve] 예약 기록 생성 - pointId={}, orderId={}, reserveAmount={}, remainingAfter={}",
+                    point.getId(), orderId, reserveAmount, remainingAmount);
         }
 
         return PointResponse.PointReservationResult.of(requiredAmount, reservations);
@@ -112,6 +121,8 @@ public class PointService {
     public PointServiceResult.Confirm confirmPointUsage(PointCommand.ConfirmPoint command) {
         UUID orderId = command.orderId();
 
+        log.info("[PointConfirm] 포인트 확정 시작 - orderId={}", orderId);
+
         List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
                 orderId,
                 ReservationStatus.RESERVED
@@ -122,7 +133,12 @@ public class PointService {
 
         for (PointReservation reservation : reservations) {
             Point point = pointRepository.findById(reservation.getPointId())
-                    .orElseThrow(() -> new BusinessException(PointErrorType.POINT_NOT_FOUND));
+                    .orElseThrow(() -> {
+                        log.error("[PointConfirm] 포인트 데이터 없음 - pointId={}", reservation.getPointId());
+                        return new BusinessException(PointErrorType.POINT_NOT_FOUND);
+                    });
+
+            log.debug("[PointConfirm] 사용 처리 - pointId={}, reservedAmount={}", point.getId(), reservation.getReservedAmount());
 
             point.updateReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
             point.updateUsedAmount(point.getUsedAmount() + reservation.getReservedAmount());
@@ -138,6 +154,8 @@ public class PointService {
             ));
         }
 
+        log.info("[PointConfirm] 포인트 확정 완료 - orderId={}, discountAmount={}", orderId, discountAmount);
+
         return new PointServiceResult.Confirm(orderId, discountAmount, confirmedDetails);
     }
 
@@ -146,15 +164,22 @@ public class PointService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void rollbackReservations(UUID orderId) {
-        log.info("예약 취소 시작");
+
+        log.warn("[PointRollback] 예약 롤백 시작 - orderId={}", orderId);
+
         List<PointReservation> reservations = reservationRepository.findByOrderIdAndStatus(
                 orderId,
                 ReservationStatus.RESERVED
         );
 
+        log.info("[PointRollback] 롤백할 예약 건수={}", reservations.size());
+
         for (PointReservation reservation : reservations) {
             Point point = pointRepository.findById(reservation.getPointId())
-                    .orElseThrow(() -> new BusinessException(PointErrorType.POINT_NOT_FOUND));
+                    .orElseThrow(() -> {
+                        log.error("[PointRollback] 포인트 데이터 없음 - pointId={}", reservation.getPointId());
+                        return new BusinessException(PointErrorType.POINT_NOT_FOUND);
+                    });
 
             // reservedAmount만 감소 (복구)
             point.updateReservedAmount(point.getReservedAmount() - reservation.getReservedAmount());
@@ -163,6 +188,8 @@ public class PointService {
             reservation.updateStatus(ReservationStatus.CANCELLED);
             reservationRepository.save(reservation);
         }
+
+        log.warn("[PointRollback] 예약 롤백 완료 - orderId={}", orderId);
     }
 
     /**
@@ -215,12 +242,51 @@ public class PointService {
         }
     }
 
+
+    /**
+     * 확정된 포인트 사용분 환불 (결제 취소/주문 취소)
+     * TODO. 환불 로직 추가되면 Controller까지 연결
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void refundConfirmedPoints(UUID orderId) {
+
+        log.info("포인트 환불 시작 - orderId={}", orderId);
+
+        // 1. 해당 주문의 "확정(CONFIRMED)"된 Reservation 조회
+        List<PointReservation> confirmedReservations =
+                reservationRepository.findByOrderIdAndStatus(orderId, ReservationStatus.CONFIRMED);
+
+        if (confirmedReservations.isEmpty()) {
+            log.info("환불할 포인트 없음 - orderId={}", orderId);
+            return;
+        }
+
+        // 2. 각 Point 엔티티 상태 복구
+        for (PointReservation reservation : confirmedReservations) {
+
+            Point point = pointRepository.findById(reservation.getPointId())
+                    .orElseThrow(() -> new BusinessException(PointErrorType.POINT_NOT_FOUND));
+
+            Long refundAmount = reservation.getReservedAmount();
+
+            point.updateUsedAmount(point.getUsedAmount() - refundAmount);
+            pointRepository.save(point);
+
+            // 3. Reservation 상태 변경
+            reservation.updateStatus(ReservationStatus.REFUNDED);
+            reservationRepository.save(reservation);
+
+            log.info("포인트 환불 완료: reservationId={}, 환불금액={}", reservation.getId(), refundAmount);
+        }
+    }
+
     /**
      * 포인트 적립 (구매 후). 이거까진 이용안할듯
+     * TODO. 추후 기능을 확장하거나 삭제
      */
     @Transactional
     public void addPoints(UUID userId, Long amount, LocalDateTime expiryDate) {
-        Point point = Point.create( // 이용 안할거라 일단 토대만 작성.
+        Point point = Point.create(
                 userId,
                 amount,
                 0L,

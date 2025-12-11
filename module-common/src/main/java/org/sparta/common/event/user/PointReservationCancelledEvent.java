@@ -1,4 +1,4 @@
-package org.sparta.user.infrastructure.event.publisher;
+package org.sparta.common.event.user;
 
 import org.sparta.common.event.DomainEvent;
 
