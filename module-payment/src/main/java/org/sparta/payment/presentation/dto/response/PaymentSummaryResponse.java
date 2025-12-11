@@ -2,8 +2,8 @@ package org.sparta.payment.presentation.dto.response;
 
 import org.sparta.payment.application.dto.PaymentSummaryResult;
 import org.sparta.payment.domain.enumeration.PaymentStatus;
-import org.sparta.payment.domain.enumeration.PaymentType;
-import org.sparta.payment.domain.enumeration.PgProvider;
+import org.sparta.common.domain.PaymentType;
+import org.sparta.common.domain.PgProvider;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

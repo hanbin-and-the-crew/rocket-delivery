@@ -1,7 +1,7 @@
 package org.sparta.payment.domain.repository;
 
 import org.sparta.payment.domain.entity.PaymentOutbox;
-import org.sparta.payment.domain.enumeration.OutboxStatus;
+import org.sparta.common.domain.OutboxStatus;
 
 import java.util.List;
 import java.util.Optional;

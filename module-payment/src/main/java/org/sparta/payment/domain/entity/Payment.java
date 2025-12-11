@@ -6,8 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.sparta.common.error.BusinessException;
 import org.sparta.payment.domain.enumeration.PaymentStatus;
-import org.sparta.payment.domain.enumeration.PaymentType;
-import org.sparta.payment.domain.enumeration.PgProvider;
+import org.sparta.common.domain.PaymentType;
+import org.sparta.common.domain.PgProvider;
 import org.sparta.payment.domain.error.PaymentErrorType;
 
 import java.time.LocalDateTime;

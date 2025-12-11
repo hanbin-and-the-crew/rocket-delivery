@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.sparta.payment.domain.enumeration.OutboxStatus;
+import org.sparta.common.domain.OutboxStatus;
 
 import java.time.LocalDateTime;
 import java.util.UUID;

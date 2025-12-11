@@ -3,8 +3,8 @@ package org.sparta.payment.presentation.dto.request;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.sparta.payment.domain.enumeration.PaymentType;
-import org.sparta.payment.domain.enumeration.PgProvider;
+import org.sparta.common.domain.PaymentType;
+import org.sparta.common.domain.PgProvider;
 
 import java.util.UUID;
 

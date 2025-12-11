@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.payment.domain.entity.PaymentOutbox;
-import org.sparta.payment.domain.enumeration.OutboxStatus;
+import org.sparta.common.domain.OutboxStatus;
 import org.sparta.payment.domain.repository.PaymentOutboxRepository;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;

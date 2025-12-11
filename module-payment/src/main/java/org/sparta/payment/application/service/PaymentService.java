@@ -4,12 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.DomainEvent;
 import org.sparta.common.event.EventEnvelope;
+import org.sparta.common.event.payment.GenericDomainEvent;
 import org.sparta.payment.application.command.payment.*;
 import org.sparta.payment.application.dto.PaymentDetailResult;
 import org.sparta.payment.application.dto.PaymentListResult;
-import org.sparta.payment.application.event.PaymentCompletedPayload;
-import org.sparta.payment.application.event.PaymentFailedPayload;
+import org.sparta.common.event.payment.PaymentCompletedEvent;
+import org.sparta.common.event.payment.PaymentFailedEvent;
 import org.sparta.payment.domain.entity.Payment;
 import org.sparta.payment.domain.entity.PaymentOutbox;
 import org.sparta.payment.domain.entity.Refund;
@@ -104,35 +106,47 @@ public class PaymentService {
     }
 
     private void createPaymentCompletedOutbox(Payment payment) {
-        PaymentCompletedPayload payload = PaymentCompletedPayload.from(payment);
+        // 1) 이벤트 페이로드 생성
+        PaymentCompletedEvent payload = new PaymentCompletedEvent(
+                payment.getPaymentId(),
+                payment.getOrderId(),
+                payment.getAmountTotal(),
+                payment.getAmountCoupon(),
+                payment.getAmountPoint(),
+                payment.getAmountPayable(),
+                payment.getAmountPaid(),
+                payment.getCurrency(),
+                payment.getMethodType() != null ? payment.getMethodType().name() : null,
+                payment.getPgProvider() != null ? payment.getPgProvider().name() : null,
+                payment.getPaymentKey(),
+                payment.getApprovedAt(),
+                payment.getCouponId(),
+                payment.getPointUsageId()
+        );
 
-        EventEnvelope<PaymentCompletedPayload> envelope =
-                EventEnvelope.of(
-                        "PAYMENT_COMPLETED",
-                        "PAYMENT",
-                        payment.getPaymentId().toString(),
-                        "payment-service",
-                        1,
-                        payload
-                );
+        // 2) EventEnvelope 대신 DomainEvent만 사용 (토픽 라우팅은 나중에 Publisher에서 처리)
+        DomainEvent event = new GenericDomainEvent(
+                "payment.orderCreate.paymentCompleted",
+                payload
+        );
 
+        // 3) JSON 직렬화
         String json;
         try {
-            json = objectMapper.writeValueAsString(envelope);
+            json = objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException e) {
-            //log.error("[PaymentService] PAYMENT_COMPLETED 이벤트 직렬화 실패. paymentId={}",payment.getPaymentId(), e);
+            // 직렬화 실패 시 Outbox에 넣지 않고 비즈니스 예외로 래핑
             throw new BusinessException(PaymentErrorType.OUTBOX_PUBLISH_FAILED, "이벤트 직렬화 실패");
         }
 
+        // 4) Outbox 엔티티 생성 및 저장
         PaymentOutbox outbox = PaymentOutbox.ready(
-                envelope.aggregateType(),
-                payment.getPaymentId(),
-                envelope.eventType(),
-                json
+                "PAYMENT",                   // aggregateType은 고정 문자열로 사용
+                payment.getPaymentId(),      // aggregateId
+                event.eventType(),           // eventType
+                json                         // payload(json)
         );
         paymentOutboxRepository.save(outbox);
-
-        //log.info("[PaymentService] PAYMENT_COMPLETED Outbox 저장 완료. outboxId={}", outbox.getPaymentOutboxId());
     }
     private void createPaymentFailedOutbox(
             UUID paymentId,
@@ -140,7 +154,7 @@ public class PaymentService {
             PaymentErrorType errorType,
             String message
     ) {
-        PaymentFailedPayload payload = new PaymentFailedPayload(
+        PaymentFailedEvent payload = new PaymentFailedEvent(
                 paymentId,
                 command.orderId(),
                 command.amountPayable(),
@@ -149,7 +163,7 @@ public class PaymentService {
                 message
         );
 
-        EventEnvelope<PaymentFailedPayload> envelope =
+        EventEnvelope<PaymentFailedEvent> envelope =
                 EventEnvelope.of(
                         "PAYMENT_FAILED",
                         "PAYMENT",
@@ -185,7 +199,7 @@ public class PaymentService {
             PaymentErrorType errorType,
             String message
     ) {
-        PaymentFailedPayload payload = new PaymentFailedPayload(
+        PaymentFailedEvent payload = new PaymentFailedEvent(
                 payment.getPaymentId(),
                 payment.getOrderId(),
                 payment.getAmountPayable(),
@@ -194,7 +208,7 @@ public class PaymentService {
                 message
         );
 
-        EventEnvelope<PaymentFailedPayload> envelope =
+        EventEnvelope<PaymentFailedEvent> envelope =
                 EventEnvelope.of(
                         "PAYMENT_FAILED",
                         "PAYMENT",
@@ -273,6 +287,8 @@ public class PaymentService {
             payment.cancelAll();
             Payment saved = paymentRepository.save(payment);
 
+            createPaymentCanceledOutbox(saved, refund);
+
             return PaymentDetailResult.from(saved);
         } catch (BusinessException e) {
             // 취소 중 발생한 비즈니스 예외도 다른 서비스에서 참고할 수 있도록 실패 이벤트 Outbox 로 남긴다.
@@ -320,4 +336,56 @@ public class PaymentService {
         return paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new BusinessException(PaymentErrorType.PAYMENT_NOT_FOUND));
     }
+
+    /**
+     * 결제 취소 완료 이벤트 Outbox 생성
+     * - 주문 취소로 인해 결제가 정상적으로 취소된 경우 발행
+     */
+    private void createPaymentCanceledOutbox(Payment payment, Refund refund) {
+        // 1) 이벤트 페이로드 생성
+        PaymentCanceledEvent payload = new PaymentCanceledEvent(
+                payment.getPaymentId(),
+                payment.getOrderId(),
+                refund.getAmount(),
+                payment.getCurrency(),
+                refund.getRefundId(),
+                refund.getReason()
+        );
+
+        // 2) GenericDomainEvent 로 래핑
+        DomainEvent event = new GenericDomainEvent(
+                "payment.orderCancel.paymentCanceled",
+                payload
+        );
+
+        // 3) JSON 직렬화
+        String json;
+        try {
+            json = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            // 직렬화 실패 시 Outbox에 넣지 않고 비즈니스 예외로 래핑
+            throw new BusinessException(PaymentErrorType.OUTBOX_PUBLISH_FAILED, "이벤트 직렬화 실패");
+        }
+
+        // 4) Outbox 엔티티 생성 및 저장
+        PaymentOutbox outbox = PaymentOutbox.ready(
+                "PAYMENT",
+                payment.getPaymentId(),
+                event.eventType(),
+                json
+        );
+        paymentOutboxRepository.save(outbox);
+    }
+
+    /**
+     * 결제 취소 완료 이벤트 페이로드
+     */
+    private record PaymentCanceledEvent(
+            UUID paymentId,
+            UUID orderId,
+            Long amountRefunded,
+            String currency,
+            UUID refundId,
+            String reason
+    ) {}
 }
