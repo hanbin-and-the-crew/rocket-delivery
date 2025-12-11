@@ -1,4 +1,4 @@
-package org.sparta.payment.domain.enumeration;
+package org.sparta.common.domain;
 
 public enum PaymentType {
     CARD,              // 신용/체크카드

@@ -6,7 +6,7 @@ import org.sparta.payment.application.command.outbox.*;
 import org.sparta.payment.application.dto.PaymentOutboxDetailResult;
 import org.sparta.payment.application.dto.PaymentOutboxListResult;
 import org.sparta.payment.domain.entity.PaymentOutbox;
-import org.sparta.payment.domain.enumeration.OutboxStatus;
+import org.sparta.common.domain.OutboxStatus;
 import org.sparta.payment.domain.error.PaymentErrorType;
 import org.sparta.payment.domain.repository.PaymentOutboxRepository;
 import org.springframework.stereotype.Service;
