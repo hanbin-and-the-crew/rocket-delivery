@@ -5,12 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.payment.GenericDomainEvent;
+import org.sparta.common.event.payment.PaymentCompletedEvent;
 import org.sparta.order.application.service.OrderService;
 import org.sparta.order.domain.entity.ProcessedEvent;
 import org.sparta.order.domain.repository.ProcessedEventRepository;
 import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashMap;
 
 /**
  * 배달 시작/완료 이벤트 수신
@@ -35,6 +40,7 @@ public class OrderEventListener {
             groupId = "order-service",
             containerFactory = "kafkaListenerContainerFactory"
     )
+    @Transactional
     public void handleDeliveryCompleted(String message) {
 
         DeliveryCompletedEvent event;
@@ -91,6 +97,7 @@ public class OrderEventListener {
             groupId = "order-service",
             containerFactory = "kafkaListenerContainerFactory"
     )
+    @Transactional
     public void handleDeliveryStarted(String message) {
 
         DeliveryStartedEvent event;
@@ -139,31 +146,37 @@ public class OrderEventListener {
     }
 
     /**
-     * [ PaymentApprovedEvent 수신 ]
+     * [ PaymentCompletedEvent 수신 ]
      * Payment 모듈에서 결제 승인 이벤트를 받아서 Order 승인 처리
      */
     @KafkaListener(
             topics = "payment-events",  // Payment 모듈의 토픽
             groupId = "order-service",
-            containerFactory = "kafkaListenerContainerFactory"
+            containerFactory = "orderPaymentKafkaListenerContainerFactory" // Payment쪽은 팩토리 다르게 사용!
     )
+    @Transactional
     public void handlePaymentApproved(String message) {
 
-        PaymentApprovedEvent event;
-
+        GenericDomainEvent envelope = null;
         try {
-            event = objectMapper.readValue(message, PaymentApprovedEvent.class);
+            envelope = objectMapper.readValue(message, GenericDomainEvent.class);
         } catch (JsonProcessingException e) {
-            log.error("Invalid PaymentApprovedEvent message: {}", message, e);
-            return;
+            throw new RuntimeException(e);
         }
 
-        log.info("Received PaymentApprovedEvent: paymentId={}, orderId={}, eventId={}",
-                event.paymentId(), event.orderId(), event.eventId());
+        log.info("Received Envelope event: eventId={}, type={}",
+                envelope.eventId(), envelope.eventType());
+
+        // payload를 다시 원하는 타입으로 변환
+        PaymentCompletedEvent event =
+                objectMapper.convertValue(envelope.payload(), PaymentCompletedEvent.class);
+
+        log.info("Received PaymentCompletedEvent: paymentId={}, orderId={}, eventId={}",
+                event.paymentId(), event.orderId(), envelope.eventId());
 
         // 멱등성 체크
-        if (processedEventRepository.existsByEventId(event.eventId())) {
-            log.warn("이미 처리된 이벤트 - eventId: {}", event.eventId());
+        if (processedEventRepository.existsByEventId(envelope.eventId())) {
+            log.warn("이미 처리된 이벤트 - eventId: {}", envelope.eventId());
             return;
         }
 
@@ -173,16 +186,16 @@ public class OrderEventListener {
 
             // 이벤트 처리 기록
             processedEventRepository.save(
-                    ProcessedEvent.of(event.eventId(), "PaymentApprovedEvent")
+                    ProcessedEvent.of(envelope.eventId(), "PaymentCompletedEvent")
             );
 
-            log.info("Order approved successfully: orderId={}, paymentId={}",
-                    event.orderId(), event.paymentId());
+            log.info("Order approved successfully: orderId={}, paymentId={}, eventId={}",
+                    event.orderId(), event.paymentId(),  envelope.eventId());
 
         } catch (BusinessException e) {
             // 비즈니스 예외는 이벤트 처리 완료로 간주 (재시도 방지)
             processedEventRepository.save(
-                    ProcessedEvent.of(event.eventId(), "PaymentApprovedEvent")
+                    ProcessedEvent.of(envelope.eventId(), "PaymentCompletedEvent")
             );
             log.error("Failed to handle payment approved event: {}", message, e);
 

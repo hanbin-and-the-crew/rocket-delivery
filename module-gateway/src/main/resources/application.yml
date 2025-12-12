@@ -97,6 +97,19 @@ spring:
           filters:
             - RewritePath=/order/(?<segment>.*), /api/order/${segment}
             - RewritePath=/orders/(?<segment>.*), /api/orders/${segment}
+        - id: payment-service-swagger         # Payment Swagger용
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/payment/api-docs
+          filters:
+            - RewritePath=/payment/api-docs, /api-docs
+        - id: payment-service
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/payments/**, /payment/**
+          filters:
+            - RewritePath=/payment/(?<segment>.*), /api/payment/${segment}
+            - RewritePath=/payments/(?<segment>.*), /api/payments/${segment}
         - id: product-service-swagger       # Product Swagger용
           uri: lb://PRODUCT-SERVICE
           predicates:
@@ -195,8 +208,10 @@ springdoc:
         url: /slack/api-docs
       - name: DeliveryLog Service
         url: /deliveryLog/api-docs
-      - name: DelvieryMan Service
+      - name: DeliveryMan Service
         url: /deliveryMan/api-docs
+      - name: Payment Service
+        url: /payment/api-docs
 
 
 logging:
