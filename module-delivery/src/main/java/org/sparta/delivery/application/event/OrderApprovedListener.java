@@ -29,9 +29,15 @@ public class OrderApprovedListener {
     private final DeliveryProcessedEventRepository deliveryProcessedEventRepository;
     private final ObjectMapper objectMapper;
 
+    /**
+     * 주문 승인 이벤트 처리
+     * - 배송 생성
+     * - deliveryKafkaListenerContainerFactory 사용
+     */
     @KafkaListener(
-            topics = "order-events",
-            groupId = "delivery-order-approved-group"
+            topics = "order.orderApprove",
+            groupId = "delivery-service",
+            containerFactory = "deliveryKafkaListenerContainerFactory"
     )
     @Transactional
     public void handleOrderApproved(OrderApprovedEvent event) {

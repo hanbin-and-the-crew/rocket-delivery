@@ -1,6 +1,7 @@
 package org.sparta.deliveryman.application.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.deliveryman.domain.entity.DeliveryMan;
 import org.sparta.deliveryman.domain.enumeration.DeliveryManStatus;
@@ -11,11 +12,13 @@ import org.sparta.deliveryman.presentation.dto.request.DeliveryManRequest;
 import org.sparta.deliveryman.presentation.dto.response.DeliveryManResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -230,6 +233,14 @@ public class DeliveryManServiceImpl implements DeliveryManService {
     @Override
     @Transactional
     public DeliveryMan assignHubDeliveryMan() {
+
+        log.info(
+                "[TX-CHECK] name={}, active={}, readOnly={}",
+                TransactionSynchronizationManager.getCurrentTransactionName(),
+                TransactionSynchronizationManager.isActualTransactionActive(),
+                TransactionSynchronizationManager.isCurrentTransactionReadOnly()
+        );
+
         // type=HUB, deletedAt IS NULL, sequence ASC 전체 후보
         List<DeliveryMan> candidates =
                 deliveryManRepository.findAllByTypeAndDeletedAtIsNullOrderBySequenceAsc(DeliveryManType.HUB);

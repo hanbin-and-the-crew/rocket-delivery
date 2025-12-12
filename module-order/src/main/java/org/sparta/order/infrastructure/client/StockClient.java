@@ -31,7 +31,7 @@ public interface StockClient {
 
     // ===== ApiResponse 래퍼 (meta로 감싸진 구조) =====
     record ApiResponse<T>(
-            PointClient.Meta meta,
+            StockClient.Meta meta,
             T data
     ) {
         public boolean isSuccess() {

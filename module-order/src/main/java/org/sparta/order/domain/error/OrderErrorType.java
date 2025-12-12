@@ -29,6 +29,8 @@ public enum OrderErrorType implements ErrorType {
     CANCELED_REASON_CODE_REQUIRED(HttpStatus.BAD_REQUEST, "취소 사유 코드는 필수입니다"),
     CANCELED_REASON_MEMO_REQUIRED(HttpStatus.BAD_REQUEST, "취소 사유 상세는 필수입니다"),
     PAYMENT_ID_REQUIRED(HttpStatus.BAD_REQUEST, "결제 ID는 필수 입니다."),
+    INVALID_PAYMENT_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 결제 타입입니다."),
+    INVALID_Pg_Provider(HttpStatus.BAD_REQUEST, "유효하지 않은 결제사입니다."),
 
 
     // 예약
