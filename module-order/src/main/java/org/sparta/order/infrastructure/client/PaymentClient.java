@@ -1,5 +1,7 @@
 package org.sparta.order.infrastructure.client;
 
+import org.sparta.common.domain.PaymentType;
+import org.sparta.common.domain.PgProvider;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,8 +25,8 @@ public interface PaymentClient {
                 UUID orderId,
                 String pgToken,
                 Long amountPayable,
-                String methodType,
-                String pgProvider,
+                PaymentType methodType,
+                PgProvider pgProvider,
                 String currency
         ) {}
     }
