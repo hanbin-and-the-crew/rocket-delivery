@@ -1,6 +1,7 @@
 package org.sparta.deliverylog.application.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.deliverylog.domain.entity.DeliveryLog;
 import org.sparta.deliverylog.domain.error.DeliveryLogErrorType;
@@ -12,10 +13,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -55,6 +58,14 @@ public class DeliveryLogServiceImpl implements DeliveryLogService {
     @Override
     @Transactional
     public DeliveryLogResponse.Detail assignDeliveryMan(UUID logId, DeliveryLogRequest.AssignDeliveryMan request) {
+
+        log.info(
+                "[TX-CHECK] name={}, active={}, readOnly={}",
+                TransactionSynchronizationManager.getCurrentTransactionName(),
+                TransactionSynchronizationManager.isActualTransactionActive(),
+                TransactionSynchronizationManager.isCurrentTransactionReadOnly()
+        );
+
         DeliveryLog log = deliveryLogRepository.findByIdAndDeletedAtIsNull(logId)
                 .orElseThrow(() -> new BusinessException(DeliveryLogErrorType.DELIVERY_ID_REQUIRED));
 

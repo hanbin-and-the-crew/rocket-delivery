@@ -71,5 +71,7 @@ springdoc:
 # 공통 로깅(상세 SQL 로깅은 프로파일에서 분리)
 logging:
   level:
-    org.hibernate.SQL: info
+#    org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: trace
