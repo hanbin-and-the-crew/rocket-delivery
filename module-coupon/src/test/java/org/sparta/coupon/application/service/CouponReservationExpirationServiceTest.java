@@ -62,6 +62,24 @@ class CouponReservationExpirationServiceTest {
                 .thenReturn(expirationService);
     }
 
+    /**
+     * 【만료 처리 - Redis TTL 먼저 만료된 경우】
+     *
+     * 기능: Redis TTL이 먼저 만료되어 DB에 예약 정보가 없는 경우 Redis 키만 정리
+     *
+     * 시나리오:
+     * 1. Redis TTL(5분) 만료 이벤트 발생
+     * 2. DB 조회 시 예약 정보 없음 (이미 삭제됨)
+     * 3. Redis 키만 삭제하고 종료
+     *
+     * 성공 흐름:
+     * - Redis 키 삭제됨
+     * - 분산 락 획득 시도 안 함 (불필요)
+     *
+     * 검증 포인트:
+     * ✓ 예약 정보 없을 때 안전한 처리
+     * ✓ Redis 고아 키 정리
+     */
     @Test
     @DisplayName("예약 정보가 없으면 Redis 키만 정리한다")
     void handleExpiredReservation_WhenReservationMissing_DeletesRedisOnly() {
@@ -74,6 +92,24 @@ class CouponReservationExpirationServiceTest {
         verify(lockExecutor, never()).executeWithLock(anyString(), any(Supplier.class));
     }
 
+    /**
+     * 【만료 처리 - 아직 만료 안 된 경우】
+     *
+     * 기능: 만료 시간이 안 된 예약은 정리하지 않음
+     *
+     * 시나리오:
+     * 1. 예약 정보 조회
+     * 2. 만료 여부 체크 (isExpired() → false)
+     * 3. 만료 안 됐으므로 아무 작업도 하지 않음
+     *
+     * 성공 흐름:
+     * - 쿠폰 조회 안 함
+     * - DB/Redis 삭제 안 함
+     *
+     * 검증 포인트:
+     * ✓ 만료 시간 정확히 체크
+     * ✓ 유효한 예약은 보존
+     */
     @Test
     @DisplayName("만료되지 않은 예약은 정리하지 않는다")
     void handleExpiredReservation_WhenNotExpired_DoesNothing() {
@@ -94,6 +130,29 @@ class CouponReservationExpirationServiceTest {
         verify(redisManager, never()).deleteReservation(reservationId);
     }
 
+    /**
+     * 【만료 처리 - 5분 경과 후 쿠폰 복구】
+     *
+     * 기능: 5분 경과한 예약은 쿠폰을 AVAILABLE로 복구하고 데이터 정리
+     *
+     * 시나리오:
+     * 1. 예약 후 5분 경과 (TTL 만료)
+     * 2. Redis 만료 이벤트 발생
+     * 3. 분산 락 획득
+     * 4. 쿠폰 상태 확인 (RESERVED)
+     * 5. 쿠폰 상태 복구 (RESERVED → AVAILABLE)
+     * 6. DB/Redis에서 예약 정보 삭제
+     *
+     * 성공 흐름:
+     * - 쿠폰 상태: RESERVED → AVAILABLE
+     * - DB 예약 정보 삭제
+     * - Redis 캐시 삭제
+     *
+     * 검증 포인트:
+     * ✓ 5분 만료 시 자동 복구
+     * ✓ 다른 사용자가 재예약 가능
+     * ✓ 분산 락으로 동시성 제어
+     */
     @Test
     @DisplayName("만료된 예약은 쿠폰 상태를 복구하고 데이터도 정리한다")
     void handleExpiredReservation_WhenExpired_ReleasesCoupon() {
@@ -122,6 +181,24 @@ class CouponReservationExpirationServiceTest {
         verify(redisManager).deleteReservation(reservationId);
     }
 
+    /**
+     * 【만료 처리 - 배치 스케줄러】
+     *
+     * 기능: 주기적으로 만료된 예약 목록 조회 및 일괄 처리
+     *
+     * 시나리오:
+     * 1. 스케줄러가 60초마다 실행
+     * 2. 만료된 예약 목록 조회 (배치 사이즈 10)
+     * 3. 각 예약에 대해 개별 처리
+     *
+     * 성공 흐름:
+     * - findExpiredReservations 호출됨
+     * - 배치 사이즈 파라미터 전달 확인
+     *
+     * 검증 포인트:
+     * ✓ 배치 조회 정상 동작
+     * ✓ Redis TTL 이벤트 보완 (이중 안전장치)
+     */
     @Test
     @DisplayName("배치 실행 시 만료 예약 목록을 조회한다")
     void handleExpiredReservations_BatchFetchesExpiredList() {
