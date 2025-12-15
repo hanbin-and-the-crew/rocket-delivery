@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.domain.PaymentType;
+import org.sparta.common.domain.PgProvider;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.common.event.order.OrderApprovedEvent;
@@ -67,7 +69,8 @@ public class OrderService {
     /**
      * 허용 사이즈 : 10(기본값), 30, 50
      * - sort 미지정 시: createdAt DESC 기본
-     * */
+     *
+     */
     private Pageable normalizePageable(Pageable pageable) {
         int page = pageable.getPageNumber();
         int size = pageable.getPageSize();
@@ -91,7 +94,7 @@ public class OrderService {
      * - 동일한 idempotencyKey로 재요청 시 기존 결과 반환
      */
     public OrderResponse.Detail createOrder(UUID customerId, OrderCommand.Create request,
-                                            String idempotencyKey) throws JsonProcessingException {
+                                            String idempotencyKey) {
         // 1. 이미 처리된 요청인지 확인
         Optional<OrderResponse.Detail> existingResponse =
                 idempotencyService.findExistingResponse(idempotencyKey);
@@ -194,7 +197,7 @@ public class OrderService {
                     savedOrder.getProductId(), savedOrder.getQuantity().getValue(), e.status(), e);
             throw new BusinessException(OrderErrorType.STOCK_RESERVATION_FAILED);
         }
-        
+
         // ===================== 3. 포인트 예약 =====================
         Long usedPointAmount = 0L;
         String pointReservationId = null;
@@ -356,27 +359,57 @@ public class OrderService {
         log.info("[결제] 결제 승인 시작 - orderId={}, amountPayable={}, customerId={}",
                 orderId, amountPayable, customerId);
 
+// ===== customerId null 체크 추가 =====
+        if (customerId == null) {
+            log.error("[결제] customerId가 null입니다!");
+            throw new BusinessException(OrderErrorType.CUSTOMER_ID_REQUIRED);
+        }
+
         String paymentKey = null;
 
+        PaymentType paymentType;
         try {
-            // pgToken 생성 (실제로는 클라이언트로부터 받아야 함)
+            paymentType = PaymentType.valueOf(request.methodType().toUpperCase());
+            log.info("[결제] PaymentType 변환 성공: {} -> {}", request.methodType(), paymentType);
+        } catch (IllegalArgumentException e) {
+            log.error("[결제] PaymentType 변환 실패: {}", request.methodType(), e);
+            throw new BusinessException(OrderErrorType.INVALID_PAYMENT_TYPE);
+        }
+
+        PgProvider pgProvider;
+        try {
+            pgProvider = PgProvider.valueOf(request.pgProvider().toUpperCase());
+            log.info("[결제] PgProvider 변환 성공: {} -> {}", request.pgProvider(), pgProvider);
+        } catch (IllegalArgumentException e) {
+            log.error("[결제] PgProvider 변환 실패: {}", request.pgProvider(), e);
+            throw new BusinessException(OrderErrorType.INVALID_Pg_Provider);
+        }
+
+        try {
             String pgToken = UUID.randomUUID().toString();
 
-            log.info("[결제] 요청 생성 - orderId={}, pgToken={}, methodType={}, pgProvider={}, currency={}",
-                    orderId, pgToken, request.methodType(), request.pgProvider(), request.currency());
+            PaymentClient.PaymentRequest.Approval paymentRequest =
+                    new PaymentClient.PaymentRequest.Approval(
+                            orderId,
+                            pgToken,
+                            amountPayable,
+                            paymentType,
+                            pgProvider,
+                            request.currency()
+                    );
+
+            // ===== 실제 전송될 JSON 로그 =====
+            try {
+                String requestJson = objectMapper.writeValueAsString(paymentRequest);
+                log.info("[결제] 전송 JSON: {}", requestJson);
+            } catch (JsonProcessingException e) {
+                log.error("[결제] JSON 직렬화 실패", e);
+            }
+
+            log.info("[결제] PaymentClient 호출 시작 - customerId={}", customerId);
 
             PaymentClient.ApiResponse<PaymentClient.PaymentResponse.Approval> apiResponse =
-                    paymentClient.approve(
-                            new PaymentClient.PaymentRequest.Approval(
-                                    orderId,
-                                    pgToken,
-                                    amountPayable,
-                                    request.methodType(),      // "CARD" 등
-                                    request.pgProvider(),      // "TOSS" 등
-                                    request.currency()         // "KRW"
-                            ),
-                            customerId  // X-User-Id 헤더 (필수!)
-                    );
+                    paymentClient.approve(paymentRequest, customerId);
 
             log.info("[결제] API 응답 수신 - result={}, errorCode={}, message={}",
                     apiResponse.result(), apiResponse.errorCode(), apiResponse.message());
@@ -409,8 +442,12 @@ public class OrderService {
             log.info("[결제] 승인 완료 - orderId={}, paymentKey={}", orderId, paymentKey);
 
         } catch (FeignException e) {
-            log.error("[결제] Feign 호출 실패 - orderId={}, status={}, message={}",
-                    orderId, e.status(), e.contentUTF8(), e);
+            // ===== 상세 에러 로그 =====
+            log.error("[결제] Feign 호출 실패");
+            log.error("  - HTTP Status: {}", e.status());
+            log.error("  - Request URL: {}", e.request() != null ? e.request().url() : "unknown");
+            log.error("  - Response Body: {}", e.contentUTF8());
+            log.error("  - Exception: ", e);
             throw new BusinessException(OrderErrorType.PAYMENT_APPROVE_FAILED);
         }
 
@@ -437,17 +474,18 @@ public class OrderService {
                 request.pgProvider(),
                 request.currency(),
                 request.couponId(),    // 쿠폰 예약 Id
-                UUID.fromString(pointReservationId), // 포인트 예약 Id
+                UUID.fromString(pointReservationId != null ? pointReservationId : null), // 포인트 예약 Id
                 paymentKey
         );
 
 
         // ===================== 8. Outbox 패턴 적용 =====================
-        String payload = null;
+        String payload;
         try {
             payload = objectMapper.writeValueAsString(event);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            log.error("[Outbox] 이벤트 직렬화 실패", e);
+            throw new RuntimeException("OrderCreatedEvent 직렬화 실패", e);
         }
 
         OrderOutboxEvent outbox = OrderOutboxEvent.ready(
@@ -459,18 +497,10 @@ public class OrderService {
 
         outboxRepository.save(outbox);
 
-        // eventPublisher.publishExternal(event);
+//        eventPublisher.publishExternal(event);
 
-
-        log.info("[이벤트] 생성 완료 - event={}", event);
-
-        try {
-            eventPublisher.publishExternal(event);
-            log.info("[이벤트] Kafka 발행 성공 - eventId={}", event.eventId());
-        } catch (Exception e) {
-            log.error("[이벤트] Kafka 발행 실패", e);
-            throw e;
-        }
+        log.info("[Outbox] 이벤트 저장 완료 - outboxId={}, orderId={}, status=READY",
+                outbox.getId(), orderId);
 
         return OrderResponse.Detail.from(savedOrder);
     }
@@ -478,6 +508,7 @@ public class OrderService {
 
     // ===== 주문 상태 변경 처리 =====
     // 결제 성공 -> 재고 감소 -> 감소 성공 -> approveOrder()
+
     /**
      * stock에서 "재고 감소 완료" 이벤트가 온 뒤 호출된다고 가정.
      * - CREATED → APPROVED
@@ -539,6 +570,7 @@ public class OrderService {
         order.markShipped();
         return OrderResponse.Update.of(order, "주문이 출고(배송 시작) 처리되었습니다.");
     }
+
     // 배송 시작/출고 처리 (내부) _ DeliveryStartedEvent 수신 후 동작
     public OrderResponse.Update shippedOrder(UUID orderId) {
         Order order = findOrderOrThrow(orderId);

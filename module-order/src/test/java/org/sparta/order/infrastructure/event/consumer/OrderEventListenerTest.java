@@ -10,6 +10,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.payment.GenericDomainEvent;
+import org.sparta.common.event.payment.PaymentCompletedEvent;
 import org.sparta.order.application.service.OrderService;
 import org.sparta.order.domain.entity.ProcessedEvent;
 import org.sparta.order.domain.error.OrderErrorType;
@@ -17,8 +19,10 @@ import org.sparta.order.domain.repository.ProcessedEventRepository;
 import org.sparta.order.presentation.dto.response.OrderResponse;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
 
 /**
@@ -56,8 +60,14 @@ class OrderEventListenerTest {
     public static UUID customerId() {
         return UUID.fromString("40000000-0000-0000-0000-000000000004");
     }
-    public static UUID eventId() {
+    public static UUID couponId() {
         return UUID.fromString("50000000-0000-0000-0000-000000000005");
+    }
+    public static UUID pointUsageId() {
+        return UUID.fromString("60000000-0000-0000-0000-000000000006");
+    }
+    public static UUID eventId() {
+        return UUID.fromString("70000000-0000-0000-0000-000000000007");
     }
 
     // ================================
@@ -167,28 +177,85 @@ class OrderEventListenerTest {
     @Test
     @DisplayName("[PaymentApproved] 정상 승인 처리 → approveOrder 호출 + ProcessedEvent 저장")
     void testPaymentApprovedSuccess() throws Exception {
-        var event = new PaymentApprovedEvent(paymentId(), orderId(), customerId(), 10000L, eventId(), Instant.now());
-        String message = objectMapper.writeValueAsString(event);
+        // 1) 실제 payload 생성
+        PaymentCompletedEvent payload = new PaymentCompletedEvent(
+                paymentId(),
+                orderId(),
+                10000L,
+                2000L,
+                1000L,
+                7000L,
+                7000L,
+                "KRW",
+                "CARD",
+                "TOSS",
+                "pay_123",
+                LocalDateTime.now(),
+                couponId(),
+                pointUsageId()
+        );
 
-        when(processedEventRepository.existsByEventId(eventId())).thenReturn(false);
+        // 2) Envelope 생성
+        GenericDomainEvent envelope = new GenericDomainEvent(
+                "payment.orderCreate.paymentCompleted",
+                payload
+        );
 
+        // 3) JSON 변환 (Listener에서 String message로 받기 때문)
+        String message = objectMapper.writeValueAsString(envelope);
+
+        // 4) 멱등성 체크 mock
+        when(processedEventRepository.existsByEventId(envelope.eventId())).thenReturn(false);
+
+        // 5) 실행
         listener.handlePaymentApproved(message);
 
-        verify(orderService, times(1))
-                .approveOrder(event.orderId(), event.paymentId());
+        // 6) 검증
+        verify(orderService, times(1)).approveOrder(
+                payload.orderId(),
+                payload.paymentId()
+        );
+
         verify(processedEventRepository, times(1)).save(any());
     }
 
     @Test
     @DisplayName("[PaymentApproved] 이미 처리된 eventId → approveOrder 호출 안됨")
     void testPaymentApprovedIdempotent() throws Exception {
-        var event = new PaymentApprovedEvent(paymentId(), orderId(), customerId(), 10000L, eventId(), Instant.now());
-        String message = objectMapper.writeValueAsString(event);
+        // given
+        PaymentCompletedEvent payload = new PaymentCompletedEvent(
+                paymentId(),
+                orderId(),
+                10000L,
+                2000L,
+                1000L,
+                7000L,
+                7000L,
+                "KRW",
+                "CARD",
+                "TOSS",
+                "pay_123",
+                LocalDateTime.now(),
+                couponId(),
+                pointUsageId()
+        );
 
-        when(processedEventRepository.existsByEventId(eventId())).thenReturn(true);
+        var envelope = new GenericDomainEvent(
+                eventId(),
+                Instant.now(),
+                "payment.orderCreate.paymentCompleted",
+                payload
+        );
 
+        String message = objectMapper.writeValueAsString(envelope);
+
+        when(processedEventRepository.existsByEventId(eventId()))
+                .thenReturn(true);
+
+        // when
         listener.handlePaymentApproved(message);
 
+        // then
         verify(orderService, never()).approveOrder(any(), any());
         verify(processedEventRepository, never()).save(any());
     }
@@ -196,25 +263,54 @@ class OrderEventListenerTest {
     @Test
     @DisplayName("[PaymentApproved] BusinessException 발생 → ProcessedEvent 저장됨")
     void testPaymentApprovedBusinessException() throws Exception {
-        var event = new PaymentApprovedEvent(paymentId(), orderId(), customerId(), 10000L, eventId(), Instant.now());
-        String message = objectMapper.writeValueAsString(event);
 
-        when(processedEventRepository.existsByEventId(eventId())).thenReturn(false);
+        PaymentCompletedEvent payload = new PaymentCompletedEvent(
+                paymentId(),
+                orderId(),
+                10000L,
+                2000L,
+                1000L,
+                7000L,
+                7000L,
+                "KRW",
+                "CARD",
+                "TOSS",
+                "pay_123",
+                LocalDateTime.now(),
+                couponId(),
+                pointUsageId()
+        );
+
+        var envelope = new GenericDomainEvent(
+                eventId(),
+                Instant.now(),
+                "payment.orderCreate.paymentCompleted",
+                payload
+        );
+
+        String message = objectMapper.writeValueAsString(envelope);
+
+        when(processedEventRepository.existsByEventId(eventId()))
+                .thenReturn(false);
 
         doThrow(new BusinessException(OrderErrorType.PAYMENT_APPROVE_FAILED))
-                .when(orderService).approveOrder(event.orderId(), event.paymentId());
+                .when(orderService).approveOrder(payload.orderId(), payload.paymentId());
 
+        // when
         listener.handlePaymentApproved(message);
 
+        // then
         verify(processedEventRepository, times(1)).save(any());
     }
 
     @Test
-    @DisplayName("[PaymentApproved] JSON 파싱 실패 → 처리 안하고 종료")
+    @DisplayName("[PaymentApproved] JSON 파싱 실패 → RuntimeException 발생")
     void testPaymentApprovedInvalidJson() {
         String invalidMessage = "{ invalid json }";
 
-        listener.handlePaymentApproved(invalidMessage);
+        assertThrows(RuntimeException.class, () -> {
+            listener.handlePaymentApproved(invalidMessage);
+        });
 
         verify(orderService, never()).approveOrder(any(), any());
         verify(processedEventRepository, never()).save(any());

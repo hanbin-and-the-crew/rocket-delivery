@@ -21,6 +21,8 @@ dependencies {
     //JSON 직렬화에 필요
     implementation "com.fasterxml.jackson.core:jackson-databind"
 
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
     // test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation project(':module-common')

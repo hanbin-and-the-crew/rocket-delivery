@@ -92,7 +92,7 @@ public class DeliveryLog extends BaseEntity {
         if (deliveryId == null) {
             throw new BusinessException(DeliveryLogErrorType.DELIVERY_ID_REQUIRED);
         }
-        if (sequence < 1) {
+        if (sequence < 0) {
             throw new BusinessException(DeliveryLogErrorType.SEQUENCE_REQUIRED);
         }
         if (sourceHubId == null) {

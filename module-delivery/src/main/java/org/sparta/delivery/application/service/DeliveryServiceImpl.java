@@ -221,7 +221,7 @@ public class DeliveryServiceImpl implements DeliveryService {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    eventPublisher.publishExternal(DeliveryCreatedEvent.of(
+                    eventPublisher.publishLocal(DeliveryCreatedEvent.of(
                             orderId,
                             deliveryId,
                             supplierHubId,
@@ -271,6 +271,14 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Override
     @Transactional
     public DeliveryResponse.Detail assignHubDeliveryMan(UUID deliveryId, DeliveryRequest.AssignHubDeliveryMan request) {
+
+        log.info(
+                "[TX-CHECK] name={}, active={}, readOnly={}",
+                TransactionSynchronizationManager.getCurrentTransactionName(),
+                TransactionSynchronizationManager.isActualTransactionActive(),
+                TransactionSynchronizationManager.isCurrentTransactionReadOnly()
+        );
+
         Delivery delivery = deliveryRepository.findByIdAndDeletedAtIsNull(deliveryId)
                 .orElseThrow(() -> new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND));
 

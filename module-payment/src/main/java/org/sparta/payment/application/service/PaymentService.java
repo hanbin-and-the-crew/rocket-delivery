@@ -3,6 +3,7 @@ package org.sparta.payment.application.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.DomainEvent;
 import org.sparta.common.event.payment.GenericDomainEvent;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -34,13 +36,17 @@ public class PaymentService {
     private final RefundRepository refundRepository;
     private final PaymentOutboxRepository paymentOutboxRepository;
     private final ObjectMapper objectMapper;
+
+
     /**
      * 결제 생성 (REQUESTED 상태)
      */
-
-
     @Transactional
     public PaymentDetailResult storeCompletedPayment(PaymentCreateCommand command, String paymentKey) {
+
+        log.info("[PaymentService] storeCompletedPayment() 시작 - orderId={}, paymentKey={}",
+                command.orderId(), paymentKey);
+
         try {
             // 0) 멱등 체크: 동일 paymentKey 로 이미 결제가 존재하면 그대로 반환
             return paymentRepository.findByPaymentKey(paymentKey)
@@ -71,7 +77,7 @@ public class PaymentService {
 
                         // 5) PAYMENT_COMPLETED Outbox 이벤트 생성
                         createPaymentCompletedOutbox(saved);
-
+                        log.info("[PaymentService] storeCompletedPayment() 종료 - paymentId={}", saved.getPaymentId());
                         return PaymentDetailResult.from(saved);
                     });
         } catch (BusinessException e) {
@@ -105,6 +111,9 @@ public class PaymentService {
     }
 
     private void createPaymentCompletedOutbox(Payment payment) {
+        log.debug("[PaymentService] createPaymentCompletedOutbox() 시작 - paymentId={}, orderId={}",
+                payment.getPaymentId(), payment.getOrderId());
+
         // 1) 이벤트 페이로드 생성
         PaymentCompletedEvent payload = new PaymentCompletedEvent(
                 payment.getPaymentId(),
@@ -145,6 +154,10 @@ public class PaymentService {
                 event.eventType(),           // eventType
                 json                         // payload(json)
         );
+
+        log.debug("[PaymentService] createPaymentCompletedOutbox() 종료 - outboxId={}",
+                outbox.getPaymentOutboxId());
+
         paymentOutboxRepository.save(outbox);
     }
     private void createPaymentFailedOutbox(
