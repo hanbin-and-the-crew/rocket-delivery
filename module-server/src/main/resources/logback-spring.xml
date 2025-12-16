@@ -1,10 +1,23 @@
 <configuration>
 
-    <springProperty scope="context" name="serviceName" source="spring.application.name"/>
+    <!-- Service Name (환경별 설정) -->
+    <springProperty scope="context" name="serviceName"
+                    source="spring.application.name"
+                    defaultValue="unknown-service"/>
 
+    <!-- Logstash host / port (환경별 설정) -->
+    <springProperty scope="context" name="logstashHost"
+                    source="logstash.host"
+                    defaultValue="localhost"/>
+
+    <springProperty scope="context" name="logstashPort"
+                    source="logstash.port"
+                    defaultValue="5044"/>
+
+    <!-- Logstash host / port (환경별 설정) -->
     <!-- Logstash 로그  -->
     <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
-        <destination>localhost:5044</destination>
+        <destination>${logstashHost}:${logstashPort}</destination>
 
         <!-- 재연결 시도 간격(3초) -->
         <reconnectionDelay>3000</reconnectionDelay>
