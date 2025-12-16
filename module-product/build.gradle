@@ -5,7 +5,7 @@ plugins {
 dependencies {
     implementation project(':module-common')
     implementation project(':module-jpa')
-    implementation project(':module-kafka')
+    implementation 'org.springframework.kafka:spring-kafka'
 
     // spring cloud
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
@@ -15,12 +15,14 @@ dependencies {
     implementation 'org.springframework.retry:spring-retry'
     implementation 'org.springframework:spring-aspects'
 
+    // circuit breaker (Resilience4j)
+    implementation "io.github.resilience4j:resilience4j-circuitbreaker:2.3.0"
+
     // test
     testImplementation project(':module-common')
     testImplementation project(':module-jpa')
     testImplementation 'com.h2database:h2'
     testImplementation 'io.rest-assured:rest-assured:5.3.2'
-    testImplementation 'org.springframework.kafka:spring-kafka-test'
 
     // testcontainers
     testImplementation 'org.testcontainers:testcontainers:1.19.3'

@@ -106,6 +106,9 @@ public class Order extends BaseEntity {
     @Column
     private LocalDateTime canceledAt;
 
+    @Column
+    private UUID paymentId;
+
     // 생성 메서드
     public static Order create(
             UUID customerId,
@@ -199,13 +202,16 @@ public class Order extends BaseEntity {
             throw new BusinessException(OrderErrorType.USERNAME_REQUIRED);
         }
         if (userPhoneNumber == null || userPhoneNumber.isBlank()) {
-            throw new BusinessException(OrderErrorType.USER_PHONENUMBER_REQUIRED);
+            throw new BusinessException(OrderErrorType.USER_PHONE_NUMBER_REQUIRED);
         }
 
     }
 
     // 주문 확정 메서드
-    public void approve() {
+    public void approve(UUID paymentId) {
+        if( paymentId == null ) {
+            throw new BusinessException(OrderErrorType.PAYMENT_ID_REQUIRED);
+        }
         if (orderStatus == OrderStatus.CANCELED) {
             throw new BusinessException(OrderErrorType.ORDER_ALREADY_CANCELED);
         }
@@ -213,6 +219,7 @@ public class Order extends BaseEntity {
             throw new BusinessException(OrderErrorType.CANNOT_CHANGE_NOT_CREATED_ORDER);
         }
         this.orderStatus = OrderStatus.APPROVED;
+        this.paymentId = paymentId;
     }
 
     // 출고(배송 시작) 메서드

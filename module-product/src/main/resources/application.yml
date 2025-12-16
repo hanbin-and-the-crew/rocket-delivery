@@ -14,9 +14,12 @@ spring:
 
   datasource:
     url: jdbc:postgresql://localhost:5434/product_db
+#    url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
     username: product_user
     password: product_pass
+#    username: app_user
+#    password: 1234
 
   jpa:
     open-in-view: false
@@ -36,11 +39,7 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
-  # Kafka 설정 (임시 - 추후 module-kafka로 분리 예정)
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: product-service
+
 
 # 보안 관련(BCrypt)
 security:

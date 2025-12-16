@@ -1,0 +1,22 @@
+plugins {
+    id 'java-library'
+}
+
+bootJar.enabled = false
+jar.enabled = true
+
+dependencies {
+    api project(':module-common')
+
+    // Redis
+    api 'org.springframework.boot:spring-boot-starter-data-redis'
+    api 'org.springframework.boot:spring-boot-starter-cache'
+    api 'io.lettuce:lettuce-core'
+
+    // Redisson (분산 락)
+    api 'org.redisson:redisson-spring-boot-starter:3.25.0'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}

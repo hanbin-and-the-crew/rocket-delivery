@@ -4,8 +4,11 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.sparta.jpa.entity.BaseEntity;
+import org.sparta.common.error.BusinessException;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
+import org.sparta.delivery.domain.error.DeliveryErrorType;
+import org.sparta.jpa.entity.BaseEntity;
+
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -18,231 +21,239 @@ public class Delivery extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "UUID")
     private UUID id;
 
-    @Column(nullable = false)
+    // ===== 주문/고객/업체/허브 스냅샷 =====
+
+    @Column(name = "order_id", nullable = false, columnDefinition = "UUID")
     private UUID orderId;
 
+    @Column(name = "customer_id", nullable = false, columnDefinition = "UUID")
+    private UUID customerId;
+
+    @Column(name = "supplier_company_id", nullable = false, columnDefinition = "UUID")
+    private UUID supplierCompanyId;
+
+    @Column(name = "supplier_hub_id", nullable = false, columnDefinition = "UUID")
+    private UUID supplierHubId;
+
+    @Column(name = "receive_company_id", nullable = false, columnDefinition = "UUID")
+    private UUID receiveCompanyId;
+
+    @Column(name = "receive_hub_id", nullable = false, columnDefinition = "UUID")
+    private UUID receiveHubId;
+
+    @Column(name = "address", length = 255, nullable = false)
+    private String address;
+
+    @Column(name = "receiver_name", length = 100, nullable = false)
+    private String receiverName;
+
+    @Column(name = "receiver_slack_id", length = 100)
+    private String receiverSlackId;
+
+    @Column(name = "receiver_phone", length = 30, nullable = false)
+    private String receiverPhone;
+
+    @Column(name = "due_at")
+    private LocalDateTime dueAt;
+
+    @Column(name = "requested_memo", length = 500)
+    private String requestedMemo;
+
+    // ===== 진행 상태 =====
+
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private DeliveryStatus deliveryStatus;
+    @Column(name = "status", length = 30, nullable = false)
+    private DeliveryStatus status;
 
-    @Column(nullable = false)
-    private UUID departureHubId;
+    @Column(name = "current_log_seq")
+    private Integer currentLogSeq; // 현재 진행 중이거나 마지막으로 도착한 허브 leg 시퀀스 (없으면 null)
 
-    @Column(nullable = false)
-    private UUID destinationHubId;
+    @Column(name = "total_log_seq")
+    private Integer totalLogSeq;   // 전체 허브 leg 개수 (0~N-1 시퀀스 기준 N)
 
-    @Column(nullable = false, length = 500)
-    private String deliveryAddress;
-
-    @Column(nullable = false, length = 100)
-    private String recipientName;
-
-    @Column(length = 100)
-    private String recipientSlackId;
-
-    // 배송이 생성된 후 DeliveryMan 배정 (null 허용)
-    private UUID companyDeliveryManId;
-
-    // 배송이 생성된 후 DeliveryMan 배정 (null 허용)
+    @Column(name = "hub_delivery_man_id", columnDefinition = "UUID")
     private UUID hubDeliveryManId;
 
-    // Private 생성자
-    private Delivery(
+    @Column(name = "company_delivery_man_id", columnDefinition = "UUID")
+    private UUID companyDeliveryManId;
+
+    // ===== 생성 메서드 =====
+
+    public static Delivery createFromOrderApproved(
             UUID orderId,
-            DeliveryStatus deliveryStatus,
-            UUID departureHubId,
-            UUID destinationHubId,
-            String deliveryAddress,
-            String recipientName,
-            String recipientSlackId
+            UUID customerId,
+            UUID supplierCompanyId,
+            UUID supplierHubId,
+            UUID receiveCompanyId,
+            UUID receiveHubId,
+            String address,
+            String receiverName,
+            String receiverSlackId,
+            String receiverPhone,
+            LocalDateTime dueAt,
+            String requestedMemo,
+            Integer totalLogSeq // 허브 leg 전체 개수 (알고 있다면 세팅, 모르면 null)
     ) {
-        this.orderId = orderId;
-        this.deliveryStatus = deliveryStatus;
-        this.departureHubId = departureHubId;
-        this.destinationHubId = destinationHubId;
-        this.deliveryAddress = deliveryAddress;
-        this.recipientName = recipientName;
-        this.recipientSlackId = recipientSlackId;
+        validateCreateArgs(orderId, customerId, supplierCompanyId, supplierHubId,
+                receiveCompanyId, receiveHubId, address, receiverName, receiverPhone);
+
+        Delivery d = new Delivery();
+        d.orderId = orderId;
+        d.customerId = customerId;
+        d.supplierCompanyId = supplierCompanyId;
+        d.supplierHubId = supplierHubId;
+        d.receiveCompanyId = receiveCompanyId;
+        d.receiveHubId = receiveHubId;
+        d.address = address;
+        d.receiverName = receiverName;
+        d.receiverSlackId = receiverSlackId;
+        d.receiverPhone = receiverPhone;
+        d.dueAt = dueAt;
+        d.requestedMemo = requestedMemo;
+        d.status = DeliveryStatus.CREATED;
+        d.currentLogSeq = null;
+        d.totalLogSeq = totalLogSeq;
+        d.hubDeliveryManId = null;
+        d.companyDeliveryManId = null;
+        return d;
     }
 
-    // ========================================
-    // 정적 팩토리 메서드
-    // ========================================
-
-    /**
-     * 배송 생성
-     */
-    public static Delivery create(
+    private static void validateCreateArgs(
             UUID orderId,
-            UUID departureHubId,
-            UUID destinationHubId,
-            String deliveryAddress,
-            String recipientName,
-            String recipientSlackId
+            UUID customerId,
+            UUID supplierCompanyId,
+            UUID supplierHubId,
+            UUID receiveCompanyId,
+            UUID receiveHubId,
+            String address,
+            String receiverName,
+            String receiverPhone
     ) {
-        return new Delivery(
-                orderId,
-                DeliveryStatus.HUB_WAITING,
-                departureHubId,
-                destinationHubId,
-                deliveryAddress,
-                recipientName,
-                recipientSlackId
-        );
-    }
-
-    // ========================================
-    // 상태 변경 메서드
-    // ========================================
-
-    /**
-     * 허브 대기 상태로 변경
-     */
-    public void hubWaiting() {
-        this.deliveryStatus = DeliveryStatus.HUB_WAITING;
-    }
-
-    /**
-     * 허브 이동 중 상태로 변경
-     */
-    public void hubMoving() {
-        if (this.deliveryStatus != DeliveryStatus.HUB_WAITING) {
-            throw new IllegalStateException("HUB_WAITING 상태에서만 허브 이동을 시작할 수 있습니다.");
+        if (orderId == null) {
+            throw new BusinessException(DeliveryErrorType.ORDER_ID_REQUIRED);
         }
-        this.deliveryStatus = DeliveryStatus.HUB_MOVING;
-    }
-
-    /**
-     * 목적지 허브 도착 상태로 변경
-     */
-    public void arriveAtDestinationHub() {
-        if (this.deliveryStatus != DeliveryStatus.HUB_MOVING) {
-            throw new IllegalStateException("HUB_MOVING 상태에서만 도착할 수 있습니다.");
+        if (customerId == null) {
+            throw new BusinessException(DeliveryErrorType.CUSTOMER_ID_REQUIRED);
         }
-        this.deliveryStatus = DeliveryStatus.DEST_HUB_ARRIVED;
-    }
-
-    /**
-     * 업체 배송 시작 (업체 배송 담당자 배정)
-     */
-    public void startCompanyMoving(UUID companyDeliveryManId) {
-        if (this.deliveryStatus != DeliveryStatus.HUB_WAITING &&
-                this.deliveryStatus != DeliveryStatus.DEST_HUB_ARRIVED) {
-            throw new IllegalStateException("업체 배송은 HUB_WAITING 또는 DEST_HUB_ARRIVED 상태에서만 시작할 수 있습니다.");
+        if (supplierCompanyId == null) {
+            throw new BusinessException(DeliveryErrorType.SUPPLIER_COMPANY_ID_REQUIRED);
         }
-        this.deliveryStatus = DeliveryStatus.COMPANY_MOVING;
-        this.companyDeliveryManId = companyDeliveryManId;
+        if (supplierHubId == null) {
+            throw new BusinessException(DeliveryErrorType.SUPPLIER_HUB_ID_REQUIRED);
+        }
+        if (receiveCompanyId == null) {
+            throw new BusinessException(DeliveryErrorType.RECEIVE_COMPANY_ID_REQUIRED);
+        }
+        if (receiveHubId == null) {
+            throw new BusinessException(DeliveryErrorType.RECEIVE_HUB_ID_REQUIRED);
+        }
+        if (address == null || address.isBlank()) {
+            throw new BusinessException(DeliveryErrorType.ADDRESS_REQUIRED);
+        }
+        if (receiverName == null || receiverName.isBlank()) {
+            throw new BusinessException(DeliveryErrorType.RECEIVER_NAME_REQUIRED);
+        }
+        if (receiverPhone == null || receiverPhone.isBlank()) {
+            throw new BusinessException(DeliveryErrorType.RECEIVER_PHONE_REQUIRED);
+        }
     }
 
-    /**
-     * 배송 완료
-     */
+    // 필요 시 totalLogSeq를 나중에 세팅/수정하는 도메인 메서드
+    public void updateTotalLogSeq(int totalLogSeq) {
+        if (totalLogSeq < 0) {
+            throw new BusinessException(DeliveryErrorType.INVALID_TOTAL_LOG_SEQ);
+        }
+        this.totalLogSeq = totalLogSeq;
+    }
+
+    // ===== 담당자 배정 =====
+
+    public void assignHubDeliveryMan(UUID deliveryManId) {
+        if (deliveryManId == null) {
+            throw new BusinessException(DeliveryErrorType.DELIVERY_MAN_ID_REQUIRED);
+        }
+        if (status != DeliveryStatus.CREATED && status != DeliveryStatus.HUB_WAITING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_HUB_ASSIGN);
+        }
+        this.hubDeliveryManId = deliveryManId;
+        if (this.status == DeliveryStatus.CREATED) {
+            this.status = DeliveryStatus.HUB_WAITING;
+        }
+    }
+
+    public void assignCompanyDeliveryMan(UUID deliveryManId) {
+        if (deliveryManId == null) {
+            throw new BusinessException(DeliveryErrorType.DELIVERY_MAN_ID_REQUIRED);
+        }
+        if (status != DeliveryStatus.DEST_HUB_ARRIVED && status != DeliveryStatus.COMPANY_MOVING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_COMPANY_ASSIGN);
+        }
+        this.companyDeliveryManId = deliveryManId;
+    }
+
+    // ===== 허브 leg 진행 =====
+
+    public void startHubMoving(int seq) {
+        if (this.status != DeliveryStatus.HUB_WAITING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_HUB_START);
+        }
+        if (seq < 0) {
+            throw new BusinessException(DeliveryErrorType.INVALID_LOG_SEQUENCE);
+        }
+        this.status = DeliveryStatus.HUB_MOVING;
+        this.currentLogSeq = seq;
+    }
+
+    public void completeHubMoving(int seq, boolean isLastLog) {
+        if (this.status != DeliveryStatus.HUB_MOVING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_HUB_COMPLETE);
+        }
+        if (this.currentLogSeq == null || this.currentLogSeq != seq) {
+            throw new BusinessException(DeliveryErrorType.INVALID_LOG_SEQUENCE);
+        }
+
+        if (isLastLog) {
+            this.status = DeliveryStatus.DEST_HUB_ARRIVED;
+            this.currentLogSeq = null;
+        } else {
+            this.status = DeliveryStatus.HUB_WAITING;
+            this.currentLogSeq = seq;
+        }
+    }
+
+    // ===== 업체 구간 진행 =====
+
+    public void startCompanyMoving() {
+        if (this.status != DeliveryStatus.DEST_HUB_ARRIVED) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_COMPANY_START);
+        }
+        this.status = DeliveryStatus.COMPANY_MOVING;
+    }
+
     public void completeDelivery() {
-        if (this.deliveryStatus != DeliveryStatus.COMPANY_MOVING) {
-            throw new IllegalStateException("배송은 COMPANY_MOVING 상태에서만 완료할 수 있습니다.");
+        if (this.status != DeliveryStatus.COMPANY_MOVING) {
+            throw new BusinessException(DeliveryErrorType.INVALID_STATUS_FOR_COMPLETE);
         }
-        this.deliveryStatus = DeliveryStatus.DELIVERED;
+        this.status = DeliveryStatus.DELIVERED;
     }
 
-    /**
-     * 일반적인 상태 변경 (유연한 상태 변경)
-     */
-    public void updateStatus(DeliveryStatus deliveryStatus) {
-        this.deliveryStatus = deliveryStatus;
-    }
+    // ===== 취소/삭제 =====
 
-    // ========================================
-    // 배송 정보 변경 메서드
-    // ========================================
-
-    /**
-     * 주소 변경 (주문이 PLACED일 때 변경 -> event 발행)
-     */
-    public void updateAddress(String newAddress) {
-        this.deliveryAddress = newAddress;
-    }
-
-    /**
-     * 업체 배송 담당자, 허브 배송 담당자 저장
-     */
-    public void saveDeliveryMan(UUID companyDeliveryManId, UUID hubDeliveryManId) {
-        if (this.deliveryStatus == DeliveryStatus.DELIVERED || this.deliveryStatus == DeliveryStatus.CANCELED) {
-            throw new IllegalStateException("완료되거나 취소된 배송은 담당자를 변경할 수 없습니다.");
+    public void cancel() {
+        if (this.status == DeliveryStatus.CANCELED) {
+            return;
         }
-        this.companyDeliveryManId = companyDeliveryManId;
-        this.hubDeliveryManId = hubDeliveryManId;
+        this.status = DeliveryStatus.CANCELED;
     }
 
-    /**
-     * 업체 배송 담당자만 배정
-     */
-    public void assignCompanyDeliveryMan(UUID companyDeliveryManId) {
-        if (this.deliveryStatus == DeliveryStatus.DELIVERED || this.deliveryStatus == DeliveryStatus.CANCELED) {
-            throw new IllegalStateException("완료되거나 취소된 배송은 담당자를 변경할 수 없습니다.");
+    public void delete() {
+        if (this.status == DeliveryStatus.CANCELED && this.getDeletedAt() != null) {
+            return;
         }
-        this.companyDeliveryManId = companyDeliveryManId;
-    }
-
-    /**
-     * 허브 배송 담당자만 배정
-     */
-    public void assignHubDeliveryMan(UUID hubDeliveryManId) {
-        if (this.deliveryStatus == DeliveryStatus.DELIVERED || this.deliveryStatus == DeliveryStatus.CANCELED) {
-            throw new IllegalStateException("완료되거나 취소된 배송은 담당자를 변경할 수 없습니다.");
-        }
-        this.hubDeliveryManId = hubDeliveryManId;
-    }
-
-    // ========================================
-    // 논리 삭제 메서드
-    // ========================================
-
-    /**
-     * 배송 삭제 (논리 삭제)
-     */
-    public void delete(UUID userId) {
-        this.deletedAt = LocalDateTime.now();
-    }
-
-    // ========================================
-    // 비즈니스 로직 검증 메서드
-    // ========================================
-
-    /**
-     * 배송이 취소 가능한 상태인지 확인
-     */
-    public boolean isCancellable() {
-        return this.deliveryStatus == DeliveryStatus.HUB_WAITING
-                || this.deliveryStatus == DeliveryStatus.HUB_MOVING;
-    }
-
-    /**
-     * 배송이 완료되었는지 확인
-     */
-    public boolean isCompleted() {
-        return this.deliveryStatus == DeliveryStatus.DELIVERED;
-    }
-
-    /**
-     * 배송 담당자가 배정되었는지 확인
-     */
-    public boolean hasDeliveryMan() {
-        return this.companyDeliveryManId != null || this.hubDeliveryManId != null;
-    }
-
-    /**
-     * 업체 배송 담당자가 배정되었는지 확인
-     */
-    public boolean hasCompanyDeliveryMan() {
-        return this.companyDeliveryManId != null;
-    }
-
-    /**
-     * 허브 배송 담당자가 배정되었는지 확인
-     */
-    public boolean hasHubDeliveryMan() {
-        return this.hubDeliveryManId != null;
+        this.status = DeliveryStatus.CANCELED;
+        this.markAsDeleted();
     }
 }

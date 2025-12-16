@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,5 +35,10 @@ public class OrderRepositoryImpl implements OrderRepository {
     @Override
     public Page<Order> findByCustomerIdAndDeletedAtIsNull(UUID customerId, Pageable pageable) {
         return jpaRepository.findByCustomerIdAndDeletedAtIsNull(customerId, pageable);
+    }
+
+    @Override
+    public List<Order> findAllByDeletedAtIsNull(){
+        return jpaRepository.findAll();
     }
 }

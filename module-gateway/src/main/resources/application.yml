@@ -97,12 +97,31 @@ spring:
           filters:
             - RewritePath=/order/(?<segment>.*), /api/order/${segment}
             - RewritePath=/orders/(?<segment>.*), /api/orders/${segment}
+        - id: payment-service-swagger         # Payment Swagger용
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/payment/api-docs
+          filters:
+            - RewritePath=/payment/api-docs, /api-docs
+        - id: payment-service
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/payments/**, /payment/**
+          filters:
+            - RewritePath=/payment/(?<segment>.*), /api/payment/${segment}
+            - RewritePath=/payments/(?<segment>.*), /api/payments/${segment}
         - id: product-service-swagger       # Product Swagger용
           uri: lb://PRODUCT-SERVICE
           predicates:
             - Path=/product/api-docs
           filters:
             - RewritePath=/product/api-docs, /api-docs
+        - id: coupon-service-swagger        # Coupon Swagger용
+          uri: lb://COUPON-SERVICE
+          predicates:
+            - Path=/coupon/api-docs
+          filters:
+            - RewritePath=/coupon/api-docs, /api-docs
         - id: product-service
           uri: lb://PRODUCT-SERVICE
           predicates:
@@ -110,6 +129,13 @@ spring:
           filters:
             - RewritePath=/product/(?<segment>.*), /api/product/${segment}
             - RewritePath=/products/(?<segment>.*), /api/products/${segment}
+        - id: coupon-service                # Coupon 서비스 라우트
+          uri: lb://COUPON-SERVICE
+          predicates:
+            - Path=/coupons/**, /coupon/**
+          filters:
+            - RewritePath=/coupon/(?<segment>.*), /api/coupons/${segment}
+            - RewritePath=/coupons/(?<segment>.*), /api/coupons/${segment}
         - id: slack-service-swagger         # Slack Swagger용
           uri: lb://SLACK-SERVICE
           predicates:
@@ -164,6 +190,8 @@ springdoc:
     urls:
       - name: Product Service
         url: /product/api-docs
+      - name: Coupon Service
+        url: /coupon/api-docs
       - name: User Service
         url: /user/api-docs
       - name: Order Service
@@ -180,8 +208,10 @@ springdoc:
         url: /slack/api-docs
       - name: DeliveryLog Service
         url: /deliveryLog/api-docs
-      - name: DelvieryMan Service
+      - name: DeliveryMan Service
         url: /deliveryMan/api-docs
+      - name: Payment Service
+        url: /payment/api-docs
 
 
 logging:

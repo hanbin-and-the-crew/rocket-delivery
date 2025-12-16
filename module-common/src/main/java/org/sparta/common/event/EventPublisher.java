@@ -1,6 +1,10 @@
 package org.sparta.common.event;
 
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.event.order.OrderApprovedEvent;
+import org.sparta.common.event.order.OrderCancelledEvent;
+import org.sparta.common.event.order.OrderCreatedEvent;
+import org.sparta.common.event.order.OrderDeletedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
@@ -96,23 +100,60 @@ public class EventPublisher {
             return "hub-events";
         }
 
-        // (stock 쪽 KafkaListener 기준으로 작성)
-        if (eventType.equals("OrderCreatedEvent")) {
-            return "order-created";
+        // Order 도메인: 주문 생성 이벤트
+        if (event instanceof OrderCreatedEvent) {
+            return "order.orderCreate";
         }
-        if (eventType.equals("OrderCancelledEvent")) {
-            return "order-cancelled";
+
+        // Order 도메인: 주문 승인 이벤트
+        if (event instanceof OrderApprovedEvent) {
+            return "order.orderApprove";
         }
-        // Order 관련 이벤트
+
+        // Order 도메인: 주문 취소 이벤트
+        if (event instanceof OrderCancelledEvent) {
+            return "order.orderCancel";
+        }
+
+        // Order 도메인: 주문 삭제 이벤트
+        if (event instanceof OrderDeletedEvent) {
+            return "order.orderDelete";
+        }
+
+        // Order 관련 나머지 이벤트
         if (eventType.startsWith("Order")) {
             return "order-events";
         }
 
-        // Stock 관련 이벤트 (StockConfirmedEvent, StockReservedEvent, …)
-        if (eventType.startsWith("Stock")) {
-            return "stock-events";
+        // Product 도메인: 재고 차감 성공
+        if (event instanceof org.sparta.common.event.product.StockConfirmedEvent) {
+            return "product.orderCreate";
         }
 
+        // Product 도메인: 재고 차감 실패
+        if (event instanceof org.sparta.common.event.product.StockReservationFailedEvent) {
+            return "product.orderCreateFail";
+        }
+
+        // Delivery 토픽 추가
+        if (eventType.startsWith("Delivery")) {
+            return "delivery-events";
+        }
+          
+        // Payment 관련 이벤트
+        if (eventType.startsWith("Payment")) {
+            return "payment-events";
+        }
+
+        // Coupon 관련 이벤트 (CouponConfirmedEvent, CouponReservationCancelledEvent)
+        if (eventType.startsWith("Coupon")) {
+            return "coupon-events";
+        }
+
+        // DeliveryMan 토픽 추가
+        if (eventType.startsWith("Deliveryman")) {
+            return "deliveryman-events";
+        }
 
         // 기본 토픽
         return "domain-events";

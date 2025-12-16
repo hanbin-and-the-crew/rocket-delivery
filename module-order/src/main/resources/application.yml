@@ -12,10 +12,23 @@ spring:
   application:
     name: order-service
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000   # ms, 연결 타임아웃
+            read-timeout: 10000     # ms, 읽기 타임아웃
+            logger-level: BASIC     # (선택) 로깅 레벨
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: order-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+          spring.json.trusted.packages: "*"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer

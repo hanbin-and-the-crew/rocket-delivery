@@ -1,13 +1,14 @@
 package org.sparta.order.presentation;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.sparta.common.api.ApiResponse;
-import org.sparta.order.application.dto.request.OrderRequest;
-import org.sparta.order.application.dto.response.OrderResponse;
+import org.sparta.order.presentation.dto.request.OrderRequest;
+import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -20,6 +21,7 @@ public interface OrderApiSpec {
                     X-USER-ID 헤더의 사용자 ID를 customerId로 사용해서 주문을 생성합니다.
                     - 초기 상태: CREATED
                     - 이후 재고/결제/배송 프로세스는 이벤트/별도 서비스에서 처리
+                    - X-Idempotency-Key를 통해 멱등성을 보장합니다 (동일 키로 재요청 시 기존 결과 반환)
                     """,
             responses = {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -28,6 +30,10 @@ public interface OrderApiSpec {
                             content = @Content(
                                     schema = @Schema(implementation = OrderResponse.Detail.class)
                             )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "409",
+                            description = "동일한 요청이 처리 중입니다"
                     )
             }
     )
@@ -38,8 +44,14 @@ public interface OrderApiSpec {
                     example = "550e8400-e29b-41d4-a716-446655440010"
             )
             String userIdHeader,
+            @Parameter(
+                    description = "멱등성 키 (UUID 권장). 동일한 키로 재요청 시 기존 결과 반환",
+                    required = true,
+                    example = "550e8400-e29b-41d4-a716-446655440099"
+            )
+            String idempotencyKey,
             OrderRequest.Create request
-    );
+    ) throws JsonProcessingException;
 
     @Operation(
             summary = "주문 단건 조회",

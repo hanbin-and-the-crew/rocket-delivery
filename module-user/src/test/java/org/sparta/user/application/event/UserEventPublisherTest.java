@@ -7,14 +7,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.event.EventPublisher;
+import org.sparta.user.application.command.UserCommand;
 import org.sparta.user.application.service.UserService;
 import org.sparta.user.domain.entity.User;
+import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.domain.repository.UserRepository;
 import org.sparta.user.infrastructure.event.publisher.UserCreatedEvent;
 import org.sparta.user.infrastructure.security.CustomUserDetailsService;
-import org.sparta.user.presentation.UserRequest;
-import org.sparta.user.presentation.UserResponse;
+import org.sparta.user.presentation.dto.UserMapper;
+import org.sparta.user.presentation.dto.request.UserRequest;
+import org.sparta.user.presentation.dto.response.UserResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -47,6 +50,9 @@ class UserEventPublisherTest {
     @InjectMocks
     private UserService userService;
 
+    @InjectMocks
+    private UserMapper userMapper;
+
     @Test
     @DisplayName("UserCreatedEvent 발행 시 KafkaTemplate.send가 호출된다")
     void publishUserCreatedEvent_ShouldSendToKafka() {
@@ -54,7 +60,7 @@ class UserEventPublisherTest {
         // given
         UserRequest.SignUpUser request = new UserRequest.SignUpUser(
                 "newUser", "password123", "slackId", "홍길동",
-                "01012341234", "new@ex.com", UserRoleEnum.MASTER, hubId
+                "01012341234", "new@ex.com", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, hubId
         );
         given(userRepository.findByUserName("newUser")).willReturn(Optional.empty());
         given(userRepository.findByEmail("new@ex.com")).willReturn(Optional.empty());
@@ -62,7 +68,8 @@ class UserEventPublisherTest {
         given(userRepository.save(any(User.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        UserResponse.SignUpUser response = userService.signup(request);
+        UserCommand.SignUpUser command = userMapper.toCommand(request);
+        UserResponse.SignUpUser response = userService.signup(command);
 
         // then
         verify(eventPublisher).publishExternal(any(UserCreatedEvent.class));
