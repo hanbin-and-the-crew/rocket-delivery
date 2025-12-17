@@ -38,7 +38,7 @@ public class OrderCreatedStockReservationHandler {
     private final ObjectMapper objectMapper;
 
     @Transactional
-    public void handle(String upstreamEventId,
+    public void handle(UUID upstreamEventId,
                        UUID orderId,
                        String externalReservationKey,
                        List<OrderLine> lines) {

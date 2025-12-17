@@ -47,19 +47,21 @@ class OrderCreatedStockReservationHandlerTest {
     @Test
     @DisplayName("handle: processedEvent 존재하면 중복 처리 무시")
     void handle_duplicateIgnored() {
-        when(processedEventRepository.existsByEventId("e1")).thenReturn(true);
+        UUID eventId = UUID.randomUUID();
 
-        handler.handle("e1", UUID.randomUUID(), "ext", List.of());
+        when(processedEventRepository.existsByEventId(eventId)).thenReturn(true);
+
+        handler.handle(eventId, UUID.randomUUID(), "ext", List.of());
 
         verifyNoInteractions(stockService, outboxRepository, failureRecorder);
-        verify(processedEventRepository, times(1)).existsByEventId("e1");
+        verify(processedEventRepository, times(1)).existsByEventId(eventId);
         verify(processedEventRepository, never()).save(any());
     }
 
     @Test
     @DisplayName("handle: All-or-Nothing 성공 -> reserve 모두 성공 후에만 outbox 저장 + processedEvent 저장")
     void handle_success_allOrNothing() throws Exception {
-        String upstreamEventId = "evt-1";
+        UUID upstreamEventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         String externalKey = "orderKey";
 
@@ -92,7 +94,7 @@ class OrderCreatedStockReservationHandlerTest {
     @Test
     @DisplayName("handle: reserve 중 BusinessException 발생 -> failureRecorder 호출 + outbox/processedEvent(성공) 저장 없음")
     void handle_failure_recordsFailureAndRethrows() throws Exception {
-        String upstreamEventId = "evt-2";
+        UUID upstreamEventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
         String externalKey = "orderKey";
 

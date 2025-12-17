@@ -34,7 +34,7 @@ public class OrderCreatedFailureRecorder {
     private final ObjectMapper objectMapper;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void recordFailureIfFirst(String upstreamEventId,
+    public void recordFailureIfFirst(UUID upstreamEventId,
                                      UUID orderId,
                                      String externalReservationKey,
                                      BusinessException ex) {

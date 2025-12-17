@@ -14,17 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * order.orderCreate 소비
- *
- * 주의:
- * - "OrderCreatedEvent 클래스에 필드가 없다"는 현재 상황을 존중한다.
- * - 따라서 typed DTO로 역직렬화하지 않고, Map 기반으로 "확실히 파싱되는 케이스만" 처리한다.
- * - 파싱이 불확실하면 아무것도 하지 않는다(추측 금지).
- *
- * 변경점:
- * - All-or-Nothing + 실패 outbox 보장을 위해 실제 비즈니스 처리는 application 핸들러로 위임한다.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -47,14 +36,15 @@ public class OrderCreatedEventListener {
         }
 
         if (!(raw instanceof Map<?, ?> mapRaw)) {
-            log.warn("[OrderCreatedEventListener] unexpected payload type: {}", raw == null ? "null" : raw.getClass());
+            log.warn("[OrderCreatedEventListener] unexpected payload type: {}",
+                    raw == null ? "null" : raw.getClass());
             return;
         }
 
         @SuppressWarnings("unchecked")
         Map<String, Object> event = (Map<String, Object>) mapRaw;
 
-        String upstreamEventId = resolveUpstreamEventId(event, record);
+        UUID upstreamEventId = resolveUpstreamEventId(event, record);
 
         UUID orderId = parseUuid(event.get("orderId"));
         if (orderId == null) {
@@ -63,7 +53,7 @@ public class OrderCreatedEventListener {
             return;
         }
 
-        // 외부 계약 reservationKey 변경 금지: 현재 프로젝트 규칙은 orderId.toString()
+        // 외부 계약 reservationKey 변경 금지
         String externalReservationKey = orderId.toString();
 
         List<OrderCreatedStockReservationHandler.OrderLine> lines = extractOrderLines(event);
@@ -76,19 +66,26 @@ public class OrderCreatedEventListener {
         try {
             handler.handle(upstreamEventId, orderId, externalReservationKey, lines);
         } catch (Exception e) {
-            log.warn("[OrderCreatedEventListener] handler failed. eventId={}, orderId={}", upstreamEventId, orderId, e);
+            log.warn("[OrderCreatedEventListener] handler failed. eventId={}, orderId={}",
+                    upstreamEventId, orderId, e);
             throw e;
         }
     }
 
-    private String resolveUpstreamEventId(Map<String, Object> event, ConsumerRecord<String, byte[]> record) {
-        // 1) payload에 명확한 eventId가 있으면 사용
+    private UUID resolveUpstreamEventId(Map<String, Object> event, ConsumerRecord<String, byte[]> record) {
+        // 1) payload에 명확한 eventId(UUID 문자열)가 있으면 사용
         Object eventId = event.get("eventId");
         if (eventId instanceof String s && !s.isBlank()) {
-            return s;
+            try {
+                return UUID.fromString(s);
+            } catch (IllegalArgumentException ignored) {
+                // fallback으로 진행
+            }
         }
-        // 2) 없으면 topic/partition/offset 기반으로 구성(동일 레코드 재소비에 대해 동일)
-        return record.topic() + ":" + record.partition() + ":" + record.offset();
+
+        // 2) 없거나 UUID가 아니면 topic/partition/offset 기반 UUID 생성
+        String fallback = record.topic() + ":" + record.partition() + ":" + record.offset();
+        return UUID.nameUUIDFromBytes(fallback.getBytes(StandardCharsets.UTF_8));
     }
 
     private UUID parseUuid(Object value) {
@@ -131,13 +128,12 @@ public class OrderCreatedEventListener {
         Object itemsRaw = event.get("items");
         if (itemsRaw instanceof List<?> items) {
             for (Object it : items) {
-                if (!(it instanceof Map<?, ?>)) continue;
-                Map<?, ?> m = (Map<?, ?>) it;
+                if (!(it instanceof Map<?, ?> m)) continue;
 
                 UUID pid = parseUuid(m.get("productId"));
                 Integer qty = parseInt(m.get("quantity"));
                 if (pid == null || qty == null) {
-                    return List.of(); // 하나라도 불확실하면 추측 금지
+                    return List.of(); // 추측 금지
                 }
                 lines.add(new OrderCreatedStockReservationHandler.OrderLine(pid, qty));
             }

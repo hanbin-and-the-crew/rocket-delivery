@@ -39,7 +39,7 @@ public class ProcessedEvent {
      * - upstream 이벤트의 eventId(UUID)를 문자열로 저장
      */
     @Column(name = "event_id", nullable = false, unique = true, length = 255)
-    private String eventId;
+    private UUID eventId;
 
     @Column(name = "event_type", nullable = false, length = 100)
     private String eventType;
@@ -47,13 +47,13 @@ public class ProcessedEvent {
     @Column(name = "processed_at", nullable = false)
     private LocalDateTime processedAt;
 
-    private ProcessedEvent(String eventId, String eventType) {
+    private ProcessedEvent(UUID eventId, String eventType) {
         this.eventId = eventId;
         this.eventType = eventType;
         this.processedAt = LocalDateTime.now();
     }
 
-    public static ProcessedEvent of(String eventId, String eventType) {
+    public static ProcessedEvent of(UUID eventId, String eventType) {
         return new ProcessedEvent(eventId, eventType);
     }
 }

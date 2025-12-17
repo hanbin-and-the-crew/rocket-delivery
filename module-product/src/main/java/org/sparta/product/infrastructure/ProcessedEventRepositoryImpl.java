@@ -6,6 +6,8 @@ import org.sparta.product.domain.repository.ProcessedEventRepository;
 import org.sparta.product.infrastructure.jpa.ProcessedEventJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 @Repository
 @RequiredArgsConstructor
 public class ProcessedEventRepositoryImpl implements ProcessedEventRepository {
@@ -13,7 +15,7 @@ public class ProcessedEventRepositoryImpl implements ProcessedEventRepository {
     private final ProcessedEventJpaRepository jpaRepository;
 
     @Override
-    public boolean existsByEventId(String eventId) {
+    public boolean existsByEventId(UUID eventId) {
         return jpaRepository.existsByEventId(eventId);
     }
 

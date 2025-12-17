@@ -23,22 +23,35 @@ class OrderCreatedEventListenerTest {
         OrderCreatedEventListener listener =
                 new OrderCreatedEventListener(handler, objectMapper);
 
+        UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
 
         String json = objectMapper.writeValueAsString(
                 Map.of(
-                        "eventId", "e1",
+                        "eventId", eventId.toString(),
                         "orderId", orderId.toString(),
-                        "productId", UUID.randomUUID().toString(),
+                        "productId", productId.toString(),
                         "quantity", 2
                 )
         );
 
         ConsumerRecord<String, byte[]> record =
-                new ConsumerRecord<>("order.orderCreate", 0, 0L, null, json.getBytes(StandardCharsets.UTF_8));
+                new ConsumerRecord<>(
+                        "order.orderCreate",
+                        0,
+                        0L,
+                        null,
+                        json.getBytes(StandardCharsets.UTF_8)
+                );
 
         listener.onMessage(record);
 
-        verify(handler).handle(eq("e1"), eq(orderId), eq(orderId.toString()), anyList());
+        verify(handler).handle(
+                eq(eventId),
+                eq(orderId),
+                eq(orderId.toString()),
+                anyList()
+        );
     }
 }
