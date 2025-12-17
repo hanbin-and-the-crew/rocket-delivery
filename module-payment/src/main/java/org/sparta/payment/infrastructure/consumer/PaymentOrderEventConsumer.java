@@ -46,7 +46,7 @@ public class PaymentOrderEventConsumer {
             },
             groupId = "payment-order-consumer"
     )
-    public void orderCreateConsum(OrderCreatedEvent event) {
+    public void orderCreateConsume(OrderCreatedEvent event) {
         log.info("[PaymentOrderEventConsumer] ORDER_CREATE 이벤트 수신 orderId={}, paymentKey={}",
                 event.orderId(), event.paymentKey());
 
@@ -107,7 +107,7 @@ public class PaymentOrderEventConsumer {
             },
             groupId = "payment-order-consumer"
     )
-    public void orderCancelConsum(OrderCancelledEvent event) {
+    public void orderCancelConsume(OrderCancelledEvent event) {
         log.info("[PaymentOrderEventConsumer] ORDER_CANCEL 이벤트 수신 orderId={}", event.orderId());
 
         try {
@@ -147,7 +147,7 @@ public class PaymentOrderEventConsumer {
             },
             groupId = "payment-order-consumer"
     )
-    public void orderCreateFailSagaConsum(OrderCreatedEvent event) {
+    public void orderCreateFailSagaConsume(OrderCreatedEvent event) {
 
     }
 
@@ -158,7 +158,7 @@ public class PaymentOrderEventConsumer {
             },
             groupId = "payment-order-consumer"
     )
-    public void orderCancelFailSagaConsum(OrderCreatedEvent event) {
+    public void orderCancelFailSagaConsume(OrderCreatedEvent event) {
 
     }
 
