@@ -11,7 +11,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class StockConfirmEventTest {
+class StockConfirmedEventTest {
 
     @Test
     @DisplayName("ProductOutboxEvent.stockConfirmed: aggregate/eventType/status 세팅")
