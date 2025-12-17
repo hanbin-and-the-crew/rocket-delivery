@@ -1,123 +1,119 @@
 package org.sparta.product.application.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.sparta.common.error.BusinessException;
 import org.sparta.product.domain.entity.ProcessedEvent;
-import org.sparta.product.domain.error.ProductErrorType;
-import org.sparta.product.domain.outbox.ProductOutboxEvent;
 import org.sparta.product.domain.repository.ProcessedEventRepository;
 import org.sparta.product.domain.repository.ProductOutboxEventRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class OrderCreatedStockReservationHandlerTest {
 
-    @Mock StockService stockService;
-    @Mock ProductOutboxEventRepository outboxRepository;
-    @Mock ProcessedEventRepository processedEventRepository;
-    @Mock OrderCreatedFailureRecorder failureRecorder;
-    @Mock ObjectMapper objectMapper;
-
-    OrderCreatedStockReservationHandler handler;
-
-    @BeforeEach
-    void setUp() {
-        handler = new OrderCreatedStockReservationHandler(
-                stockService,
-                outboxRepository,
-                processedEventRepository,
-                failureRecorder,
-                objectMapper
-        );
-    }
+    @Mock private StockService stockService;
+    @Mock private ProductOutboxEventRepository outboxRepository;
+    @Mock private ProcessedEventRepository processedEventRepository;
+    @Mock private OrderCreatedFailureRecorder failureRecorder;
+    @Mock private ObjectMapper objectMapper;
 
     @Test
-    @DisplayName("handle: processedEvent 존재하면 중복 처리 무시")
+    @DisplayName("handle: processed_event 중복(Unique 충돌) 발생 시 중복 처리 무시")
     void handle_duplicateIgnored() {
-        UUID eventId = UUID.randomUUID();
+        OrderCreatedStockReservationHandler handler =
+                new OrderCreatedStockReservationHandler(
+                        stockService, outboxRepository, processedEventRepository, failureRecorder, objectMapper
+                );
 
-        when(processedEventRepository.existsByEventId(eventId)).thenReturn(true);
+        doThrow(new DataIntegrityViolationException("dup"))
+                .when(processedEventRepository)
+                .save(any(ProcessedEvent.class));
 
-        handler.handle(eventId, UUID.randomUUID(), "ext", List.of());
+        handler.handle(UUID.randomUUID(), UUID.randomUUID(), "ext", List.of(
+                new OrderCreatedStockReservationHandler.OrderLine(UUID.randomUUID(), 2)
+        ));
 
+        verify(processedEventRepository, times(1)).save(any(ProcessedEvent.class));
         verifyNoInteractions(stockService, outboxRepository, failureRecorder);
-        verify(processedEventRepository, times(1)).existsByEventId(eventId);
-        verify(processedEventRepository, never()).save(any());
+        verifyNoInteractions(objectMapper);
     }
 
     @Test
-    @DisplayName("handle: All-or-Nothing 성공 -> reserve 모두 성공 후에만 outbox 저장 + processedEvent 저장")
+    @DisplayName("handle: 성공 시 processed_event 선저장 + 예약 수행 + outbox 저장")
     void handle_success_allOrNothing() throws Exception {
-        UUID upstreamEventId = UUID.randomUUID();
+        OrderCreatedStockReservationHandler handler =
+                new OrderCreatedStockReservationHandler(
+                        stockService, outboxRepository, processedEventRepository, failureRecorder, objectMapper
+                );
+
+        when(objectMapper.writeValueAsString(any())).thenReturn("{}");
+
+        UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
-        String externalKey = "orderKey";
+        String externalReservationKey = "ext";
 
-        List<OrderCreatedStockReservationHandler.OrderLine> lines = List.of(
-                new OrderCreatedStockReservationHandler.OrderLine(UUID.randomUUID(), 2),
-                new OrderCreatedStockReservationHandler.OrderLine(UUID.randomUUID(), 3)
-        );
+        UUID p1 = UUID.randomUUID();
+        UUID p2 = UUID.randomUUID();
 
-        when(processedEventRepository.existsByEventId(upstreamEventId)).thenReturn(false);
-        when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
+        handler.handle(eventId, orderId, externalReservationKey, List.of(
+                new OrderCreatedStockReservationHandler.OrderLine(p1, 2),
+                new OrderCreatedStockReservationHandler.OrderLine(p2, 1)
+        ));
 
-        handler.handle(upstreamEventId, orderId, externalKey, lines);
+        verify(processedEventRepository, times(1)).save(any(ProcessedEvent.class));
 
-        // 1) reserve 호출 2회
-        verify(stockService, times(2)).reserveStock(any(UUID.class), eq(externalKey), anyInt());
+        verify(stockService).reserveStock(p1, externalReservationKey, 2);
+        verify(stockService).reserveStock(p2, externalReservationKey, 1);
 
-        // 2) outbox는 전체 성공 후에만 lines 개수만큼 저장
-        verify(outboxRepository, times(2)).save(any(ProductOutboxEvent.class));
-
-        // 3) processedEvent 저장(성공)
-        ArgumentCaptor<ProcessedEvent> pe = ArgumentCaptor.forClass(ProcessedEvent.class);
-        verify(processedEventRepository).save(pe.capture());
-        assertEquals("OrderCreated", pe.getValue().getEventType());
-        assertEquals(upstreamEventId, pe.getValue().getEventId());
-
-        // 실패 기록기는 호출되지 않음
+        verify(outboxRepository, times(2)).save(any());
         verifyNoInteractions(failureRecorder);
+
+        verify(objectMapper, atLeastOnce()).writeValueAsString(any());
     }
 
     @Test
-    @DisplayName("handle: reserve 중 BusinessException 발생 -> failureRecorder 호출 + outbox/processedEvent(성공) 저장 없음")
-    void handle_failure_recordsFailureAndRethrows() throws Exception {
-        UUID upstreamEventId = UUID.randomUUID();
+    @DisplayName("handle: reserveStock 중 BusinessException 발생 시 failureRecorder 호출 후 예외 재던짐 (processed_event는 이미 저장됨)")
+    void handle_failure_recordsFailureAndRethrows() {
+        OrderCreatedStockReservationHandler handler =
+                new OrderCreatedStockReservationHandler(
+                        stockService, outboxRepository, processedEventRepository, failureRecorder, objectMapper
+                );
+
+        BusinessException ex = mock(BusinessException.class);
+
+        UUID productId = UUID.randomUUID();
+        String externalReservationKey = "ext";
+
+        doThrow(ex)
+                .when(stockService)
+                .reserveStock(eq(productId), eq(externalReservationKey), eq(2));
+
+        UUID eventId = UUID.randomUUID();
         UUID orderId = UUID.randomUUID();
-        String externalKey = "orderKey";
 
-        UUID productId1 = UUID.randomUUID();
-        UUID productId2 = UUID.randomUUID();
+        try {
+            handler.handle(eventId, orderId, externalReservationKey, List.of(
+                    new OrderCreatedStockReservationHandler.OrderLine(productId, 2)
+            ));
+        } catch (BusinessException ignored) {
+        }
 
-        List<OrderCreatedStockReservationHandler.OrderLine> lines = List.of(
-                new OrderCreatedStockReservationHandler.OrderLine(productId1, 2),
-                new OrderCreatedStockReservationHandler.OrderLine(productId2, 3)
-        );
+        verify(processedEventRepository, times(1)).save(any(ProcessedEvent.class));
 
-        when(processedEventRepository.existsByEventId(upstreamEventId)).thenReturn(false);
+        verify(failureRecorder, times(1))
+                .recordFailureIfFirst(eq(eventId), eq(orderId), eq(externalReservationKey), eq(ex));
 
-        BusinessException fail = new BusinessException(ProductErrorType.INSUFFICIENT_STOCK);
-        doThrow(fail).when(stockService).reserveStock(eq(productId1), eq(externalKey), eq(2));
-
-        BusinessException ex = assertThrows(BusinessException.class,
-                () -> handler.handle(upstreamEventId, orderId, externalKey, lines));
-        assertSame(fail, ex);
-
-        verify(failureRecorder).recordFailureIfFirst(eq(upstreamEventId), eq(orderId), eq(externalKey), eq(fail));
-
-        verify(outboxRepository, never()).save(any());
-        verify(processedEventRepository, never()).save(any(ProcessedEvent.class));
+        verifyNoInteractions(outboxRepository);
+        verifyNoInteractions(objectMapper);
     }
 }

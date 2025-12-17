@@ -10,6 +10,7 @@ import org.sparta.product.domain.entity.ProcessedEvent;
 import org.sparta.product.domain.outbox.ProductOutboxEvent;
 import org.sparta.product.domain.repository.ProcessedEventRepository;
 import org.sparta.product.domain.repository.ProductOutboxEventRepository;
+import org.springframework.dao.DataIntegrityViolationException; // [수정] 중복 eventId 저장 시 예외 처리
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,10 +20,9 @@ import java.util.UUID;
 /**
  * OrderCreated 이벤트 기반 재고 예약 처리 핸들러
  *
- * 요구사항:
  * - All-or-Nothing: 라인 중 1개라도 실패하면 부분 예약/부분 성공 outbox가 남지 않게 한다.
- * - 실패 outbox는 롤백과 무관하게 반드시 남겨야 한다(보상 트랜잭션 트리거).
- * - 중복 처리 방지: 같은 upstreamEventId가 재소비돼도 재고/Outbox가 다시 흔들리지 않게 한다.
+ * - 실패 outbox는 롤백과 무관하게 반드시 남긴다(REQUIRES_NEW).
+ * - 멱등성: 동일 upstreamEventId 중복 처리는 무시한다.
  */
 @Slf4j
 @Service
@@ -43,7 +43,10 @@ public class OrderCreatedStockReservationHandler {
                        String externalReservationKey,
                        List<OrderLine> lines) {
 
-        if (processedEventRepository.existsByEventId(upstreamEventId)) {
+
+        try {
+            processedEventRepository.save(ProcessedEvent.of(upstreamEventId, EVENT_TYPE));
+        } catch (DataIntegrityViolationException e) {
             log.info("[OrderCreatedStockReservationHandler] duplicate ignored: eventId={}", upstreamEventId);
             return;
         }
@@ -61,11 +64,9 @@ public class OrderCreatedStockReservationHandler {
                 outboxRepository.save(outbox);
             }
 
-            // 3) 처리 완료 기록(성공)
-            processedEventRepository.save(ProcessedEvent.of(upstreamEventId, EVENT_TYPE));
 
         } catch (BusinessException ex) {
-            // 4) 실패 outbox + 처리 완료(실패) 기록은 REQUIRES_NEW로 저장해 롤백 영향을 받지 않게 한다.
+            // 3) 실패 outbox + 처리 완료(실패) 기록은 REQUIRES_NEW로 저장해 롤백 영향을 받지 않게 한다.
             failureRecorder.recordFailureIfFirst(upstreamEventId, orderId, externalReservationKey, ex);
             throw ex;
         }

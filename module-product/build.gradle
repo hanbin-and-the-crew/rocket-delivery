@@ -24,6 +24,8 @@ dependencies {
     testImplementation project(':module-jpa')
     testImplementation 'com.h2database:h2'
     testImplementation 'io.rest-assured:rest-assured:5.3.2'
+    testImplementation 'org.assertj:assertj-core'
+
 
     // testcontainers
     testImplementation 'org.testcontainers:testcontainers:1.19.3'
