@@ -6,8 +6,8 @@ import org.sparta.product.domain.repository.StockReservationRepository;
 import org.sparta.product.infrastructure.jpa.StockReservationJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
-
 
 @Repository
 @RequiredArgsConstructor
@@ -23,5 +23,10 @@ public class StockReservationRepositoryImpl implements StockReservationRepositor
     @Override
     public Optional<StockReservation> findByReservationKey(String reservationKey) {
         return jpaRepository.findByReservationKey(reservationKey);
+    }
+
+    @Override
+    public List<StockReservation> findAllByExternalReservationKey(String externalReservationKey) {
+        return jpaRepository.findAllByExternalReservationKey(externalReservationKey);
     }
 }
