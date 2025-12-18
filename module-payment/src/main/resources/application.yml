@@ -68,3 +68,8 @@ logging:
   level:
     org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health" # HealthChecker 호출 허용
