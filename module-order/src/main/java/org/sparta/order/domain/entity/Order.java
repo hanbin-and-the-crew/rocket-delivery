@@ -259,6 +259,9 @@ public class Order extends BaseEntity {
         if (orderStatus == OrderStatus.SHIPPED) {
             throw new BusinessException(OrderErrorType.CANNOT_CANCEL_SHIPPED_ORDER);
         }
+        if (orderStatus == OrderStatus.PREPARING_ORDER) {
+            throw new BusinessException(OrderErrorType.CANNOT_CANCEL_PREPARING_ORDER_ORDER);
+        }
         if (orderStatus == OrderStatus.DELIVERED) {
             throw new BusinessException(OrderErrorType.CANNOT_CANCEL_DELIVERED_ORDER);
         }
@@ -316,4 +319,10 @@ public class Order extends BaseEntity {
         this.requestMemo = newMemo;
     }
 
+    public void preparingOrder(UUID orderId) {
+        if (orderStatus != OrderStatus.APPROVED) {
+            throw new BusinessException(OrderErrorType.CANNOT_PREPARE_NOT_APPROVED);
+        }
+        this.orderStatus = OrderStatus.PREPARING_ORDER;
+    }
 }

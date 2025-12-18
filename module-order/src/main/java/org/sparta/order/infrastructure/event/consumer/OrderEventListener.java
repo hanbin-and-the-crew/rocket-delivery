@@ -5,9 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
+import org.sparta.common.event.delivery.DeliveryCreatedEvent;
 import org.sparta.common.event.payment.GenericDomainEvent;
+import org.sparta.common.event.payment.PaymentCanceledEvent;
 import org.sparta.common.event.payment.PaymentCompletedEvent;
 import org.sparta.order.application.service.OrderService;
+import org.sparta.order.domain.entity.OrderOutboxEvent;
 import org.sparta.order.domain.entity.ProcessedEvent;
 import org.sparta.order.domain.repository.ProcessedEventRepository;
 import org.sparta.order.presentation.dto.response.OrderResponse;
@@ -41,16 +44,16 @@ public class OrderEventListener {
             containerFactory = "kafkaListenerContainerFactory"
     )
     @Transactional
-    public void handleDeliveryCompleted(String message) {
+    public void handleDeliveryCompleted(DeliveryCreatedEvent event) {
 
-        DeliveryCompletedEvent event;
-
-        try {
-            event = objectMapper.readValue(message, DeliveryCompletedEvent.class);
-        } catch (JsonProcessingException e) {
-            log.error("Invalid DeliveryCompletedEvent message: {}", message, e);
-            return;
-        }
+//        DeliveryCompletedEvent event;
+//
+//        try {
+//            event = objectMapper.readValue(message, DeliveryCompletedEvent.class);
+//        } catch (JsonProcessingException e) {
+//            log.error("Invalid DeliveryCompletedEvent message: {}", message, e);
+//            return;
+//        }
 
         log.info("Received DeliveryCompletedEvent: deliveryId={}, orderId={}, eventId={}",
                 event.deliveryId(), event.orderId(), event.eventId());
@@ -80,10 +83,10 @@ public class OrderEventListener {
             processedEventRepository.save(
                     ProcessedEvent.of(event.eventId(), "DeliveryCompletedEvent")
             );
-            log.error("Failed to handle delivery completed event: {}", message, e);
+            log.error("Failed to handle delivery completed event: ", e);
 
         } catch (Exception e) {
-            log.error("Failed to handle delivery completed event: {}", message, e);
+            log.error("Failed to handle delivery completed event: ", e);
             throw new RuntimeException("Order Delivery failed", e);
         }
     }
@@ -98,16 +101,16 @@ public class OrderEventListener {
             containerFactory = "kafkaListenerContainerFactory"
     )
     @Transactional
-    public void handleDeliveryStarted(String message) {
+    public void handleDeliveryStarted(DeliveryStartedEvent event) {
 
-        DeliveryStartedEvent event;
-
-        try {
-            event = objectMapper.readValue(message, DeliveryStartedEvent.class);
-        } catch (JsonProcessingException e) {
-            log.error("Invalid DeliveryStartedEvent message: {}", message, e);
-            return;
-        }
+//        DeliveryStartedEvent event;
+//
+//        try {
+//            event = objectMapper.readValue(message, DeliveryStartedEvent.class);
+//        } catch (JsonProcessingException e) {
+//            log.error("Invalid DeliveryStartedEvent message: {}", message, e);
+//            return;
+//        }
 
         log.info("Received DeliveryStartedEvent: deliveryId={}, orderId={}, eventId={}",
                 event.deliveryId(), event.orderId(), event.eventId());
@@ -137,10 +140,10 @@ public class OrderEventListener {
             processedEventRepository.save(
                     ProcessedEvent.of(event.eventId(), "DeliveryStartedEvent")
             );
-            log.error("Failed to handle delivery started event: {}", message, e);
+            log.error("Failed to handle delivery started event: ", e);
 
         } catch (Exception e) {
-            log.error("Failed to handle delivery started event: {}", message, e);
+            log.error("Failed to handle delivery started event: ", e);
             throw new RuntimeException("Order shipping failed", e);
         }
     }
@@ -181,7 +184,7 @@ public class OrderEventListener {
         }
 
         try {
-            // Order 승인 처리 (PENDING → APPROVED) + OrderApprovedEvent 발행
+            // Order 승인 처리 (CREATED → APPROVED) + OrderApprovedEvent 발행
             orderService.approveOrder(event.orderId(), event.paymentId());
 
             // 이벤트 처리 기록
@@ -204,4 +207,62 @@ public class OrderEventListener {
             throw new RuntimeException("Order approval failed", e);
         }
     }
+
+    /**
+     * [ DeliveryCreatedEvent 수신 ]
+     * delivery 모듈에서 최종 배송 완료 이벤트를 받아서 Order 배송 완료 처리
+     */
+    @KafkaListener(
+            topics = "delivery-events",  // Delivery 모듈의 토픽
+            groupId = "order-service",
+            containerFactory = "kafkaListenerContainerFactory"
+    )
+    @Transactional
+    public void handleDeliveryCreated(DeliveryCreatedEvent event) {
+
+//        DeliveryCreatedEvent event;
+
+//        try {
+//            event = objectMapper.readValue(message, DeliveryCreatedEvent.class);
+//        } catch (JsonProcessingException e) {
+//            log.error("Invalid DeliveryCreatedEvent message: {}", message, e);
+//            return;
+//        }
+
+        log.info("Received DeliveryCreatedEvent: deliveryId={}, orderId={}, eventId={}",
+                event.deliveryId(), event.orderId(), event.eventId());
+
+        // 멱등성 체크
+        if (processedEventRepository.existsByEventId(event.eventId())) {
+            log.warn("이미 처리된 이벤트 - eventId: {}", event.eventId());
+            return;
+        }
+
+        try {
+            // Order 배송 준비중 처리 (APPROVED -> PREPARING_SHIPMENT)
+            OrderResponse.Update result = orderService.preparingOrder(event.orderId());
+
+            // 이벤트 처리 기록
+            processedEventRepository.save(
+                    ProcessedEvent.of(event.eventId(), "DeliveryCompletedEvent")
+            );
+
+            log.info("Order delivered: orderId={}, message={}",
+                    event.orderId(),
+                    result.message()  // 응답 메시지
+            );
+
+        } catch (BusinessException e) {
+            // 비즈니스 예외는 이벤트 처리 완료로 간주 (재시도 방지)
+            processedEventRepository.save(
+                    ProcessedEvent.of(event.eventId(), "DeliveryCompletedEvent")
+            );
+            log.error("Failed to handle delivery completed event: ", e);
+
+        } catch (Exception e) {
+            log.error("Failed to handle delivery completed event: ", e);
+            throw new RuntimeException("Order Delivery failed", e);
+        }
+    }
+
 }

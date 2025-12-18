@@ -21,6 +21,7 @@ import java.util.Map;
 @Configuration
 public class OrderKafkaConfig {
 
+    //    @Value("10.0.1.230:9092")
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
