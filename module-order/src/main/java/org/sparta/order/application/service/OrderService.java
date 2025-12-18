@@ -677,7 +677,7 @@ public class OrderService {
         order.preparingOrder();
         return OrderResponse.Update.of(
                 order,
-                "주문 상태가 '배송중'으로 변경되었습니다."
+                "주문 상태가 '배송 준비중'으로 변경되었습니다."
         );
     }
 }
