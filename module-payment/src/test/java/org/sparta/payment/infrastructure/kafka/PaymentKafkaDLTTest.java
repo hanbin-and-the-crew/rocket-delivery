@@ -6,7 +6,9 @@ import org.junit.jupiter.api.*;
 import org.sparta.common.event.payment.PaymentFailedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.MessageListenerContainer;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
@@ -35,6 +37,9 @@ class PaymentKafkaDLTTest {
     @Autowired
     private EmbeddedKafkaBroker embeddedKafkaBroker;
 
+    @Autowired
+    private KafkaListenerEndpointRegistry registry;
+
     private Consumer<String, String> dltConsumer;
 
     @BeforeAll
@@ -52,6 +57,16 @@ class PaymentKafkaDLTTest {
 
         dltConsumer = new KafkaConsumer<>(consumerProps);
         dltConsumer.subscribe(List.of("order.orderCreate.DLT"));
+    }
+
+    @BeforeEach
+    void stopDltListener() {
+        MessageListenerContainer container =
+                registry.getListenerContainer("payment-dlt-listener");
+
+        if (container != null) {
+            container.stop();
+        }
     }
 
     @AfterAll
