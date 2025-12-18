@@ -38,6 +38,11 @@ public class DeliveryLogRepositoryImpl implements DeliveryLogRepository {
     }
 
     @Override
+    public List<DeliveryLog> findByDeliveryIdAndDeletedAtIsNull(UUID deliveryId) {
+        return deliveryLogJpaRepository.findByDeliveryIdAndDeletedAtIsNull(deliveryId);
+    }
+
+    @Override
     public boolean existsByDeliveryIdAndSequenceAndDeletedAtIsNull(UUID deliveryId, int sequence) {
         return deliveryLogJpaRepository
                 .existsByDeliveryIdAndSequenceAndDeletedAtIsNull(deliveryId, sequence);

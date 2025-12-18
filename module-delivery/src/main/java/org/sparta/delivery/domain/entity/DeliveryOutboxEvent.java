@@ -26,7 +26,7 @@ public class DeliveryOutboxEvent {
     private UUID aggregateId; // deliveryId
 
     @Column(name = "event_type", nullable = false, length = 100)
-    private String eventType; // DeliveryCreatedEvent
+    private String eventType; // DeliveryCreatedLocalEvent
 
     @Lob
     @Column(name = "payload", nullable = false)

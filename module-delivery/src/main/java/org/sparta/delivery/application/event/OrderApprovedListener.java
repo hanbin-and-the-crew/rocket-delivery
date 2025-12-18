@@ -7,6 +7,7 @@ import org.sparta.delivery.application.service.DeliveryService;
 import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
 import org.sparta.delivery.domain.repository.DeliveryProcessedEventRepository;
 import org.sparta.delivery.infrastructure.event.OrderApprovedEvent;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,17 +42,17 @@ public class OrderApprovedListener {
     )
     @Transactional
     public void handleOrderApproved(OrderApprovedEvent event) {
-        try {
-//            OrderApprovedEvent event = objectMapper.readValue(message, OrderApprovedEvent.class);
-            log.info("OrderApprovedEvent received: orderId={}, eventId={}",
-                    event.orderId(), event.eventId());
+        log.info("OrderApprovedEvent received: orderId={}, eventId={}",
+                event.orderId(), event.eventId());
 
-            // 멱등성 체크: eventId로 중복 이벤트 확인
-            if (deliveryProcessedEventRepository.existsByEventId(event.eventId())) {
-                log.info("Event already processed, skipping: eventId={}, orderId={}",
-                        event.eventId(), event.orderId());
-                return;
-            }
+        // 멱등성 체크: eventId로 중복 이벤트 확인 / try 밖으로 뺐음
+        if (deliveryProcessedEventRepository.existsByEventId(event.eventId())) {
+            log.info("Event already processed, skipping: eventId={}, orderId={}",
+                    event.eventId(), event.orderId());
+            return;
+        }
+
+        try {
 
             // 배송 생성 (허브 경로 계산 + DeliveryLog 생성)
             deliveryService.createWithRoute(event);
@@ -66,23 +67,23 @@ public class OrderApprovedListener {
             log.info("OrderApprovedEvent processing completed: orderId={}, eventId={}",
                     event.orderId(), event.eventId());
 
+        } catch (DataIntegrityViolationException e) {
+            // 중복 키 에러 처리: 다른 트랜잭션이 이미 처리 완료했을 경우 에러가 발생하지 않게 처리
+            if (e.getMessage() != null && e.getMessage().contains("idx_event_id")) {
+                log.warn("Event already processed by another transaction: eventId={}, orderId={}. " +
+                                "This is expected in concurrent scenarios.",
+                        event.eventId(), event.orderId());
+                // 예외를 던지지 않고 정상 종료 → Kafka ACK 처리
+                return;
+            }
+            // 다른 종류의 데이터 무결성 위반은 재시도
+            throw new RuntimeException("Data integrity violation during delivery creation", e);
+
         } catch (Exception e) {
-//            log.error("Failed to handle order approved event: orderId={}, message={}",
-//                    extractOrderId(message), message, e);
+            log.error("Failed to handle order approved event: orderId={}, eventId={}",
+                    event.orderId(), event.eventId(), e);
             // 예외 발생 시 전체 트랜잭션 롤백 + Kafka 재시도
             throw new RuntimeException("Order approved event processing failed", e);
-        }
-    }
-
-    /**
-     * 로그 출력용 orderId 추출 (파싱 실패 시에도 로그 남기기 위함)
-     */
-    private String extractOrderId(String message) {
-        try {
-            OrderApprovedEvent event = objectMapper.readValue(message, OrderApprovedEvent.class);
-            return event.orderId() != null ? event.orderId().toString() : "unknown";
-        } catch (Exception e) {
-            return "parse-failed";
         }
     }
 }

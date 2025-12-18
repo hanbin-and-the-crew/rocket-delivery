@@ -7,7 +7,7 @@ import java.util.UUID;
 
 // 배송 생성 완료 이벤트 _ 허브 배송 담당자 배정 Listener에서 사용 됨
 
-public record DeliveryCreatedEvent(
+public record DeliveryCreatedLocalEvent(
         UUID orderId,
         UUID deliveryId,
         UUID sourceHubId,
@@ -16,8 +16,8 @@ public record DeliveryCreatedEvent(
         UUID eventId,
         Instant occurredAt
 ) implements DomainEvent {
-    public static DeliveryCreatedEvent of(UUID orderId, UUID deliveryId, UUID sourceHubId, UUID targetHubId, Integer totalLogSeq) {
-        return new DeliveryCreatedEvent(
+    public static DeliveryCreatedLocalEvent of(UUID orderId, UUID deliveryId, UUID sourceHubId, UUID targetHubId, Integer totalLogSeq) {
+        return new DeliveryCreatedLocalEvent(
                 orderId,
                 deliveryId,
                 sourceHubId,

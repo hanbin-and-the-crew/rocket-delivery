@@ -3,7 +3,7 @@ package org.sparta.deliveryman.application.event;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.delivery.application.service.DeliveryService;
-import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
+import org.sparta.delivery.domain.event.publisher.DeliveryCreatedLocalEvent;
 import org.sparta.delivery.domain.entity.Delivery;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
 import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
@@ -13,9 +13,7 @@ import org.sparta.deliverylog.presentation.dto.response.DeliveryLogResponse;
 import org.sparta.deliveryman.application.service.DeliveryManService;
 import org.sparta.deliveryman.domain.entity.DeliveryMan;
 import org.sparta.deliveryman.domain.entity.ProcessedEvent;
-import org.sparta.deliveryman.domain.repository.DeliveryManRepository;
 import org.sparta.deliveryman.domain.repository.ProcessedEventRepository;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +37,7 @@ public class DeliverymanAssignHandler {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void onDeliveryCreated(DeliveryCreatedEvent event) {
+    public void onDeliveryCreated(DeliveryCreatedLocalEvent event) {
         log.info("tx active? {}", TransactionSynchronizationManager.isActualTransactionActive());
 
         try {

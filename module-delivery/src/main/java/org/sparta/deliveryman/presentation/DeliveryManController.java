@@ -88,4 +88,5 @@ public class DeliveryManController implements DeliveryManApiSpec {
         DeliveryManResponse.AssignResult response = DeliveryManResponse.AssignResult.from(deliveryMan);
         return ApiResponse.success(response);
     }
+
 }

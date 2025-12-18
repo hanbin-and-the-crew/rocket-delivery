@@ -112,6 +112,46 @@ public class DeliveryLogServiceImpl implements DeliveryLogService {
         return DeliveryLogResponse.Detail.from(log);
     }
 
+
+    /**
+     * 배송 취소 시 해당 배송의 모든 로그 취소
+     * - CREATED, HUB_WAITING 상태만 취소 가능
+     * - HUB_MOVING 이후 상태는 취소 불가 (경고 로그만)
+     */
+    @Override
+    @Transactional
+    public void cancelAllLogsByDeliveryId(UUID deliveryId) {
+        log.info("Cancelling all DeliveryLogs for deliveryId={}", deliveryId);
+
+        List<DeliveryLog> logs = deliveryLogRepository.findByDeliveryIdAndDeletedAtIsNull(deliveryId);
+
+        if (logs.isEmpty()) {
+            log.warn("No DeliveryLogs found for deliveryId={}", deliveryId);
+            return;
+        }
+
+        int cancelledCount = 0;
+        int skippedCount = 0;
+
+        for (DeliveryLog aLog : logs) {
+            try {
+                aLog.cancelFromDelivery(); // CREATED, HUB_WAITING만 취소 가능
+                cancelledCount++;
+                log.debug("DeliveryLog cancelled: logId={}, sequence={}, status={}",
+                        aLog.getId(), aLog.getSequence(), aLog.getStatus());
+            } catch (BusinessException e) {
+                // HUB_MOVING, HUB_ARRIVED, CANCELED 상태는 취소 불가
+                log.warn("Cannot cancel DeliveryLog: logId={}, sequence={}, status={}, reason={}",
+                        aLog.getId(), aLog.getSequence(), aLog.getStatus(), e.getMessage());
+                skippedCount++;
+                // 계속 진행 (다른 로그는 취소 시도)
+            }
+        }
+
+        log.info("DeliveryLog cancellation completed: deliveryId={}, total={}, cancelled={}, skipped={}",
+                deliveryId, logs.size(), cancelledCount, skippedCount);
+    }
+
     // ================================
     // 6. 단건 조회
     // ================================
