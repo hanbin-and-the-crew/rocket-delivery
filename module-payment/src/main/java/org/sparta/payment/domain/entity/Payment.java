@@ -230,4 +230,24 @@ public class Payment {
         this.deletedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
+
+    /**
+     * 취소된 결제를 다시 승인 상태로 복구 (SAGA 보상 실패 시)
+     * - 상태: CANCELED/REFUNDED → COMPLETED
+     * - amountPaid: 0 → amountPayable
+     * - canceledAt: null로 초기화
+     */
+    public void reverseCancel() {
+        if (this.status != PaymentStatus.CANCELED && this.status != PaymentStatus.REFUNDED) {
+            throw new IllegalStateException(
+                    "취소되지 않은 결제는 복구할 수 없습니다. status=" + this.status
+            );
+        }
+
+        // 상태 복구
+        this.status = PaymentStatus.COMPLETED;
+        this.amountPaid = this.amountPayable;
+        this.canceledAt = null;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

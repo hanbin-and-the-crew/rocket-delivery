@@ -332,6 +332,52 @@ public class PaymentService {
         return PaymentDetailResult.from(saved);
     }
 
+    /**
+     * 보상 트랜잭션
+     *
+     *
+     * 환불 취소 처리 (SAGA 보상 실패 시)
+     * - Payment 상태를 CANCELED → COMPLETED로 복구
+     * - amountPaid를 원래 값으로 복구
+     * - 환불이 취소된 경우에 대한 이벤트 발행
+     */
+    @Transactional
+    public PaymentDetailResult reverseCancelPayment(UUID paymentId) {
+        try {
+            Payment payment = getPaymentEntity(paymentId);
+
+            // 이미 취소된 상태가 아니면 실패
+            if (payment.getStatus() != PaymentStatus.CANCELED &&
+                    payment.getStatus() != PaymentStatus.REFUNDED) {
+                throw new BusinessException(
+                        PaymentErrorType.REFUND_INVALID_PAYMENT_STATE,
+                        "취소되지 않은 결제는 복구할 수 없습니다. status=" + payment.getStatus()
+                );
+            }
+
+            // 상태를 COMPLETED로 복구
+            payment.reverseCancel();
+            Payment saved = paymentRepository.save(payment);
+
+            // 환불 취소 이벤트 발행
+            createPaymentReverseCanceledOutbox(saved);
+
+            log.info("[PaymentService] 환불 취소 완료 - paymentId={}, orderId={}",
+                    paymentId, saved.getOrderId());
+
+            return PaymentDetailResult.from(saved);
+
+        } catch (BusinessException e) {
+            log.warn("[PaymentService] 환불 취소 실패 - paymentId={}, reason={}",
+                    paymentId, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("[PaymentService] 환불 취소 중 시스템 예외 - paymentId={}",
+                    paymentId, e);
+            throw e;
+        }
+    }
+
     // ===== 내부 헬퍼 =====
 
     private Payment getPaymentEntity(UUID paymentId) {
@@ -389,5 +435,52 @@ public class PaymentService {
             String currency,
             UUID refundId,
             String reason
+    ) {}
+
+    /**
+     * 환불 취소 완료 이벤트 Outbox 생성
+     * - SAGA 보상 실패로 인해 이전에 취소된 결제를 다시 승인 상태로 복구한 경우 발행
+     */
+    private void createPaymentReverseCanceledOutbox(Payment payment) {
+        // 1) 이벤트 페이로드 생성
+        PaymentReverseCanceledEvent payload = new PaymentReverseCanceledEvent(
+                payment.getPaymentId(),
+                payment.getOrderId(),
+                payment.getAmountPaid(),
+                payment.getCurrency()
+        );
+
+        // 2) GenericDomainEvent로 래핑
+        DomainEvent event = new GenericDomainEvent(
+                "payment.orderCancelFail.paymentReverseCanceled",
+                payload
+        );
+
+        // 3) JSON 직렬화
+        String json;
+        try {
+            json = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(PaymentErrorType.OUTBOX_PUBLISH_FAILED, "이벤트 직렬화 실패");
+        }
+
+        // 4) Outbox 엔티티 생성 및 저장
+        PaymentOutbox outbox = PaymentOutbox.ready(
+                "PAYMENT",
+                payment.getPaymentId(),
+                event.eventType(),
+                json
+        );
+        paymentOutboxRepository.save(outbox);
+    }
+
+    /**
+     * 환불 취소 이벤트 페이로드
+     */
+    private record PaymentReverseCanceledEvent(
+            UUID paymentId,
+            UUID orderId,
+            Long amountRecovered,
+            String currency
     ) {}
 }

@@ -16,6 +16,7 @@ import org.sparta.payment.application.command.payment.PaymentCancelCommand;
 import org.sparta.payment.application.command.payment.PaymentGetByOrderIdCommand;
 import org.sparta.payment.application.dto.PaymentDetailResult;
 import org.sparta.payment.application.service.PaymentService;
+import org.sparta.payment.domain.enumeration.PaymentStatus;
 import org.sparta.payment.domain.error.PaymentErrorType;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -196,6 +197,39 @@ public class PaymentOrderEventConsumer {
                 event.orderId()
         );
 
-        // "주문 취소의 실패"같은 경우는 로그+모니터링 정도로만 확인하면 충분하다.
+        try {
+            // 1) 주문 기준으로 결제 조회
+            PaymentDetailResult payment = paymentService.getPaymentByOrderId(
+                    new PaymentGetByOrderIdCommand(event.orderId())
+            );
+
+            // 2) 취소된 결제를 다시 승인 상태로 복구해야 함 (환불 취소)
+            if (payment.status() != PaymentStatus.CANCELED &&
+                    payment.status() != PaymentStatus.REFUNDED) {
+                log.warn("[PaymentSaga] 취소되지 않은 결제는 복구할 수 없습니다. orderId={}, status={}",
+                        event.orderId(), payment.status());
+                return;
+            }
+
+            // 3) 환불 취소 처리 (CANCELED → COMPLETED)
+            paymentService.reverseCancelPayment(payment.paymentId());
+
+
+            log.info("[PaymentSaga] 환불 취소 완료! orderId={}, paymentId={}",
+                    event.orderId(), payment.paymentId());
+
+            // 4) 환불 취소 이벤트 발행 (다른 모듈에 알림)
+            // paymentEventPublisher.publishPaymentReverseCancelledEvent(...);
+
+        } catch (BusinessException e) {
+            // 결제가 없거나 이미 처리된 경우
+            log.warn("[PaymentSaga] 환불 취소 불가능. orderId={}, reason={}",
+                    event.orderId(), e.getMessage());
+        } catch (Exception e) {
+            // 시스템 예외는 DLQ로 처리 (수동 개입 필요)
+            log.error("[PaymentSaga] 환불 취소 중 시스템 예외 발생! orderId={}", event.orderId(), e);
+            throw e;
+        }
+
     }
 }
