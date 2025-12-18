@@ -155,10 +155,9 @@ public class PaymentOrderEventConsumer {
         log.info("[PaymentSaga] CREATE FAIL 수신 → 보상 트랜잭션 시작 orderId={}", event.orderId());
 
         try {
-            PaymentDetailResult payment =
-                    paymentService.getPaymentByOrderId(
+            PaymentDetailResult payment = paymentService.getPaymentByOrderId(
                             new PaymentGetByOrderIdCommand(event.orderId())
-                    );
+            );
 
             // 2) 결제 취소 커맨드 생성 (전체 취소 가정)
             PaymentCancelCommand command = new PaymentCancelCommand(
@@ -197,9 +196,6 @@ public class PaymentOrderEventConsumer {
                 event.orderId()
         );
 
-        // "주문 취소의 실패"같은 경우는 모니터링 정도로만 확인하면 충분하다.
-        // TODO:
-        // 1. Slack / Sentry / Alarm
-        // 2. 운영자 수동 처리 큐 등록
+        // "주문 취소의 실패"같은 경우는 로그+모니터링 정도로만 확인하면 충분하다.
     }
 }
