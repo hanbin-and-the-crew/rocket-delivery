@@ -61,10 +61,10 @@ public interface OrderFeignClient {
     enum OrderStatus {
         CREATED,            // 주문 생성
         APPROVED,           // 승인 (결제 완료)
-        PREPARING_SHIPMENT, // 배송 준비 중
+        PREPARING_ORDER, // 배송 준비 중
         SHIPPED,            // 배송 시작
         DELIVERED,          // 배송 완료
-        CANCELLED           // 취소
+        CANCELED           // 취소
     }
 
     /**
@@ -75,8 +75,7 @@ public interface OrderFeignClient {
         CUSTOMER_REQUEST,   // 고객 요청
         OUT_OF_STOCK,       // 재고 부족
         PAYMENT_FAILED,     // 결제 실패
-        DELIVERY_FAILED,    // 배송 실패
-        OTHER               // 기타
+        SYSTEM_FAILED,    // 시스템상의 실패
     }
 
     // ===== ApiResponse 래퍼 (meta로 감싸진 구조) =====
