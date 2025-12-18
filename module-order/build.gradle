@@ -41,7 +41,10 @@ dependencies {
     // testcontainers
     testImplementation 'org.testcontainers:testcontainers:1.19.3'
     testImplementation 'org.testcontainers:postgresql:1.19.3'
+    testImplementation 'org.testcontainers:kafka:1.19.3'
     testImplementation 'org.testcontainers:junit-jupiter:1.19.3'
+    testImplementation 'redis.clients:jedis:5.1.2'
+    testImplementation 'org.awaitility:awaitility:4.2.0'
     testRuntimeOnly 'org.postgresql:postgresql'
 }
 
@@ -84,4 +87,5 @@ jacocoTestCoverageVerification {
 test {
     useJUnitPlatform()  // JUnit 5 사용
     finalizedBy jacocoTestReport
+    workingDir = projectDir  // 테스트 실행 시 working directory를 module-order로 설정
 }
