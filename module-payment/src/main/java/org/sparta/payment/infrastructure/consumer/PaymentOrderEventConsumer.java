@@ -160,13 +160,14 @@ public class PaymentOrderEventConsumer {
                             new PaymentGetByOrderIdCommand(event.orderId())
                     );
 
-            // 이미 취소된 경우는 무시 (멱등)
-            paymentService.cancelPayment(
-                    new PaymentCancelCommand(
-                            payment.paymentId(),
-                            "SAGA_ROLLBACK"
-                    )
+            // 2) 결제 취소 커맨드 생성 (전체 취소 가정)
+            PaymentCancelCommand command = new PaymentCancelCommand(
+                    payment.paymentId(),
+                    "SAGA_ROLLBACK" // SAGA ROLLBACK으로 인한 결제 취소
             );
+
+            // 이미 취소된 경우는 무시 (멱등)
+            paymentService.cancelPayment(command);
 
             log.info("[PaymentSaga] 결제 보상 완료 orderId={}", event.orderId());
 
