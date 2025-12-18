@@ -2,6 +2,7 @@ package org.sparta.order.infrastructure.client;
 
 import org.sparta.common.api.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -14,6 +15,9 @@ public interface StockClient {
 
     @PostMapping("/api/product/stocks/reserve")
     ApiResponse<StockReserveResponse> reserveStock(@RequestBody StockReserveRequest request);
+
+    @GetMapping("/actuator/health")
+    void health();
 
     record StockReserveRequest(
             UUID productId,

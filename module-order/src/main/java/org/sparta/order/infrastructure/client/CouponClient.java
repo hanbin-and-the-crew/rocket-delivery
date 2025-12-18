@@ -2,6 +2,7 @@ package org.sparta.order.infrastructure.client;
 
 import org.sparta.common.api.ApiResponse;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +20,9 @@ public interface CouponClient {
             @PathVariable("couponId") UUID couponId,
             @RequestBody CouponRequest.Reverse request
     );
+
+    @GetMapping("/actuator/health")
+    void health();
 
     // ===== DTO =====
     class CouponRequest {

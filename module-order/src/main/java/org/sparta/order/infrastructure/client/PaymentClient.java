@@ -3,6 +3,7 @@ package org.sparta.order.infrastructure.client;
 import org.sparta.common.domain.PaymentType;
 import org.sparta.common.domain.PgProvider;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -18,6 +19,9 @@ public interface PaymentClient {
             @RequestBody PaymentRequest.Approval request,
             @RequestHeader("X-User-Id") UUID userId  // 필수 헤더
     );
+
+    @GetMapping("/actuator/health")
+    void health();
 
     // ===== Request DTO =====
     class PaymentRequest {
