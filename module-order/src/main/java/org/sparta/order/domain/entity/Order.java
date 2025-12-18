@@ -224,17 +224,8 @@ public class Order extends BaseEntity {
 
     // 출고(배송 시작) 메서드
     public void markShipped() {
-        if (orderStatus == OrderStatus.SHIPPED) {
-            throw new BusinessException(OrderErrorType.ORDER_ALREADY_SHIPPED);
-        }
-        if (orderStatus == OrderStatus.CANCELED) {
-            throw new BusinessException(OrderErrorType.CANNOT_SHIPPED_CANCELED_ORDER);
-        }
-        if (orderStatus == OrderStatus.DELIVERED) {
-            throw new BusinessException(OrderErrorType.CANNOT_SHIPPED_DELIVERED_ORDER);
-        }
-        if (orderStatus != OrderStatus.APPROVED) {
-            throw new BusinessException(OrderErrorType.CANNOT_SHIP_NOT_APPROVED_ORDER);
+        if (orderStatus != OrderStatus.PREPARING_ORDER) {
+            throw new BusinessException(OrderErrorType.CANNOT_SHIP_NOT_PREPARING_ORDER);
         }
         this.orderStatus = OrderStatus.SHIPPED;
     }
@@ -281,17 +272,18 @@ public class Order extends BaseEntity {
     }
 
     // 삭제 가능 여부 검증 (Soft delete 전에 호출)
+    // : 취소된 주문만 삭제 가능
     public void validateDeletable() {
-        if (orderStatus == OrderStatus.SHIPPED || orderStatus == OrderStatus.DELIVERED) {
-            throw new BusinessException(OrderErrorType.CANNOT_DELETE_SHIPPED_OR_DELIVERED_ORDER);
+        if (orderStatus != OrderStatus.CANCELED) {
+            throw new BusinessException(OrderErrorType.CANNOT_DELETE_NON_CANCELED_ORDER);
         }
     }
 
     // ======== 수정 기능 ========
 
     public void changeDueAt(LocalDateTime newDueAt) {
-        if (orderStatus == OrderStatus.SHIPPED || orderStatus == OrderStatus.DELIVERED) {
-            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_DUE_AT_AFTER_SHIPPED);
+        if (orderStatus == OrderStatus.PREPARING_ORDER || orderStatus == OrderStatus.DELIVERED) {
+            throw new BusinessException(OrderErrorType.CANNOT_CHANGE_DUE_AT_AFTER_PREPARING_ORDER);
         }
         if (orderStatus != OrderStatus.CREATED) {
             throw new BusinessException(OrderErrorType.CANNOT_CHANGE_NOT_CREATED_ORDER);
@@ -319,7 +311,7 @@ public class Order extends BaseEntity {
         this.requestMemo = newMemo;
     }
 
-    public void preparingOrder(UUID orderId) {
+    public void preparingOrder() {
         if (orderStatus != OrderStatus.APPROVED) {
             throw new BusinessException(OrderErrorType.CANNOT_PREPARE_NOT_APPROVED);
         }

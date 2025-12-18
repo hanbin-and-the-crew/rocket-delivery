@@ -674,7 +674,7 @@ public class OrderService {
     //======== 배송 준비중으로 상태 변경========
     public OrderResponse.Update preparingOrder(UUID orderId) {
         Order order = findOrderOrThrow(orderId);
-        order.preparingOrder(orderId);
+        order.preparingOrder();
         return OrderResponse.Update.of(
                 order,
                 "주문 상태가 '배송중'으로 변경되었습니다."
