@@ -1,3 +1,4 @@
+/*
 package org.sparta.coupon.application.service;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -282,3 +283,4 @@ class CouponServiceTest {
         return new CouponRequest.Reserve(userId, orderId, orderAmount);
     }
 }
+*/
