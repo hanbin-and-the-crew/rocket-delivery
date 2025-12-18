@@ -10,6 +10,7 @@ import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.common.event.order.OrderCreatedEvent;
 
 
+import org.sparta.common.event.payment.PaymentFailedEvent;
 import org.sparta.payment.application.command.payment.PaymentCreateCommand;
 import org.sparta.payment.application.command.payment.PaymentCancelCommand;
 import org.sparta.payment.application.command.payment.PaymentGetByOrderIdCommand;
@@ -44,7 +45,8 @@ public class PaymentOrderEventConsumer {
             topics = {
                     "order.orderCreate"
             },
-            groupId = "payment-order-consumer"
+            groupId = "payment-order-consumer",
+            containerFactory = "paymentKafkaListenerContainerFactory"
     )
     public void orderCreateConsume(OrderCreatedEvent event) {
         log.info("[PaymentOrderEventConsumer] ORDER_CREATE 이벤트 수신 orderId={}, paymentKey={}",
@@ -88,7 +90,6 @@ public class PaymentOrderEventConsumer {
             log.info("[PaymentOrderEventConsumer] 결제 생성 성공! orderId={}", event.orderId());
 
         } catch (BusinessException e) {
-            // 비즈니스 예외는 재시도하면 안되므로 처리 성공으로 보고 종료
             log.warn("[PaymentOrderEventConsumer] 결제 생성 실패(비즈니스 예외). orderId={}, reason={}",
                     event.orderId(), e.getMessage());
 
@@ -96,7 +97,8 @@ public class PaymentOrderEventConsumer {
             // 시스템 예외는 DLQ 또는 재시도가 필요함
             log.error("[PaymentOrderEventConsumer] 결제 생성 중 시스템 예외 발생! orderId={}", event.orderId(), e);
 
-            // TODO: DLQ or Retry 적용 가능
+            // PaymentKafkaConfig에서 DLQ로 처리함
+
             throw e; // 재처리 되도록 예외 재발생
         }
     }
@@ -105,7 +107,8 @@ public class PaymentOrderEventConsumer {
             topics = {
                     "order.orderCancel"
             },
-            groupId = "payment-order-consumer"
+            groupId = "payment-order-consumer",
+            containerFactory = "paymentKafkaListenerContainerFactory"
     )
     public void orderCancelConsume(OrderCancelledEvent event) {
         log.info("[PaymentOrderEventConsumer] ORDER_CANCEL 이벤트 수신 orderId={}", event.orderId());
@@ -139,24 +142,54 @@ public class PaymentOrderEventConsumer {
         }
     }
 
-    // TODO:
     @KafkaListener(
             topics = {
                     "order.orderCreateFail",
                     "product.orderCreateFail",
             },
-            groupId = "payment-order-consumer"
+            groupId = "payment-order-consumer",
+            containerFactory = "paymentKafkaListenerContainerFactory"
     )
     public void orderCreateFailSagaConsume(OrderCreatedEvent event) {
 
+        log.info("[PaymentSaga] CREATE FAIL 수신 → 보상 트랜잭션 시작 orderId={}", event.orderId());
+
+        try {
+            PaymentDetailResult payment =
+                    paymentService.getPaymentByOrderId(
+                            new PaymentGetByOrderIdCommand(event.orderId())
+                    );
+
+            // 이미 취소된 경우는 무시 (멱등)
+            paymentService.cancelPayment(
+                    new PaymentCancelCommand(
+                            payment.paymentId(),
+                            "SAGA_ROLLBACK"
+                    )
+            );
+
+            log.info("[PaymentSaga] 결제 보상 완료 orderId={}", event.orderId());
+
+        } catch (BusinessException e) {
+            // 결제가 없으면 이미 Payment 이전 단계에서 실패한 것
+            log.warn("[PaymentSaga] 보상 불필요 orderId={}, reason={}",
+                    event.orderId(), e.getMessage());
+        } catch (Exception e) {
+            // 시스템 예외는 DLQ 또는 재시도 대상
+            log.error("[PaymentSaga] SAGA 중 시스템 예외 발생! orderId={}", event.orderId(), e);
+            throw e;
+        }
+
     }
 
+    // TODO: 사실 취소를 실패한다는 건 고려할 필요가 없지 않을까 생각됨.
     @KafkaListener(
             topics = {
                     "order.orderCancelFail",
                     "product.orderCancelFail"
             },
-            groupId = "payment-order-consumer"
+            groupId = "payment-order-consumer",
+            containerFactory = "paymentKafkaListenerContainerFactory"
     )
     public void orderCancelFailSagaConsume(OrderCreatedEvent event) {
 

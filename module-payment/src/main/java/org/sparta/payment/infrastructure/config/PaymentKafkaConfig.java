@@ -3,16 +3,22 @@ package org.sparta.payment.infrastructure.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.sparta.common.error.BusinessException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.converter.JsonMessageConverter;
 import org.springframework.kafka.support.converter.RecordMessageConverter;
+import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,5 +65,33 @@ public class PaymentKafkaConfig {
         factory.setRecordMessageConverter(converter);
 
         return factory;
+    }
+
+    /**
+     * DLT + Retry ErrorHandler
+     */
+    @Bean
+    public DefaultErrorHandler paymentKafkaErrorHandler(
+            KafkaTemplate<Object, Object> kafkaTemplate
+    ) {
+        DeadLetterPublishingRecoverer recoverer =
+                new DeadLetterPublishingRecoverer(
+                        kafkaTemplate,
+                        (record, ex) -> new TopicPartition(
+                                record.topic() + ".DLT",
+                                record.partition()
+                        )
+                );
+
+        // 1초 간격, 3회 재시도 후 DLT 전송
+        FixedBackOff backOff = new FixedBackOff(1000L, 3L);
+
+        DefaultErrorHandler handler =
+                new DefaultErrorHandler(recoverer, backOff);
+
+        // 비즈니스 예외는 재시도 / DLT 제외
+        handler.addNotRetryableExceptions(BusinessException.class);
+
+        return handler;
     }
 }
