@@ -3,6 +3,7 @@ package org.sparta.order.infrastructure.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.sparta.common.event.payment.GenericDomainEvent;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +22,6 @@ import java.util.Map;
 @Configuration
 public class OrderKafkaConfig {
 
-    //    @Value("10.0.1.230:9092")
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
 
@@ -60,6 +60,51 @@ public class OrderKafkaConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
 
         factory.setConsumerFactory(orderPaymentConsumerFactory());
+
+        return factory;
+    }
+
+    // ========== Delivery Events용 (String → POJO 변환) ==========
+
+    /**
+     * Order-Delivery 전용 ConsumerFactory
+     * - Value를 String으로 역직렬화
+     * - JsonMessageConverter가 String JSON → POJO 변환 처리
+     */
+    @Bean
+    public ConsumerFactory<String, Object> orderDeliveryConsumerFactory() {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ConsumerConfig.GROUP_ID_CONFIG, "order-service");
+        config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+
+        return new DefaultKafkaConsumerFactory<>(
+                config,
+                new StringDeserializer(),
+                (Deserializer<Object>) (Object) new StringDeserializer()  // Value도 String으로 역직렬화
+        );
+    }
+
+    /**
+     * Order-Delivery 전용 KafkaListenerContainerFactory
+     * - JsonMessageConverter를 사용하여 String JSON → POJO 자동 변환
+     */
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object>
+    orderDeliveryKafkaListenerContainerFactory() {
+
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+
+        factory.setConsumerFactory(orderDeliveryConsumerFactory());
+
+        // ObjectMapper 설정
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+
+        // JsonMessageConverter 사용 (String JSON → POJO 변환)
+        RecordMessageConverter converter = new JsonMessageConverter(objectMapper);
+        factory.setRecordMessageConverter(converter);
 
         return factory;
     }
