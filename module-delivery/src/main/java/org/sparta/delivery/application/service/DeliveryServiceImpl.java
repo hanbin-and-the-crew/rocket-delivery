@@ -235,7 +235,7 @@ public class DeliveryServiceImpl implements DeliveryService {
                 payload = objectMapper.writeValueAsString(event);
             } catch (JsonProcessingException e) {
                 log.error("[Outbox] 이벤트 직렬화 실패", e);
-                throw new RuntimeException("DeliveryCreatedLocalEvent 직렬화 실패", e);
+                throw new RuntimeException("DeliveryCreatedEvent 직렬화 실패", e);
             }
 
             DeliveryOutboxEvent outbox = DeliveryOutboxEvent.ready(
