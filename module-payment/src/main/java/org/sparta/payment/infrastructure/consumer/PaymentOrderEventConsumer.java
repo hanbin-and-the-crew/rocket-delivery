@@ -183,7 +183,6 @@ public class PaymentOrderEventConsumer {
 
     }
 
-    // TODO: 사실 취소를 실패한다는 건 고려할 필요가 없지 않을까 생각됨.
     @KafkaListener(
             topics = {
                     "order.orderCancelFail",
@@ -193,7 +192,14 @@ public class PaymentOrderEventConsumer {
             containerFactory = "paymentKafkaListenerContainerFactory"
     )
     public void orderCancelFailSagaConsume(OrderCreatedEvent event) {
+        log.error(
+                "[PaymentSaga] 결제 보상 실패 감지! orderId={}",
+                event.orderId()
+        );
 
+        // "주문 취소의 실패"같은 경우는 모니터링 정도로만 확인하면 충분하다.
+        // TODO:
+        // 1. Slack / Sentry / Alarm
+        // 2. 운영자 수동 처리 큐 등록
     }
-
 }
