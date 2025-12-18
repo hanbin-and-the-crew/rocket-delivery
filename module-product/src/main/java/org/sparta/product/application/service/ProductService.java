@@ -44,16 +44,6 @@ public class ProductService {
     /**
      * 상품 생성
      *
-     * 흐름:
-     *  1) 카테고리 존재 여부 검증
-     *  2) Money 값 객체 생성
-     *  3) Product.create(...) 호출로 도메인 규칙 검증
-     *  4) Product 저장
-     *  5) Stock.create(...) 로 재고 엔티티 생성
-     *  6) Stock 저장
-     *
-     *  - Product 생성 시 initialQuantity 는 Product 엔티티 내부에서
-     *    "유효한 초기 재고 수량인지"만 검증하고 별도 필드로는持たない.
      */
     @Transactional
     public UUID createProduct(ProductCreateCommand command) {

@@ -1,3 +1,4 @@
+/*
 package org.sparta.user.application.boot;
 
 import lombok.RequiredArgsConstructor;
@@ -47,3 +48,4 @@ public class DataSeeder implements CommandLineRunner {
     }
 }
 
+*/
