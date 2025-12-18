@@ -51,10 +51,14 @@ public class PaymentKafkaConfig {
      * payment 전용 KafkaListenerContainerFactory
      */
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> paymentKafkaListenerContainerFactory() {
+    public ConcurrentKafkaListenerContainerFactory<String, Object> paymentKafkaListenerContainerFactory(
+            DefaultErrorHandler paymentKafkaErrorHandler
+    ) {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
+
         factory.setConsumerFactory(paymentConsumerFactory());
+        factory.setCommonErrorHandler(paymentKafkaErrorHandler); // DLT 관련 설정 카프카 팩토리에 추가
 
         // ObjectMapper 설정
         ObjectMapper objectMapper = new ObjectMapper();
