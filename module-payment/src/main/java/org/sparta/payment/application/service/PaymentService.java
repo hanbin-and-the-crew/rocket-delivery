@@ -16,6 +16,7 @@ import org.sparta.payment.domain.entity.Payment;
 import org.sparta.payment.domain.entity.PaymentOutbox;
 import org.sparta.payment.domain.entity.Refund;
 import org.sparta.payment.domain.enumeration.PaymentStatus;
+import org.sparta.payment.domain.enumeration.RefundStatus;
 import org.sparta.payment.domain.error.PaymentErrorType;
 import org.sparta.payment.domain.repository.PaymentOutboxRepository;
 import org.sparta.payment.domain.repository.PaymentRepository;
@@ -333,16 +334,14 @@ public class PaymentService {
     }
 
     /**
-     * 보상 트랜잭션
-     *
-     *
-     * 환불 취소 처리 (SAGA 보상 실패 시)
+     * --- 보상 트랜잭션 ---
+     * 환불을 취소 처리 (SAGA 보상 실패 시)
      * - Payment 상태를 CANCELED → COMPLETED로 복구
      * - amountPaid를 원래 값으로 복구
-     * - 환불이 취소된 경우에 대한 이벤트 발행
+     * - 환불이 취소된 경우에 대한 실패 이벤트 발행
      */
     @Transactional
-    public PaymentDetailResult reverseCancelPayment(UUID paymentId) {
+    public PaymentDetailResult refundCancelPayment(UUID paymentId) {
         try {
             Payment payment = getPaymentEntity(paymentId);
 
@@ -355,12 +354,23 @@ public class PaymentService {
                 );
             }
 
+            // Refund FAIL 처리 (보상)
+            refundRepository.findByPaymentId(paymentId)
+                .stream()
+                .filter(refund -> refund.getStatus() == RefundStatus.REQUESTED)
+                .forEach(refund ->
+                        refund.markFailed(
+                                "SAGA_COMPENSATION",
+                                "결제 취소 보상으로 환불 요청이 실패 처리됨"
+                        )
+                );
+
             // 상태를 COMPLETED로 복구
             payment.reverseCancel();
             Payment saved = paymentRepository.save(payment);
 
             // 환불 취소 이벤트 발행
-            createPaymentReverseCanceledOutbox(saved);
+            createPaymentRefundCanceledOutbox(saved);
 
             log.info("[PaymentService] 환불 취소 완료 - paymentId={}, orderId={}",
                     paymentId, saved.getOrderId());
@@ -441,9 +451,9 @@ public class PaymentService {
      * 환불 취소 완료 이벤트 Outbox 생성
      * - SAGA 보상 실패로 인해 이전에 취소된 결제를 다시 승인 상태로 복구한 경우 발행
      */
-    private void createPaymentReverseCanceledOutbox(Payment payment) {
+    private void createPaymentRefundCanceledOutbox(Payment payment) {
         // 1) 이벤트 페이로드 생성
-        PaymentReverseCanceledEvent payload = new PaymentReverseCanceledEvent(
+        PaymentRefundCanceledEvent payload = new PaymentRefundCanceledEvent(
                 payment.getPaymentId(),
                 payment.getOrderId(),
                 payment.getAmountPaid(),
@@ -477,7 +487,7 @@ public class PaymentService {
     /**
      * 환불 취소 이벤트 페이로드
      */
-    private record PaymentReverseCanceledEvent(
+    private record PaymentRefundCanceledEvent(
             UUID paymentId,
             UUID orderId,
             Long amountRecovered,

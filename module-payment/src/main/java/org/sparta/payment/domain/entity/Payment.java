@@ -239,9 +239,8 @@ public class Payment {
      */
     public void reverseCancel() {
         if (this.status != PaymentStatus.CANCELED && this.status != PaymentStatus.REFUNDED) {
-            throw new IllegalStateException(
-                    "취소되지 않은 결제는 복구할 수 없습니다. status=" + this.status
-            );
+            throw new BusinessException(PaymentErrorType.REFUND_INVALID_PAYMENT_STATE,
+                    "취소되지 않은 결제는 복구할 수 없습니다. status=" + this.status);
         }
 
         // 상태 복구
