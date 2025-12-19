@@ -1,6 +1,9 @@
 package org.sparta.common.event;
 
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.event.delivery.DeliveryCompletedEvent;
+import org.sparta.common.event.delivery.DeliveryCreatedEvent;
+import org.sparta.common.event.delivery.DeliveryStartedEvent;
 import org.sparta.common.event.order.OrderApprovedEvent;
 import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.common.event.order.OrderCreatedEvent;
@@ -133,6 +136,21 @@ public class EventPublisher {
         // Product 도메인: 재고 차감 실패
         if (event instanceof org.sparta.common.event.product.StockReservationFailedEvent) {
             return "product.orderCreateFail";
+        }
+
+        // Delivery 도메인: 배송 생성 이벤트
+        if (event instanceof DeliveryCreatedEvent) {
+            return "delivery.deliveryCreate";
+        }
+
+        // Delivery 도메인: 배송 시작 이벤트
+        if (event instanceof DeliveryStartedEvent) {
+            return "delivery.deliveryStart";
+        }
+
+        // Delivery 도메인: 배송 완료 이벤트
+        if (event instanceof DeliveryCompletedEvent) {
+            return "delivery.deliveryComplete";
         }
 
         // Delivery 토픽 추가

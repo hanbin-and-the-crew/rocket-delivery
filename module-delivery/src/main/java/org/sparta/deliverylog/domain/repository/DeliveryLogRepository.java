@@ -26,4 +26,6 @@ public interface DeliveryLogRepository {
             Pageable pageable,
             Sort.Direction direction
     );
+
+    List<DeliveryLog> findByDeliveryIdAndDeletedAtIsNull(UUID deliveryId);
 }

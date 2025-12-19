@@ -5,7 +5,7 @@
 //import lombok.extern.slf4j.Slf4j;
 //import org.apache.kafka.clients.consumer.ConsumerRecord;
 //import org.sparta.delivery.application.service.DeliveryService;
-//import org.sparta.deliveryman.infrastructure.event.DeliveryCreatedEvent;
+//import org.sparta.deliveryman.infrastructure.event.DeliveryCreatedLocalEvent;
 //import org.sparta.delivery.presentation.dto.request.DeliveryRequest;
 //import org.sparta.deliveryman.application.service.DeliveryManService;
 //import org.sparta.deliveryman.domain.entity.DeliveryMan;
@@ -23,7 +23,7 @@
 //import java.util.UUID;
 //
 ///**
-// * [DeliveryCreatedEvent 수신]
+// * [DeliveryCreatedLocalEvent 수신]
 // * ( 기존에는 kafka event를 사용했는데 같은 모듈 안에서는
 // * 굳이 kafka를 돌아서 올 필요가 없을 것 같아서 local event로 변경 )
 // *
@@ -57,9 +57,9 @@
 //
 //            // LinkedHashMap을 JSON 문자열로 변환 후 DeliveryCreatedEvent로 역직렬화
 //            String jsonString = objectMapper.writeValueAsString(payload);
-//            DeliveryCreatedEvent event = objectMapper.readValue(jsonString, DeliveryCreatedEvent.class);
+//            DeliveryCreatedLocalEvent event = objectMapper.readValue(jsonString, DeliveryCreatedLocalEvent.class);
 //
-//            log.info("Received DeliveryCreatedEvent: deliveryId={}, eventId={}, sourceHubId={}, targetHubId={}",
+//            log.info("Received DeliveryCreatedLocalEvent: deliveryId={}, eventId={}, sourceHubId={}, targetHubId={}",
 //                    event.deliveryId(), event.eventId(), event.sourceHubId(), event.targetHubId());
 //
 //            // 멱등성 체크: eventId로 중복 이벤트 확인

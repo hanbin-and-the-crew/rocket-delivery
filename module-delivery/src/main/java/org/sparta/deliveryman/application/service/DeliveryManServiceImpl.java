@@ -289,6 +289,27 @@ public class DeliveryManServiceImpl implements DeliveryManService {
     }
 
     /**
+     * 배송 취소 시 배송 담당자 할당 해제
+     * - rollbackAssignedDelivery() 호출 (deliveryCount--, status 롤백)
+     */
+    @Override
+    @Transactional
+    public void unassignDelivery(UUID deliveryManId) {
+        if (deliveryManId == null) {
+            throw new BusinessException(DeliveryManErrorType.USER_ID_REQUIRED);
+        }
+
+        DeliveryMan deliveryMan = deliveryManRepository.findByIdAndDeletedAtIsNull(deliveryManId)
+                .orElseThrow(() -> new BusinessException(DeliveryManErrorType.DELIVERY_MAN_NOT_FOUND));
+
+        deliveryMan.rollbackAssignedDelivery(); // 도메인 메서드 호출
+
+        log.info("DeliveryMan unassigned: deliveryManId={}, newDeliveryCount={}, status={}",
+                deliveryManId, deliveryMan.getDeliveryCount(), deliveryMan.getStatus());
+    }
+
+
+    /**
      * 후보 리스트에서 배정 규칙에 맞게 최적의 배송 담당자 선택
      * - 1순위: status == WAITING 인 사람들 중 sequence ASC (이미 정렬되어 있음)
      * - 2순위: WAITING이 없으면 status == DELIVERING 인 사람들 중 deliveryCount 최소

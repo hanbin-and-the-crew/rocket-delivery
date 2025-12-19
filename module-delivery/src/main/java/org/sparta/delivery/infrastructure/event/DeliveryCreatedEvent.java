@@ -7,7 +7,7 @@
 //import java.time.Instant;
 //import java.util.UUID;
 //
-//public record DeliveryCreatedEvent(
+//public record DeliveryCreatedLocalEvent(
 //        UUID eventId,
 //        UUID deliveryId,
 //        UUID orderId,
@@ -24,8 +24,8 @@
 //        Instant occurredAt
 //) implements DomainEvent {
 //
-//    public static DeliveryCreatedEvent from(Delivery delivery) {
-//        return new DeliveryCreatedEvent(
+//    public static DeliveryCreatedLocalEvent from(Delivery delivery) {
+//        return new DeliveryCreatedLocalEvent(
 //                UUID.randomUUID(),
 //                delivery.getId(),
 //                delivery.getOrderId(),
