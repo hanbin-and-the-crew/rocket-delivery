@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.common.event.order.OrderApprovedEvent;
+import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.common.event.order.OrderCreatedEvent;
 import org.sparta.order.domain.entity.OrderOutboxEvent;
 import org.sparta.order.domain.repository.OrderOutboxEventRepository;
@@ -48,6 +49,15 @@ public class OrderOutboxPublisher {
                         );
                         eventPublisher.publishExternal(event);
                         log.info("[OrderOutboxPublisher] OrderApprovedEvent 발행 완료 - outboxId={}, orderId={}",
+                                outbox.getId(), event.orderId());
+                    }
+                    case "OrderCancelledEvent" -> {
+                        OrderCancelledEvent event = objectMapper.readValue(
+                                outbox.getPayload(),
+                                OrderCancelledEvent.class
+                        );
+                        eventPublisher.publishExternal(event);
+                        log.info("[OrderOutboxPublisher] OrderCancelledEvent 발행 완료 - outboxId={}, orderId={}",
                                 outbox.getId(), event.orderId());
                     }
                     default -> {

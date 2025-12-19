@@ -538,7 +538,7 @@ public class OrderService {
         eventPublisher.publishExternal(event);
     }
 
-    // 주문 취소 처리
+    // ============== 주문 취소 처리 ===============
     public OrderResponse.Update cancelOrder(OrderCommand.Cancel request) {
         Order order = findOrderOrThrow(request.orderId());
 
@@ -559,12 +559,35 @@ public class OrderService {
                 order.getProductId(),
                 order.getQuantity().getValue()
         );
-        eventPublisher.publishExternal(event);
+//        eventPublisher.publishExternal(event);
+
+        // ===================== 8. Outbox 패턴 적용 =====================
+        String payload;
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            log.error("[Outbox] 이벤트 직렬화 실패", e);
+            throw new RuntimeException("OrderCancelledEvent 직렬화 실패", e);
+        }
+
+        OrderOutboxEvent outbox = OrderOutboxEvent.ready(
+                "ORDER",
+                order.getId(),
+                "OrderCancelledEvent",
+                payload
+        );
+
+        outboxRepository.save(outbox);
+
+//        eventPublisher.publishExternal(event);
+
+        log.info("[Outbox] 이벤트 저장 완료 - outboxId={}, orderId={}, status=READY",
+                outbox.getId(), order.getId());
 
         return OrderResponse.Update.of(order, "주문이 취소되었습니다.");
     }
 
-    // 배송 시작/출고 처리 (API)
+    // ========= 배송 시작/출고 처리 (API) ============
     public OrderResponse.Update shipOrder(OrderCommand.ShipOrder request) {
         Order order = findOrderOrThrow(request.orderId());
         order.markShipped();
@@ -646,5 +669,15 @@ public class OrderService {
         Order order = findOrderOrThrow(orderId);
         order.changeRequestMemo(request.requestedMemo());
         return OrderResponse.Update.of(order, "요청사항이 변경되었습니다.");
+    }
+
+    //======== 배송 준비중으로 상태 변경========
+    public OrderResponse.Update preparingOrder(UUID orderId) {
+        Order order = findOrderOrThrow(orderId);
+        order.preparingOrder();
+        return OrderResponse.Update.of(
+                order,
+                "주문 상태가 '배송 준비중'으로 변경되었습니다."
+        );
     }
 }

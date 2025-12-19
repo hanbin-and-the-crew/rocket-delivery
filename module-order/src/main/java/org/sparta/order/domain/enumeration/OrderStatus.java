@@ -15,6 +15,11 @@ public enum OrderStatus {
     APPROVED,
 
     /**
+     * 배송 준비 중 / 이때부터 주문 취소 불가
+     * */
+    PREPARING_ORDER,
+
+    /**
      * 출고 완료 / 배송이 시작된 상태
      * 이 시점부터는 주문 취소 불가
      */

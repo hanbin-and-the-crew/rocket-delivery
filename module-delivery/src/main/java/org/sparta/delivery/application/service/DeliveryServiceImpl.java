@@ -1,14 +1,19 @@
 package org.sparta.delivery.application.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.delivery.domain.entity.Delivery;
+import org.sparta.delivery.domain.entity.DeliveryOutboxEvent;
 import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
 import org.sparta.delivery.domain.error.DeliveryErrorType;
-import org.sparta.delivery.domain.event.publisher.DeliveryCreatedEvent;
+import org.sparta.common.event.delivery.DeliveryCreatedEvent;
+import org.sparta.delivery.domain.event.publisher.DeliveryCreatedLocalEvent;
+import org.sparta.delivery.domain.repository.DeliveryOutBoxEventRepository;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
 import org.sparta.delivery.domain.repository.DeliveryProcessedEventRepository;
 import org.sparta.delivery.infrastructure.client.HubRouteFeignClient;
@@ -46,6 +51,8 @@ public class DeliveryServiceImpl implements DeliveryService {
     private final DeliveryLogService deliveryLogService;
     private final HubRouteFeignClient hubRouteFeignClient;
     private final EventPublisher eventPublisher;
+    private final DeliveryOutBoxEventRepository deliveryOutBoxEventRepository;
+    private final ObjectMapper objectMapper;
 
     // ================================
     // 1. 배송 생성 - 단순(테스트용)
@@ -80,14 +87,14 @@ public class DeliveryServiceImpl implements DeliveryService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                eventPublisher.publishExternal(DeliveryCreatedEvent.of(
+                eventPublisher.publishExternal(DeliveryCreatedLocalEvent.of(
                         saved.getOrderId(),
                         saved.getId(),
                         saved.getSupplierHubId(),
                         saved.getReceiveHubId(),
                         saved.getTotalLogSeq()
                 ));
-                log.info("DeliveryCreatedEvent published after commit: deliveryId={}", saved.getId());
+                log.info("DeliveryCreatedLocalEvent published after commit: deliveryId={}", saved.getId());
             }
         });
 
@@ -137,10 +144,10 @@ public class DeliveryServiceImpl implements DeliveryService {
                 log.info("Delivery already exists for orderId={}, saving DeliveryProcessedEvent and returning existing delivery",
                         orderEvent.orderId());
 
-                // 이벤트 기록만 저장하고 기존 배송 반환 (멱등 성공)
-                deliveryProcessedEventRepository.save(
-                        DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
-                );
+//                // 이벤트 기록만 저장하고 기존 배송 반환 (멱등 성공)
+//                deliveryProcessedEventRepository.save(
+//                        DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+//                );
 
                 return DeliveryResponse.Detail.from(existingDelivery.get());
             }
@@ -206,12 +213,49 @@ public class DeliveryServiceImpl implements DeliveryService {
             log.info("DeliveryLogs created: deliveryId={}, totalLogSeq={}",
                     savedDelivery.getId(), sequence);
 
-            // 5) 이벤트 처리 완료 기록 (같은 트랜잭션)
-            deliveryProcessedEventRepository.save(
-                    DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+//            // 5) 이벤트 처리 완료 기록 (같은 트랜잭션)
+//            deliveryProcessedEventRepository.save(
+//                    DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
+//            );
+
+            // ===================== DeliveryCreatedEvent 외부 이벤트 발행 준비 =====================
+
+            // 5) Outbox 이벤트 저장 (Delivery 생성 후!)
+            log.info("[이벤트] 발행 준비");
+            log.info("[이벤트] - orderId: {}", delivery.getOrderId());
+
+            DeliveryCreatedEvent event = DeliveryCreatedEvent.of(
+                    delivery.getId(),
+                    delivery.getOrderId()
             );
 
-            // 6) 트랜잭션 커밋 후 이벤트 발행
+            // ===================== Outbox 패턴 적용 =====================
+            String payload;
+            try {
+                payload = objectMapper.writeValueAsString(event);
+            } catch (JsonProcessingException e) {
+                log.error("[Outbox] 이벤트 직렬화 실패", e);
+                throw new RuntimeException("DeliveryCreatedEvent 직렬화 실패", e);
+            }
+
+            DeliveryOutboxEvent outbox = DeliveryOutboxEvent.ready(
+                    "DELIVERY",
+                    delivery.getId(),
+                    "DeliveryCreatedEvent",
+                    payload
+            );
+
+            deliveryOutBoxEventRepository.save(outbox);
+
+            log.info("[Outbox] 이벤트 저장 완료 - outboxId={}, deliveryId={}, status=READY",
+                    outbox.getId(), delivery.getId());
+
+            //            // 6) 이벤트 처리 완료 기록 (마지막에!)
+//            deliveryProcessedEventRepository.save(
+//                    DeliveryProcessedEvent.of(orderEvent.eventId(), "DELIVERY_CREATED")
+//            );
+
+            // 7) 트랜잭션 커밋 후 로컬 이벤트 발행
             UUID deliveryId = savedDelivery.getId();
             UUID orderId = savedDelivery.getOrderId();
             UUID supplierHubId = savedDelivery.getSupplierHubId();
@@ -221,15 +265,16 @@ public class DeliveryServiceImpl implements DeliveryService {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    eventPublisher.publishLocal(DeliveryCreatedEvent.of(
+                    eventPublisher.publishLocal(DeliveryCreatedLocalEvent.of(
                             orderId,
                             deliveryId,
                             supplierHubId,
                             receiveHubId,
                             totalLogSeq
                     ));
-                    log.info("DeliveryCreatedEvent published after transaction commit: deliveryId={}, orderId={}",
+                    log.info("DeliveryCreatedLocalEvent published after transaction commit: deliveryId={}, orderId={}",
                             deliveryId, orderId);
+
                 }
             });
 
