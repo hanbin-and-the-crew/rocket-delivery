@@ -21,11 +21,9 @@ import java.util.concurrent.TimeUnit;
 @SpringBootTest
 @EmbeddedKafka(
         partitions = 1,
-        brokerProperties = {"listeners=PLAINTEXT://localhost:9092"},
         topics = {"order.orderCreate", "order.orderCreate.DLT"}
 )
 @TestPropertySource(properties = {
-        "spring.kafka.bootstrap-servers=localhost:9092",
         "spring.kafka.consumer.auto-offset-reset=earliest"
 })
 @DisplayName("Payment Kafka DLT 통합 테스트")
