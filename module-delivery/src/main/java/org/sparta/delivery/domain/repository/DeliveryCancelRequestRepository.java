@@ -9,6 +9,8 @@ import java.util.UUID;
 
 public interface DeliveryCancelRequestRepository {
 
+    DeliveryCancelRequest save(DeliveryCancelRequest cancelRequest);
+
     boolean existsByCancelEventIdAndDeletedAtIsNull(UUID cancelEventId);
 
     Optional<DeliveryCancelRequest> findByOrderIdAndDeletedAtIsNull(UUID orderId);
