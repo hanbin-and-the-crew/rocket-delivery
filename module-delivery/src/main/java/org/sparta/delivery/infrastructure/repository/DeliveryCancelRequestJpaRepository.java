@@ -1,4 +1,4 @@
-package org.sparta.deliveryman.infrastructure.repository;
+package org.sparta.delivery.infrastructure.repository;
 
 import jakarta.persistence.LockModeType;
 import org.sparta.delivery.domain.entity.DeliveryCancelRequest;
@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface DeliveryCancelRequestJpaRepository extends JpaRepository<DeliveryCancelRequest, UUID> {
+
+
 
     /**
      * eventId로 존재 여부 확인 (멱등성 체크용)

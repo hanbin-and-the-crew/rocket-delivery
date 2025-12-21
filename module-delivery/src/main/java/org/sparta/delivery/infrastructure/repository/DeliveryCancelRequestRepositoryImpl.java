@@ -1,4 +1,4 @@
-package org.sparta.deliveryman.infrastructure.repository;
+package org.sparta.delivery.infrastructure.repository;
 
 import org.sparta.delivery.domain.entity.DeliveryCancelRequest;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +16,11 @@ import java.util.UUID;
 public class DeliveryCancelRequestRepositoryImpl implements DeliveryCancelRequestRepository {
 
     private final DeliveryCancelRequestJpaRepository jpaRepository;
+
+    @Override
+    public DeliveryCancelRequest save(DeliveryCancelRequest cancelRequest) {
+        return jpaRepository.save(cancelRequest);
+    }
 
     @Override
     public boolean existsByCancelEventIdAndDeletedAtIsNull(UUID cancelEventId){
