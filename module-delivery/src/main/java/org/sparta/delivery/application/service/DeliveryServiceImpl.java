@@ -133,16 +133,16 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         try {
 
-            // 0. Cancel Intent 확인 (PESSIMISTIC_WRITE 락)
-            Optional<DeliveryCancelRequest> cancelIntent =
+            // 0. Cancel Request 확인 (PESSIMISTIC_WRITE 락)
+            Optional<DeliveryCancelRequest> cancelRequest =
                     cancelRequestRepository.findWithLockByOrderId(orderEvent.orderId());
 
-            if (cancelIntent.isPresent() && cancelIntent.get().getStatus() == CancelRequestStatus.REQUESTED) {
+            if (cancelRequest.isPresent() && cancelRequest.get().getStatus() == CancelRequestStatus.REQUESTED) {
                 log.warn("Cancel intent detected! Skip delivery creation: orderId={}, cancelEventId={}",
-                        orderEvent.orderId(), cancelIntent.get().getCancelEventId());
+                        orderEvent.orderId(), cancelRequest.get().getCancelEventId());
 
                 // Cancel Intent APPLIED 처리
-                cancelIntent.get().markApplied();
+                cancelRequest.get().markApplied();
 
                 // 배송 생성 중단 예외 발생
                 throw new DeliveryCancelledException(orderEvent.orderId());
