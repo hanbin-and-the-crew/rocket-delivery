@@ -4,45 +4,39 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.sparta.common.error.BusinessException;
+import org.sparta.delivery.application.service.DeliveryService;
+import org.sparta.delivery.domain.entity.DeliveryCancelRequest;
+import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
+import org.sparta.delivery.domain.repository.DeliveryCancelRequestRepository;
+import org.sparta.delivery.domain.repository.DeliveryProcessedEventRepository;
 import org.sparta.common.event.payment.GenericDomainEvent;
 import org.sparta.common.event.payment.PaymentCanceledEvent;
-import org.sparta.delivery.domain.entity.Delivery;
-import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
-import org.sparta.delivery.domain.enumeration.DeliveryStatus;
-import org.sparta.delivery.domain.error.DeliveryErrorType;
-import org.sparta.delivery.domain.repository.DeliveryProcessedEventRepository;
-import org.sparta.delivery.domain.repository.DeliveryRepository;
-import org.sparta.deliverylog.application.service.DeliveryLogService;
-import org.sparta.deliveryman.application.service.DeliveryManService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
 import java.util.UUID;
 
 /**
  * PaymentCanceledEvent 수신 리스너
  * - Payment 결제 취소 완료 시 Delivery 취소 처리
+ * - Cancel Request 패턴 적용 (유령 배송 방지)
  * - 멱등성 보장 (DeliveryProcessedEvent)
- * - 재시도 전략: Delivery 없으면 Kafka 자동 재시도
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class PaymentCancelledListener {
 
-    private final DeliveryRepository deliveryRepository;
+    private final DeliveryService deliveryService;
+    private final DeliveryCancelRequestRepository cancelRequestRepository;
     private final DeliveryProcessedEventRepository deliveryProcessedEventRepository;
-    private final DeliveryLogService deliveryLogService;
-    private final DeliveryManService deliveryManService;
     private final ObjectMapper objectMapper;
 
     /**
      * PaymentCanceledEvent 수신
-     * - Payment 모듈에서 결제 취소 완료 이벤트 수신
-     * - Delivery, DeliveryLog, DeliveryMan 모두 취소 처리
+     * - Cancel Request 저장 (무조건!)
+     * - Delivery 있으면 즉시 취소, 없으면 리트라이
      */
     @KafkaListener(
             topics = "payment-events",
@@ -62,16 +56,16 @@ public class PaymentCancelledListener {
             throw new RuntimeException("Failed to deserialize GenericDomainEvent", e);
         }
 
-        // ===== 2. 이벤트 타입 필터링 추가 =====  // 안하면 payment의 생성 이벤트까지 수신함
+        // 2. 이벤트 타입 필터링
         if (!"payment.orderCancel.paymentCanceled".equals(envelope.eventType())) {
             log.debug("Ignoring non-cancel event: eventType={}", envelope.eventType());
-            return; // 취소 이벤트가 아니면 무시
+            return;
         }
 
         log.info("Received Envelope event: eventId={}, type={}",
                 envelope.eventId(), envelope.eventType());
 
-        // 2. Payload 변환
+        // 3. Payload 변환
         PaymentCanceledEvent event;
         try {
             event = objectMapper.convertValue(envelope.payload(), PaymentCanceledEvent.class);
@@ -83,7 +77,7 @@ public class PaymentCancelledListener {
         log.info("Received PaymentCanceledEvent: paymentId={}, orderId={}, eventId={}",
                 event.paymentId(), event.orderId(), envelope.eventId());
 
-        // 3. 멱등성 체크
+        // 4. 멱등성 체크 (전체 트랜잭션)
         if (deliveryProcessedEventRepository.existsByEventId(envelope.eventId())) {
             log.info("Event already processed, skipping: eventId={}, orderId={}",
                     envelope.eventId(), event.orderId());
@@ -91,135 +85,77 @@ public class PaymentCancelledListener {
         }
 
         try {
-            // 4. 배송 취소 처리
-            processDeliveryCancellation(event, envelope.eventId());
+            // ===== Cancel Request 패턴 =====
 
-        } catch (BusinessException e) {
-            // Delivery 없으면 재시도
-            if (e.getErrorType() == DeliveryErrorType.DELIVERY_NOT_FOUND) {
-                log.warn("Delivery not found for cancelled order: orderId={} - Will retry",
-                        event.orderId());
-                throw e; // Kafka가 재시도
+            // 5. Cancel Request 저장 (중복 체크)
+            if (!cancelRequestRepository.existsByCancelEventIdAndDeletedAtIsNull(envelope.eventId())) {
+                DeliveryCancelRequest cancelRequest = DeliveryCancelRequest.requested(
+                        event.orderId(),
+                        envelope.eventId()
+                );
+                cancelRequestRepository.save(cancelRequest);
+                log.info("Cancel Request saved: orderId={}, cancelEventId={}",
+                        event.orderId(), envelope.eventId());
+            } else {
+                log.info("Cancel Request already exists: cancelEventId={}", envelope.eventId());
             }
 
-            // 다른 BusinessException은 재시도 안 함 (이벤트 처리 완료로 간주)
-            log.error("Business error processing payment cancellation: orderId={}, errorType={}",
-                    event.orderId(), e.getErrorType(), e);
+            // 6. Delivery 취소 시도 (있으면 취소, 없으면 false)
+            boolean cancelled = deliveryService.cancelIfExists(event.orderId());
 
-            // 이벤트 처리 완료 기록 (재시도 방지)
+            if (cancelled) {
+                // 6-A. 즉시 취소 성공 → Cancel Request APPLIED 처리
+                cancelRequestRepository.findByOrderIdAndDeletedAtIsNull(event.orderId())
+                        .ifPresent(request -> {
+                            request.markApplied();
+                            log.info("Cancel Request marked as APPLIED: orderId={}", event.orderId());
+                        });
+
+                log.info("Delivery cancelled immediately: orderId={}", event.orderId());
+
+            } else {
+                // 6-B. Delivery 아직 없음 → 리트라이
+                log.warn("Delivery not found yet, will retry: orderId={}", event.orderId());
+
+                // Cancel Request는 이미 저장됨 (createWithRoute에서 가드됨!)
+                // 리트라이를 위해 예외 발생 (Kafka ErrorHandler가 재시도)
+                throw new DeliveryNotFoundYetException(event.orderId());
+            }
+
+            // 7. ProcessedEvent 저장 (멱등성 기록)
             deliveryProcessedEventRepository.save(
                     DeliveryProcessedEvent.of(envelope.eventId(), "PAYMENT_CANCELED")
             );
 
+            log.info("Payment cancellation processed successfully: orderId={}, eventId={}",
+                    event.orderId(), envelope.eventId());
+
+        } catch (DeliveryNotFoundYetException e) {
+            // Delivery 없음 → 재시도 (ProcessedEvent 저장 안 함!)
+            log.warn("Delivery not found, will retry: orderId={}", event.orderId());
+            throw e; // Kafka가 재시도
+
         } catch (Exception e) {
-            log.error("Unexpected error processing payment cancellation: orderId={}",
-                    event.orderId(), e);
-            throw e; // 예기치 못한 에러는 재시도
+            // 예기치 못한 오류 → 로그 남기고 재시도
+            log.error("Unexpected error processing payment cancellation: orderId={}, eventId={}",
+                    event.orderId(), envelope.eventId(), e);
+            throw e; // Kafka가 재시도
         }
     }
 
     /**
-     * 배송 취소 처리 핵심 로직
+     * Delivery 없음 예외 (재시도용)
      */
-    private void processDeliveryCancellation(PaymentCanceledEvent event, UUID eventId) {
-        // 1. Delivery 조회
-        Optional<Delivery> deliveryOpt =
-                deliveryRepository.findByOrderIdAndDeletedAtIsNull(event.orderId());
+    public static class DeliveryNotFoundYetException extends RuntimeException {
+        private final UUID orderId;
 
-        if (deliveryOpt.isEmpty()) {
-            log.warn("Delivery not found for cancelled order: orderId={} - Throwing exception for retry",
-                    event.orderId());
-
-            // 재시도를 위해 예외 발생 (Kafka ErrorHandler가 재시도)
-            throw new BusinessException(DeliveryErrorType.DELIVERY_NOT_FOUND);
+        public DeliveryNotFoundYetException(UUID orderId) {
+            super("Delivery not found yet for orderId: " + orderId);
+            this.orderId = orderId;
         }
 
-        Delivery delivery = deliveryOpt.get();
-
-        // 2. 이미 취소된 경우 (멱등성)
-        if (delivery.getStatus() == DeliveryStatus.CANCELED) {
-            log.info("Delivery already cancelled: deliveryId={}, orderId={}",
-                    delivery.getId(), event.orderId());
-
-            // 이벤트 처리 완료 기록
-            deliveryProcessedEventRepository.save(
-                    DeliveryProcessedEvent.of(eventId, "PAYMENT_CANCELED")
-            );
-            return;
-        }
-
-        // 3. 취소 가능 여부 확인
-        if (!canBeCancelled(delivery)) {
-            log.warn("Delivery cannot be cancelled: deliveryId={}, status={}, orderId={}",
-                    delivery.getId(), delivery.getStatus(), event.orderId());
-
-            // 이미 배송 시작된 경우 - 이벤트는 처리 완료로 기록
-            deliveryProcessedEventRepository.save(
-                    DeliveryProcessedEvent.of(eventId, "PAYMENT_CANCELED")
-            );
-            return;
-        }
-
-        log.info("Starting delivery cancellation: deliveryId={}, orderId={}, status={}",
-                delivery.getId(), event.orderId(), delivery.getStatus());
-
-        // 4. Delivery 취소
-        delivery.cancel();
-        log.info("Delivery cancelled: deliveryId={}", delivery.getId());
-
-        // 5. DeliveryLog 전체 취소
-        cancelDeliveryLogs(delivery.getId());
-
-        // 6. 배송 담당자 할당 해제
-        unassignDeliveryMan(delivery);
-
-        // 7. 이벤트 처리 완료 기록
-        deliveryProcessedEventRepository.save(
-                DeliveryProcessedEvent.of(eventId, "PAYMENT_CANCELED")
-        );
-
-        log.info("Delivery cancellation completed successfully: deliveryId={}, orderId={}",
-                delivery.getId(), event.orderId());
-    }
-
-    /**
-     * 취소 가능 여부 확인
-     * - CREATED, HUB_WAITING 상태만 취소 가능
-     */
-    private boolean canBeCancelled(Delivery delivery) {
-        DeliveryStatus status = delivery.getStatus();
-        return status == DeliveryStatus.CREATED || status == DeliveryStatus.HUB_WAITING;
-    }
-
-    /**
-     * DeliveryLog 전체 취소
-     */
-    private void cancelDeliveryLogs(UUID deliveryId) {
-        try {
-            deliveryLogService.cancelAllLogsByDeliveryId(deliveryId);
-            log.info("All DeliveryLogs cancelled for deliveryId={}", deliveryId);
-        } catch (Exception e) {
-            log.error("Failed to cancel DeliveryLogs: deliveryId={}", deliveryId, e);
-            // 로그 취소 실패해도 진행 (스케줄러가 나중에 처리)
-        }
-    }
-
-    /**
-     * 배송 담당자 할당 해제
-     */
-    private void unassignDeliveryMan(Delivery delivery) {
-        if (delivery.getHubDeliveryManId() == null) {
-            return;
-        }
-
-        try {
-            deliveryManService.unassignDelivery(delivery.getHubDeliveryManId());
-            log.info("DeliveryMan unassigned: deliveryManId={}, deliveryId={}",
-                    delivery.getHubDeliveryManId(), delivery.getId());
-        } catch (Exception e) {
-            log.error("Failed to unassign DeliveryMan: deliveryManId={}, deliveryId={}",
-                    delivery.getHubDeliveryManId(), delivery.getId(), e);
-            // 담당자 해제 실패해도 진행 (스케줄러가 나중에 처리)
+        public UUID getOrderId() {
+            return orderId;
         }
     }
 }
