@@ -202,4 +202,14 @@ public interface DeliveryService {
      * @return 페이징된 배송 목록
      */
     DeliveryResponse.PageResult search(DeliveryRequest.Search request, Pageable pageable);
+
+    /**
+     * 배송 취소 시도 (배송 있으면 취소, 없으면 false 반환)
+     * - Cancel Intent 저장 후 즉시 취소 시도용
+     * - 예외 발생 안 함 (Delivery 없어도 false만 반환)
+     *
+     * @param orderId 주문 ID
+     * @return 취소 성공 여부 (true: 취소 완료, false: 배송 없음 또는 취소 불가)
+     */
+    boolean cancelIfExists(UUID orderId);
 }
