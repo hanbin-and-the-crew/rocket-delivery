@@ -80,6 +80,9 @@ public class Delivery extends BaseEntity {
     @Column(name = "company_delivery_man_id", columnDefinition = "UUID")
     private UUID companyDeliveryManId;
 
+    @Column(name = "canceled_at")
+    private LocalDateTime canceledAt;
+
     // ===== 생성 메서드 =====
 
     public static Delivery createFromOrderApproved(
@@ -247,6 +250,7 @@ public class Delivery extends BaseEntity {
             return;
         }
         this.status = DeliveryStatus.CANCELED;
+        this.canceledAt = LocalDateTime.now(); // 추가
     }
 
     public void delete() {
