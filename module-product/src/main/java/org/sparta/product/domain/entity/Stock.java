@@ -209,6 +209,19 @@ public class Stock extends BaseEntity {
         updateStatus();
     }
 
+    // Stock 엔티티에 추가
+    public void restoreConfirmedReservation(int quantity) {
+        validateRestoreQuantity(quantity); // quantity >= 1 같은 최소 검증 (필요시)
+        this.quantity += quantity;
+        updateStatus();
+    }
+
+    private void validateRestoreQuantity(int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException(ProductErrorType.RESERVE_QUANTITY_INVALID);
+        }
+    }
+
     /**
      * 재고 상태 자동 갱신
      * - OUT_OF_STOCK: 실물 재고 0

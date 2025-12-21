@@ -122,6 +122,12 @@ public class StockReservation extends BaseEntity {
         this.status = StockReservationStatus.CANCELLED;
     }
 
+    // StockReservation 엔티티에 추가
+    public void compensateCancel() {
+        this.status = StockReservationStatus.CANCELLED;
+    }
+
+
     public boolean isConfirmed() {
         return status == StockReservationStatus.CONFIRMED;
     }

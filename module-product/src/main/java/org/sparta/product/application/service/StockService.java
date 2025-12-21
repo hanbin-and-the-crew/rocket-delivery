@@ -232,6 +232,53 @@ public class StockService {
         });
     }
 
+    @Transactional
+    public void restoreConfirmedReservation(String externalReservationKey) {
+        if (externalReservationKey == null || externalReservationKey.isBlank()) {
+            throw new BusinessException(ProductErrorType.STOCK_RESERVATION_KEY_REQUIRED);
+        }
+
+        List<StockReservation> reservations =
+                stockReservationRepository.findAllByExternalReservationKey(externalReservationKey);
+
+        if (reservations == null || reservations.isEmpty()) {
+            throw new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND);
+        }
+
+        for (StockReservation reservation : reservations) {
+            // 이미 취소된 예약이면 멱등 처리: 스킵
+            if (reservation.isCancelled()) {
+                continue;
+            }
+
+            // 이 메서드는 "CONFIRMED 케이스 복구"가 목적이므로,
+            // CONFIRMED가 아니면 스킵(혹은 예외) - 여기선 안전하게 스킵
+            if (!reservation.isConfirmed()) {
+                continue;
+            }
+
+            UUID stockId = reservation.getStockId();
+            String lockKey = "product:stock:lock:" + stockId;
+
+            executeWithLock(lockKey, () -> {
+                Stock stock = stockRepository.findById(stockId)
+                        .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
+
+                int qty = reservation.getReservedQuantity();
+
+                // (도메인 추가 필요) 확정 차감 되돌림 + status 갱신
+                stock.restoreConfirmedReservation(qty);
+
+                // (도메인 추가 필요) CONFIRMED라도 보상 취소 처리
+                reservation.compensateCancel();
+
+                stockRepository.save(stock);
+                stockReservationRepository.save(reservation);
+                return null;
+            });
+        }
+    }
+
     private <T> T executeWithLock(String lockKey, Supplier<T> action) {
         try {
             return lockExecutor.executeWithLock(lockKey, 0, 8, TimeUnit.SECONDS, action);
