@@ -233,7 +233,7 @@ public class StockService {
     }
 
     @Transactional
-    public void restoreConfirmedReservation(String externalReservationKey) {
+    public void compensateOrderCancellation(String externalReservationKey) {
         if (externalReservationKey == null || externalReservationKey.isBlank()) {
             throw new BusinessException(ProductErrorType.STOCK_RESERVATION_KEY_REQUIRED);
         }
@@ -241,43 +241,61 @@ public class StockService {
         List<StockReservation> reservations =
                 stockReservationRepository.findAllByExternalReservationKey(externalReservationKey);
 
-        if (reservations == null || reservations.isEmpty()) {
-            throw new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND);
+        if (reservations.isEmpty()) {
+            return;
         }
 
         for (StockReservation reservation : reservations) {
-            // 이미 취소된 예약이면 멱등 처리: 스킵
+
             if (reservation.isCancelled()) {
-                continue;
+                continue; // 멱등
             }
 
-            // 이 메서드는 "CONFIRMED 케이스 복구"가 목적이므로,
-            // CONFIRMED가 아니면 스킵(혹은 예외) - 여기선 안전하게 스킵
+            // RESERVED 판단: confirmed도 아니고 cancelled도 아닌 상태
             if (!reservation.isConfirmed()) {
+                // 기존 cancel 흐름 재사용(= 재고 복구 + reservation.cancel + 저장까지 포함)
+                cancelOne(reservation.getReservationKey());
                 continue;
             }
 
-            UUID stockId = reservation.getStockId();
-            String lockKey = "product:stock:lock:" + stockId;
-
-            executeWithLock(lockKey, () -> {
-                Stock stock = stockRepository.findById(stockId)
-                        .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
-
-                int qty = reservation.getReservedQuantity();
-
-                // (도메인 추가 필요) 확정 차감 되돌림 + status 갱신
-                stock.restoreConfirmedReservation(qty);
-
-                // (도메인 추가 필요) CONFIRMED라도 보상 취소 처리
-                reservation.compensateCancel();
-
-                stockRepository.save(stock);
-                stockReservationRepository.save(reservation);
-                return null;
-            });
+            // CONFIRMED 보상
+            compensateConfirmedOne(reservation.getReservationKey());
         }
     }
+
+    private void compensateConfirmedOne(String internalReservationKey) {
+
+        StockReservation reservation = stockReservationRepository.findByReservationKey(internalReservationKey)
+                .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+        executeWithLock("product:stock:lock:" + reservation.getStockId(), () -> {
+
+            StockReservation fresh = stockReservationRepository.findByReservationKey(internalReservationKey)
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+            if (fresh.isCancelled()) {
+                return null; // 멱등
+            }
+
+            // CONFIRMED만 보상 대상으로 처리
+            if (!fresh.isConfirmed()) {
+                return null;
+            }
+
+            Stock stock = stockRepository.findById(fresh.getStockId())
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
+
+            stock.restoreConfirmedReservation(fresh.getReservedQuantity());
+            fresh.compensateCancel();
+
+            stockRepository.save(stock);
+            stockReservationRepository.save(fresh);
+
+            return null;
+        });
+    }
+
+
 
     private <T> T executeWithLock(String lockKey, Supplier<T> action) {
         try {

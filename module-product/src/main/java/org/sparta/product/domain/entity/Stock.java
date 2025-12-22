@@ -209,7 +209,6 @@ public class Stock extends BaseEntity {
         updateStatus();
     }
 
-    // Stock 엔티티에 추가
     public void restoreConfirmedReservation(int quantity) {
         validateRestoreQuantity(quantity); // quantity >= 1 같은 최소 검증 (필요시)
         this.quantity += quantity;
