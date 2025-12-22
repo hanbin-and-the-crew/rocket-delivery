@@ -122,6 +122,11 @@ public class StockReservation extends BaseEntity {
         this.status = StockReservationStatus.CANCELLED;
     }
 
+    public void compensateCancel() {
+        this.status = StockReservationStatus.CANCELLED;
+    }
+
+
     public boolean isConfirmed() {
         return status == StockReservationStatus.CONFIRMED;
     }

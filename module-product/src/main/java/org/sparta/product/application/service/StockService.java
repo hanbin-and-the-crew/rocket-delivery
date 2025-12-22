@@ -232,6 +232,71 @@ public class StockService {
         });
     }
 
+    @Transactional
+    public void compensateOrderCancellation(String externalReservationKey) {
+        if (externalReservationKey == null || externalReservationKey.isBlank()) {
+            throw new BusinessException(ProductErrorType.STOCK_RESERVATION_KEY_REQUIRED);
+        }
+
+        List<StockReservation> reservations =
+                stockReservationRepository.findAllByExternalReservationKey(externalReservationKey);
+
+        if (reservations.isEmpty()) {
+            return;
+        }
+
+        for (StockReservation reservation : reservations) {
+
+            if (reservation.isCancelled()) {
+                continue; // 멱등
+            }
+
+            // RESERVED 판단: confirmed도 아니고 cancelled도 아닌 상태
+            if (!reservation.isConfirmed()) {
+                // 기존 cancel 흐름 재사용(= 재고 복구 + reservation.cancel + 저장까지 포함)
+                cancelOne(reservation.getReservationKey());
+                continue;
+            }
+
+            // CONFIRMED 보상
+            compensateConfirmedOne(reservation.getReservationKey());
+        }
+    }
+
+    private void compensateConfirmedOne(String internalReservationKey) {
+
+        StockReservation reservation = stockReservationRepository.findByReservationKey(internalReservationKey)
+                .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+        executeWithLock("product:stock:lock:" + reservation.getStockId(), () -> {
+
+            StockReservation fresh = stockReservationRepository.findByReservationKey(internalReservationKey)
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+            if (fresh.isCancelled()) {
+                return null; // 멱등
+            }
+
+            // CONFIRMED만 보상 대상으로 처리
+            if (!fresh.isConfirmed()) {
+                return null;
+            }
+
+            Stock stock = stockRepository.findById(fresh.getStockId())
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
+
+            stock.restoreConfirmedReservation(fresh.getReservedQuantity());
+            fresh.compensateCancel();
+
+            stockRepository.save(stock);
+            stockReservationRepository.save(fresh);
+
+            return null;
+        });
+    }
+
+
+
     private <T> T executeWithLock(String lockKey, Supplier<T> action) {
         try {
             return lockExecutor.executeWithLock(lockKey, 0, 8, TimeUnit.SECONDS, action);
