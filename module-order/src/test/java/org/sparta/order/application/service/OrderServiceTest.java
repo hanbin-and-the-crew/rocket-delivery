@@ -7,6 +7,7 @@ import org.sparta.common.event.DomainEvent;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.order.application.command.OrderCommand;
+import org.sparta.order.application.error.ServiceUnavailableException;
 import org.sparta.order.domain.entity.Order;
 import org.sparta.order.domain.enumeration.CanceledReasonCode;
 import org.sparta.order.domain.repository.IdempotencyRepository;
@@ -15,6 +16,7 @@ import org.sparta.order.infrastructure.client.CouponClient;
 import org.sparta.order.infrastructure.client.PaymentClient;
 import org.sparta.order.infrastructure.client.PointClient;
 import org.sparta.order.infrastructure.client.StockClient;
+import org.sparta.order.domain.circuitbreaker.CircuitBreaker;
 import org.sparta.order.presentation.dto.response.OrderResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -59,6 +61,9 @@ class OrderServiceTest {
 
     @MockitoBean
     private PaymentClient paymentClient;
+
+    @MockitoBean
+    private CircuitBreaker circuitBreaker;
     // ===================================
 
     private static final UUID CUSTOMER_ID = UUID.randomUUID();
@@ -96,6 +101,21 @@ class OrderServiceTest {
         assertThat(cancelledEvent.orderId()).isEqualTo(ORDER_ID);
     }
 
+    @Test
+    @DisplayName("Circuit Breaker가 OPEN이면 주문 생성이 즉시 실패한다")
+    void createOrder_failFastWhenCircuitBreakerOpen() {
+        // given
+        when(circuitBreaker.isOpen("stock-service")).thenReturn(true);
+
+        OrderCommand.Create command = createSampleCreateCommand();
+
+        // when & then
+        assertThatThrownBy(() -> orderService.createOrder(UUID.randomUUID(), command))
+            .isInstanceOf(ServiceUnavailableException.class);
+
+        verifyNoInteractions(orderRepository);
+    }
+
     private Order createExistingOrderWithId(UUID id) {
         Order order = Order.create(
                 CUSTOMER_ID,
@@ -121,5 +141,28 @@ class OrderServiceTest {
             throw new RuntimeException(e);
         }
         return order;
+    }
+
+    private OrderCommand.Create createSampleCreateCommand() {
+        return new OrderCommand.Create(
+                UUID.randomUUID(), // supplierCompanyId
+                UUID.randomUUID(), // supplierHubId
+                UUID.randomUUID(), // receiptCompanyId
+                UUID.randomUUID(), // receiptHubId
+                UUID.randomUUID(), // productId
+                1,
+                10_000,
+                "서울시 강남구 1-1",
+                "홍길동",
+                "010-1111-2222",
+                "slack-user",
+                LocalDateTime.now().plusDays(1),
+                "빠른 배송 부탁",
+                0,
+                "CARD",
+                "TOSS",
+                "KRW",
+                null
+        );
     }
 }
