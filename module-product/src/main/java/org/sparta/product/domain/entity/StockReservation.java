@@ -1,7 +1,16 @@
 package org.sparta.product.domain.entity;
 
-
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,6 +19,14 @@ import org.sparta.product.domain.enums.StockReservationStatus;
 
 import java.util.UUID;
 
+/**
+ * 재고 예약 엔티티
+ *
+ * 핵심:
+ * - 외부에서 들어오는 reservationKey(externalReservationKey)는 그대로 저장한다.
+ * - Product 내부 멱등/충돌 방지를 위해 internalReservationKey(reservationKey)를 별도로 만들어 저장한다.
+ *   internalReservationKey = externalReservationKey + ":" + productId (Stock 기준)
+ */
 @Entity
 @Table(
         name = "stock_reservations",
@@ -21,7 +38,9 @@ import java.util.UUID;
         },
         indexes = {
                 @Index(name = "idx_stock_reservation_stock_id", columnList = "stock_id"),
-                @Index(name = "idx_stock_reservation_status", columnList = "status")
+                @Index(name = "idx_stock_reservation_status", columnList = "status"),
+                @Index(name = "idx_stock_reservation_external_key", columnList = "external_reservation_key"),
+                @Index(name = "idx_stock_reservation_external_key_status", columnList = "external_reservation_key,status")
         }
 )
 @Getter
@@ -35,96 +54,79 @@ public class StockReservation extends BaseEntity {
     @Column(name = "stock_id", nullable = false, columnDefinition = "uuid")
     private UUID stockId;
 
-    @Column(name = "reservation_key", nullable = false, length = 100)
+    /**
+     * 외부 계약 키 (예: orderId.toString())
+     */
+    @Column(name = "external_reservation_key", nullable = false, length = 128)
+    private String externalReservationKey;
+
+    /**
+     * Product 내부 멱등/충돌 방지용 키
+     * - 기존 컬럼명을 유지(reservation_key)하여 변경 범위를 최소화한다.
+     */
+    @Column(name = "reservation_key", nullable = false, length = 256)
     private String reservationKey;
 
     @Column(name = "reserved_quantity", nullable = false)
     private int reservedQuantity;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 32)
-    private StockReservationStatus status;
+    @Column(nullable = false, length = 32)
+    private StockReservationStatus status = StockReservationStatus.RESERVED;
 
     @Version
-    @Column(name = "version")
     private Long version;
 
-    // == 생성 메서드 == //
-
     private StockReservation(UUID stockId,
-                             String reservationKey,
+                             String externalReservationKey,
+                             String internalReservationKey,
                              int reservedQuantity) {
         if (stockId == null) {
             throw new IllegalArgumentException("stockId must not be null");
         }
-        if (reservationKey == null || reservationKey.isBlank()) {
-            throw new IllegalArgumentException("reservationKey must not be blank");
+        if (externalReservationKey == null || externalReservationKey.isBlank()) {
+            throw new IllegalArgumentException("externalReservationKey must not be blank");
+        }
+        if (internalReservationKey == null || internalReservationKey.isBlank()) {
+            throw new IllegalArgumentException("internalReservationKey must not be blank");
         }
         if (reservedQuantity <= 0) {
             throw new IllegalArgumentException("reservedQuantity must be positive");
         }
 
         this.stockId = stockId;
-        this.reservationKey = reservationKey;
+        this.externalReservationKey = externalReservationKey;
+        this.reservationKey = internalReservationKey;
         this.reservedQuantity = reservedQuantity;
         this.status = StockReservationStatus.RESERVED;
     }
 
-    /**
-     * 예약 생성 팩토리 메서드
-     */
-    public static StockReservation create(UUID stockId,
-                                          String reservationKey,
-                                          int reservedQuantity) {
-        return new StockReservation(stockId, reservationKey, reservedQuantity);
+    public static StockReservation reserve(UUID stockId,
+                                           String externalReservationKey,
+                                           String internalReservationKey,
+                                           int reservedQuantity) {
+        return new StockReservation(stockId, externalReservationKey, internalReservationKey, reservedQuantity);
     }
 
-    // == 비즈니스 메서드 == //
-
-    /**
-     * 예약 확정 (결제 성공 시 호출)
-     *
-     * 멱등성을 고려하여 이미 CONFIRMED 상태라면 그대로 무시한다.
-     * CANCELLED 상태에서 CONFIRM을 시도하는 것은 잘못된 흐름이므로 예외를 던진다.
-     */
     public void confirm() {
-        if (this.status == StockReservationStatus.CONFIRMED) {
-            // 멱등 처리: 이미 확정된 예약이면 그냥 무시
-            return;
-        }
-        if (this.status == StockReservationStatus.CANCELLED) {
-            throw new IllegalStateException("이미 취소된 예약은 확정할 수 없습니다.");
+        if (status == StockReservationStatus.CANCELLED) {
+            throw new IllegalStateException("cancelled reservation cannot be confirmed");
         }
         this.status = StockReservationStatus.CONFIRMED;
     }
 
-    /**
-     * 예약 취소 (주문 취소 / 결제 실패 시 호출)
-     *
-     * 멱등성을 고려하여 이미 CANCELLED 상태라면 그대로 무시한다.
-     * CONFIRMED 상태에서 CANCEL을 시도하는 것은 잘못된 흐름이므로 예외를 던진다.
-     */
     public void cancel() {
-        if (this.status == StockReservationStatus.CANCELLED) {
-            // 멱등 처리: 이미 취소된 예약이면 그냥 무시
-            return;
-        }
-        if (this.status == StockReservationStatus.CONFIRMED) {
-            throw new IllegalStateException("이미 확정된 예약은 취소할 수 없습니다.");
+        if (status == StockReservationStatus.CONFIRMED) {
+            throw new IllegalStateException("confirmed reservation cannot be cancelled");
         }
         this.status = StockReservationStatus.CANCELLED;
     }
 
-    public boolean isReserved() {
-        return this.status == StockReservationStatus.RESERVED;
-    }
-
     public boolean isConfirmed() {
-        return this.status == StockReservationStatus.CONFIRMED;
+        return status == StockReservationStatus.CONFIRMED;
     }
 
     public boolean isCancelled() {
-        return this.status == StockReservationStatus.CANCELLED;
+        return status == StockReservationStatus.CANCELLED;
     }
-
 }

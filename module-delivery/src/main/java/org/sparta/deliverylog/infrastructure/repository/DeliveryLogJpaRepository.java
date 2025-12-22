@@ -14,4 +14,6 @@ public interface DeliveryLogJpaRepository extends JpaRepository<DeliveryLog, UUI
     List<DeliveryLog> findAllByDeliveryIdAndDeletedAtIsNullOrderBySequenceAsc(UUID deliveryId);
 
     boolean existsByDeliveryIdAndSequenceAndDeletedAtIsNull(UUID deliveryId, int sequence);
+
+    List<DeliveryLog> findByDeliveryIdAndDeletedAtIsNull(UUID deliveryId);
 }

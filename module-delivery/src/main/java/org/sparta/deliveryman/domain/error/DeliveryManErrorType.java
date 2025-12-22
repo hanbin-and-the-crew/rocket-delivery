@@ -18,6 +18,7 @@ public enum DeliveryManErrorType implements ErrorType {
     INVALID_SEQUENCE(HttpStatus.BAD_REQUEST, "sequence 값은 1 이상이어야 합니다."),
     HUB_ID_REQUIRED_FOR_COMPANY(HttpStatus.BAD_REQUEST, "업체 배송 담당자는 허브 Id가 필수 입니다."),
     SEQUENCE_REQUIRED(HttpStatus.BAD_REQUEST, "시퀀스 번호는 필수 입니다."),
+    DELIVERY_MAN_NOT_FOUND(HttpStatus.BAD_REQUEST, "해당 담당자가 없습니다."),
 
 
     HUB_TYPE_MUST_NOT_HAVE_HUB_ID(HttpStatus.BAD_REQUEST, "HUB 타입 배송 담당자는 hubId를 가질 수 없습니다."),

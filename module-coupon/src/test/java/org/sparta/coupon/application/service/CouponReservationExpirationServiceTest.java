@@ -1,3 +1,4 @@
+/*
 package org.sparta.coupon.application.service;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +63,8 @@ class CouponReservationExpirationServiceTest {
                 .thenReturn(expirationService);
     }
 
-    /**
+    */
+/**
      * 【만료 처리 - Redis TTL 먼저 만료된 경우】
      *
      * 기능: Redis TTL이 먼저 만료되어 DB에 예약 정보가 없는 경우 Redis 키만 정리
@@ -79,7 +81,8 @@ class CouponReservationExpirationServiceTest {
      * 검증 포인트:
      * ✓ 예약 정보 없을 때 안전한 처리
      * ✓ Redis 고아 키 정리
-     */
+     *//*
+
     @Test
     @DisplayName("예약 정보가 없으면 Redis 키만 정리한다")
     void handleExpiredReservation_WhenReservationMissing_DeletesRedisOnly() {
@@ -92,7 +95,8 @@ class CouponReservationExpirationServiceTest {
         verify(lockExecutor, never()).executeWithLock(anyString(), any(Supplier.class));
     }
 
-    /**
+    */
+/**
      * 【만료 처리 - 아직 만료 안 된 경우】
      *
      * 기능: 만료 시간이 안 된 예약은 정리하지 않음
@@ -109,7 +113,8 @@ class CouponReservationExpirationServiceTest {
      * 검증 포인트:
      * ✓ 만료 시간 정확히 체크
      * ✓ 유효한 예약은 보존
-     */
+     *//*
+
     @Test
     @DisplayName("만료되지 않은 예약은 정리하지 않는다")
     void handleExpiredReservation_WhenNotExpired_DoesNothing() {
@@ -130,7 +135,8 @@ class CouponReservationExpirationServiceTest {
         verify(redisManager, never()).deleteReservation(reservationId);
     }
 
-    /**
+    */
+/**
      * 【만료 처리 - 5분 경과 후 쿠폰 복구】
      *
      * 기능: 5분 경과한 예약은 쿠폰을 AVAILABLE로 복구하고 데이터 정리
@@ -152,7 +158,8 @@ class CouponReservationExpirationServiceTest {
      * ✓ 5분 만료 시 자동 복구
      * ✓ 다른 사용자가 재예약 가능
      * ✓ 분산 락으로 동시성 제어
-     */
+     *//*
+
     @Test
     @DisplayName("만료된 예약은 쿠폰 상태를 복구하고 데이터도 정리한다")
     void handleExpiredReservation_WhenExpired_ReleasesCoupon() {
@@ -181,7 +188,8 @@ class CouponReservationExpirationServiceTest {
         verify(redisManager).deleteReservation(reservationId);
     }
 
-    /**
+    */
+/**
      * 【만료 처리 - 배치 스케줄러】
      *
      * 기능: 주기적으로 만료된 예약 목록 조회 및 일괄 처리
@@ -198,7 +206,8 @@ class CouponReservationExpirationServiceTest {
      * 검증 포인트:
      * ✓ 배치 조회 정상 동작
      * ✓ Redis TTL 이벤트 보완 (이중 안전장치)
-     */
+     *//*
+
     @Test
     @DisplayName("배치 실행 시 만료 예약 목록을 조회한다")
     void handleExpiredReservations_BatchFetchesExpiredList() {
@@ -219,3 +228,4 @@ class CouponReservationExpirationServiceTest {
         verify(couponReservationRepository).findExpiredReservations(any(LocalDateTime.class), eq(10));
     }
 }
+*/

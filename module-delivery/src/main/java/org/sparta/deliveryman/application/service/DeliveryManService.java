@@ -101,6 +101,7 @@ public interface DeliveryManService {
      */
     void rollbackAssignment(UUID deliveryManId);
 
+    void unassignDelivery(UUID deliveryManId);
 
     // 5. 조회 / 검색
 

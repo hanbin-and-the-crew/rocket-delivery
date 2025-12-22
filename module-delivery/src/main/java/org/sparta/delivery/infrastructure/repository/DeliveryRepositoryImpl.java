@@ -9,6 +9,7 @@ import org.sparta.delivery.domain.repository.DeliveryRepository;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,5 +101,12 @@ public class DeliveryRepositoryImpl implements DeliveryRepository {
     @Override
     public Optional<Delivery> findByOrderIdAndDeletedAtIsNull(UUID orderId) {
         return deliveryJpaRepository.findByOrderIdAndDeletedAtIsNull(orderId);
+    }
+
+    @Override
+    public List<Delivery> findByStatusNotAndCreatedAtAfterAndDeletedAtIsNull(
+            DeliveryStatus status,
+            LocalDateTime createdAfter) {
+        return deliveryJpaRepository.findByStatusNotAndCreatedAtAfterAndDeletedAtIsNull(status, createdAfter);
     }
 }
