@@ -25,9 +25,19 @@ spring:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: delivery-service
+      auto-offset-reset: latest
+#      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      task:
+        scheduling:
+          pool:
+            size: 2
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  task:
+    scheduling:
+      pool:
+        size: 2
 
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
