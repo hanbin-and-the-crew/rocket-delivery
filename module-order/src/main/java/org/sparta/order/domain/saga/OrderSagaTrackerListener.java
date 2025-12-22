@@ -1,5 +1,7 @@
 package org.sparta.order.domain.saga;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -15,6 +17,7 @@ import java.util.UUID;
 public class OrderSagaTrackerListener {
 
     private final SagaStateRepository sagaStateRepo;
+    private final ObjectMapper objectMapper;
 
     @KafkaListener(topics = {
             "order.orderApprove", "order.orderCancel",
@@ -35,8 +38,14 @@ public class OrderSagaTrackerListener {
     }
 
     private UUID extractOrderId(String payload) {
-        // JSON 파싱 최소 구현 (실제 이벤트에 맞게 수정)
-        return UUID.fromString(payload.split("\"orderId\":\"")[1].split("\"")[0]);
+        try {
+            JsonNode node = objectMapper.readTree(payload);
+            String orderIdStr = node.get("orderId").asText();
+            return UUID.fromString(orderIdStr);
+        } catch (Exception e) {
+            log.error("Failed to parse orderId from payload: {}", payload, e);
+            throw new IllegalArgumentException("Invalid event payload", e);
+        }
     }
 
     private void updateState(SagaState state, String topic) {
@@ -46,8 +55,7 @@ public class OrderSagaTrackerListener {
                 state.setOverallStatus("IN_PROGRESS");
             }
             case "payment-events" -> state.setPaymentStatus("COMPLETED");
-            case "order.orderApprove.DLT", "payment.paymentCancel.DLT" ->
-                    state.setOverallStatus("RECOVERING");
+            case "order.orderApprove.DLT", "payment.paymentCancel.DLT" -> state.setOverallStatus("RECOVERING");
         }
         state.setUpdatedAt(LocalDateTime.now());
     }
