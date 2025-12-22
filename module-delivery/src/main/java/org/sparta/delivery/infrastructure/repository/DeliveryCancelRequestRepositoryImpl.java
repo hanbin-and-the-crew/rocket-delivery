@@ -42,4 +42,9 @@ public class DeliveryCancelRequestRepositoryImpl implements DeliveryCancelReques
         return jpaRepository.findAllByStatusAndDeletedAtIsNull(status);
     }
 
+    @Override
+    public DeliveryCancelRequest saveAndFlush(DeliveryCancelRequest entity) {
+        return jpaRepository.saveAndFlush(entity);
+    }
+
 }

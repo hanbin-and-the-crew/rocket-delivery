@@ -53,7 +53,7 @@ public class DeliveryKafkaErrorHandlerConfig {
                 org.springframework.dao.DataAccessException.class,     // DB 연결 오류
                 org.springframework.web.client.RestClientException.class, // Feign 타임아웃
                 java.net.SocketTimeoutException.class,                 // 네트워크 타임아웃
-                org.sparta.delivery.infrastructure.event.consumer.PaymentCancelledListener.DeliveryNotFoundYetException.class // Delivery 없음
+                org.sparta.delivery.infrastructure.event.consumer.PaymentCancelledListener.DeliveryNotFoundYetException.class
         );
 
         // 리트라이 불가능한 예외들 (바로 DLT)

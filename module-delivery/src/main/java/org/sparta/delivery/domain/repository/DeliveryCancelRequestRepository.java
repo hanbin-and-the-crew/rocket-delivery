@@ -18,4 +18,10 @@ public interface DeliveryCancelRequestRepository {
     Optional<DeliveryCancelRequest> findWithLockByOrderId(UUID orderId);
 
     List<DeliveryCancelRequest> findAllByStatusAndDeletedAtIsNull(CancelRequestStatus status);
+
+//    DeliveryCancelRequest saveAndFlush(DeliveryCancelRequest entity);
+//    <S extends DeliveryCancelRequest> List<S> saveAndFlush(Iterable<S> entities);
+//    void flush();
+
+    DeliveryCancelRequest saveAndFlush(DeliveryCancelRequest entity);
 }
