@@ -10,6 +10,7 @@ dependencies {
 
     // Kafka
     api 'org.springframework.kafka:spring-kafka'
+    api 'com.fasterxml.jackson.core:jackson-databind'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'

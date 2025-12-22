@@ -85,3 +85,8 @@ jwt:
     token:
       expire: ${JWT_REFRESH_TOKEN_EXPIRE} # 2주 (ms)
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health" # HealthChecker 연동을 위해 health endpoint 노출

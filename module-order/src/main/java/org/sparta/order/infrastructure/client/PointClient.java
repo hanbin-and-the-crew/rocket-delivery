@@ -1,6 +1,7 @@
 package org.sparta.order.infrastructure.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -15,6 +16,9 @@ public interface PointClient {
     ApiResponse<PointResponse.PointReservationResult> reservePoint(
             @RequestBody PointRequest.Reserve request
     );
+
+    @GetMapping("/actuator/health")
+    void health();
 
     // ===== Request DTO =====
     class PointRequest {
