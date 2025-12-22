@@ -3,6 +3,7 @@ package org.sparta.delivery.domain.repository;
 
 import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -21,4 +22,8 @@ public interface DeliveryProcessedEventRepository {
      * 처리된 이벤트 저장
      */
     DeliveryProcessedEvent save(DeliveryProcessedEvent deliveryProcessedEvent);
+
+
+    Optional<DeliveryProcessedEvent> findByEventId(UUID eventId);
+
 }

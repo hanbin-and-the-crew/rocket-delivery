@@ -7,12 +7,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.delivery.domain.entity.Delivery;
+import org.sparta.delivery.domain.entity.DeliveryCancelRequest;
 import org.sparta.delivery.domain.entity.DeliveryOutboxEvent;
-import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
+import org.sparta.delivery.domain.enumeration.CancelRequestStatus;
 import org.sparta.delivery.domain.enumeration.DeliveryStatus;
+import org.sparta.delivery.domain.error.DeliveryCancelledException;
 import org.sparta.delivery.domain.error.DeliveryErrorType;
 import org.sparta.common.event.delivery.DeliveryCreatedEvent;
 import org.sparta.delivery.domain.event.publisher.DeliveryCreatedLocalEvent;
+import org.sparta.delivery.domain.repository.DeliveryCancelRequestRepository;
 import org.sparta.delivery.domain.repository.DeliveryOutBoxEventRepository;
 import org.sparta.delivery.domain.repository.DeliveryRepository;
 import org.sparta.delivery.domain.repository.DeliveryProcessedEventRepository;
@@ -28,10 +31,12 @@ import org.sparta.delivery.presentation.dto.response.HubLegResponse;
 import org.sparta.deliverylog.application.service.DeliveryLogService;
 import org.sparta.deliverylog.presentation.dto.request.DeliveryLogRequest;
 import org.sparta.deliverylog.presentation.dto.response.DeliveryLogResponse;
+import org.sparta.deliveryman.application.service.DeliveryManService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -46,16 +51,22 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class DeliveryServiceImpl implements DeliveryService {
 
+    // Repository
     private final DeliveryRepository deliveryRepository;
     private final DeliveryProcessedEventRepository deliveryProcessedEventRepository;
-    private final DeliveryLogService deliveryLogService;
-    private final HubRouteFeignClient hubRouteFeignClient;
-    private final EventPublisher eventPublisher;
     private final DeliveryOutBoxEventRepository deliveryOutBoxEventRepository;
+    private final DeliveryCancelRequestRepository cancelRequestRepository;  // 배송 삭제 보완을 위해 추가
+    // Service
+    private final DeliveryLogService deliveryLogService;
+    private final DeliveryManService deliveryManService;
+    // api
+    private final HubRouteFeignClient hubRouteFeignClient;
+    // event
+    private final EventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
 
     // ================================
-    // 1. 배송 생성 - 단순(테스트용)
+    // 1. 배송 생성 - 단순(API/테스트용)
     // ================================
     @Override
     @Transactional
@@ -102,15 +113,14 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     // ================================
-    // 2. 배송 생성 - 허브 경로 + 로그 생성 (멱등성 보장)
+    // 2. 배송 생성 - 허브 경로 + 로그 생성 (멱등성 보장) / (SYSTEM)
     // ================================
     /**
      * OrderApprovedEvent를 받아 배송 생성
-     *
      * 멱등성 보장:
+     * - Cancel Intent 확인 (PESSIMISTIC_WRITE 락) - 생성과 삭제 이벤트 동시성 문제 처리
      * - eventId 기반 중복 이벤트 체크 (1차 방어)
      * - orderId 기반 중복 배송 체크 (2차 방어)
-     *
      * 실패 이벤트 발행 정책:
      * - 복구 불가능한 비즈니스 오류 (NO_ROUTE_AVAILABLE): DeliveryFailedEvent 발행
      * - 일시적 오류 (Feign 타임아웃, DB 연결 오류 등): 재시도 (이벤트 발행 안함)
@@ -123,6 +133,22 @@ public class DeliveryServiceImpl implements DeliveryService {
                 orderEvent.orderId(), orderEvent.eventId());
 
         try {
+
+            // 0. Cancel Request 확인 (PESSIMISTIC_WRITE 락)
+            Optional<DeliveryCancelRequest> cancelRequest =
+                    cancelRequestRepository.findWithLockByOrderId(orderEvent.orderId());
+
+            if (cancelRequest.isPresent() && cancelRequest.get().getStatus() == CancelRequestStatus.REQUESTED) {
+                log.warn("Cancel request detected! Skip delivery creation: orderId={}, cancelEventId={}",
+                        orderEvent.orderId(), cancelRequest.get().getCancelEventId());
+
+                // Cancel request APPLIED 처리
+//                cancelRequest.get().markApplied(); // 롤백 문제
+
+                // 배송 생성 중단 예외 발생
+                throw new DeliveryCancelledException(orderEvent.orderId());
+            }
+
             // 1차 방어: eventId 기반 멱등성 체크
             if (deliveryProcessedEventRepository.existsByEventId(orderEvent.eventId())) {
                 log.info("Event already processed, skipping: eventId={}, orderId={}",
@@ -144,7 +170,7 @@ public class DeliveryServiceImpl implements DeliveryService {
                 log.info("Delivery already exists for orderId={}, saving DeliveryProcessedEvent and returning existing delivery",
                         orderEvent.orderId());
 
-//                // 이벤트 기록만 저장하고 기존 배송 반환 (멱등 성공)
+//                // 이벤트 기록만 저장하고 기존 배송 반환 (멱등 성공) 멱등은 Listener class에서 저장으로 수정함
 //                deliveryProcessedEventRepository.save(
 //                        DeliveryProcessedEvent.of(orderEvent.eventId(), "ORDER_APPROVED")
 //                );
@@ -474,6 +500,48 @@ public class DeliveryServiceImpl implements DeliveryService {
         return DeliveryResponse.Detail.from(delivery);
     }
 
+    /**
+     * 추가된 메서드: 배송 취소 시도 (예외 발생 안 함)
+     */
+    @Override
+    @Transactional
+    public boolean cancelIfExists(UUID orderId) {
+        log.info("Attempting to cancel delivery if exists: orderId={}", orderId);
+
+        // 1. Delivery 조회
+        Optional<Delivery> deliveryOpt = deliveryRepository.findByOrderIdAndDeletedAtIsNull(orderId);
+
+        if (deliveryOpt.isEmpty()) {
+            log.info("Delivery not found for orderId={}", orderId);
+            return false; // 배송 없음
+        }
+
+        Delivery delivery = deliveryOpt.get();
+
+        // 2. 이미 취소됨 체크 (멱등성)
+        if (delivery.getStatus() == DeliveryStatus.CANCELED) {
+            log.info("Delivery already cancelled: deliveryId={}", delivery.getId());
+            return true; // 이미 취소됨
+        }
+
+        // 3. 취소 가능 여부 확인
+        if (!canBeCancelled(delivery)) {
+            log.warn("Delivery cannot be cancelled: deliveryId={}, status={}",
+                    delivery.getId(), delivery.getStatus());
+            return false; // 취소 불가 (이미 배송 시작등 취소 가능한 status가 아닌 경우)
+        }
+
+        // 4. 취소 처리 (기존 헬퍼 메서드 재사용)
+        log.info("Cancelling delivery: deliveryId={}, orderId={}", delivery.getId(), orderId);
+
+        delivery.cancel();
+        cancelDeliveryLogs(delivery.getId());
+        unassignDeliveryMan(delivery);
+
+        log.info("Delivery cancelled successfully: deliveryId={}", delivery.getId());
+        return true;
+    }
+
     @Override
     @Transactional
     public void delete(UUID deliveryId) {
@@ -521,6 +589,10 @@ public class DeliveryServiceImpl implements DeliveryService {
         );
     }
 
+    // =======================
+    // # 헬퍼 메서드
+    // ==========================
+
     private Sort.Direction parseDirection(String sortDirection) {
         if (sortDirection == null) {
             return Sort.Direction.ASC;
@@ -529,4 +601,58 @@ public class DeliveryServiceImpl implements DeliveryService {
                 ? Sort.Direction.DESC
                 : Sort.Direction.ASC;
     }
+
+    /**
+     * 취소 가능 여부 확인
+     */
+    private boolean canBeCancelled(Delivery delivery) {
+        DeliveryStatus status = delivery.getStatus();
+        return status == DeliveryStatus.CREATED || status == DeliveryStatus.HUB_WAITING;
+    }
+
+    /**
+     * DeliveryLog 전체 취소
+     */
+    private void cancelDeliveryLogs(UUID deliveryId) {
+        try {
+            deliveryLogService.cancelAllLogsByDeliveryId(deliveryId);
+            log.info("All DeliveryLogs cancelled for deliveryId={}", deliveryId);
+        } catch (Exception e) {
+            log.error("Failed to cancel DeliveryLogs: deliveryId={}", deliveryId, e);
+            // 로그 취소 실패해도 진행 (실패 -> 스케줄러가 처리 예정)
+        }
+    }
+
+    /**
+     * 배송 담당자 할당 해제
+     */
+    private void unassignDeliveryMan(Delivery delivery) {
+        if (delivery.getHubDeliveryManId() == null) {
+            return;
+        }
+
+        try {
+            deliveryManService.unassignDelivery(delivery.getHubDeliveryManId());
+            log.info("DeliveryMan unassigned: deliveryManId={}, deliveryId={}",
+                    delivery.getHubDeliveryManId(), delivery.getId());
+        } catch (Exception e) {
+            log.error("Failed to unassign DeliveryMan: deliveryManId={}, deliveryId={}",
+                    delivery.getHubDeliveryManId(), delivery.getId(), e);
+            // 담당자 해제 실패해도 진행 (실패 -> 스케줄러가 처리 예정)
+        }
+    }
+
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
+    public void markCancelRequestApplied(UUID orderId) {
+        cancelRequestRepository.findByOrderIdAndDeletedAtIsNull(orderId)
+                .ifPresent(req -> {
+                    if (req.getStatus() == CancelRequestStatus.REQUESTED) {
+                        req.markApplied();
+                        cancelRequestRepository.save(req);
+                        log.info("CancelRequest marked APPLIED: orderId={}", orderId);
+                    }
+                });
+    }
+
 }

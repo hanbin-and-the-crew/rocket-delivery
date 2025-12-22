@@ -5,6 +5,7 @@ import org.sparta.delivery.domain.entity.DeliveryProcessedEvent;
 import org.sparta.delivery.domain.repository.DeliveryProcessedEventRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -22,4 +23,10 @@ public class DeliveryProcessedEventRepositoryImpl implements DeliveryProcessedEv
     public DeliveryProcessedEvent save(DeliveryProcessedEvent deliveryProcessedEvent) {
         return jpaRepository.save(deliveryProcessedEvent);
     }
+
+    @Override
+    public Optional<DeliveryProcessedEvent> findByEventId(UUID eventId){
+        return jpaRepository.findByEventId(eventId);
+    }
+
 }
