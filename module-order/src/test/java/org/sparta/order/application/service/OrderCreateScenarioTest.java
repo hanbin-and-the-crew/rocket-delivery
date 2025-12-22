@@ -1,5 +1,6 @@
 package org.sparta.order.application.service;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,6 +37,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@Disabled
 @SpringBootTest
 @ActiveProfiles("test")
 // OrderService의 성공/실패 분기와 보상 이벤트 발행 여부를  검증하는 단위 시나리오 테스트

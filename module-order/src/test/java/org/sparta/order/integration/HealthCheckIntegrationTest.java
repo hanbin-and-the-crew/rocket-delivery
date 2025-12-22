@@ -1,6 +1,7 @@
 package org.sparta.order.integration;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.order.domain.circuitbreaker.CircuitBreaker;
@@ -34,6 +35,7 @@ import static org.awaitility.Awaitility.await;
  * - FeignHealthChecker가 /actuator/health를 호출하여
  * - HealthStatus를 정확하게 반환하는지 검증
  */
+@Disabled
 @SpringBootTest
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)

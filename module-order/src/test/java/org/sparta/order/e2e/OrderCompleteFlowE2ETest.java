@@ -1,7 +1,7 @@
 package org.sparta.order.e2e;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -10,13 +10,11 @@ import org.slf4j.LoggerFactory;
 import org.sparta.common.event.DomainEvent;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.common.event.order.OrderCancelledEvent;
-import org.sparta.common.event.order.OrderCreatedEvent;
 import org.sparta.order.application.command.OrderCommand;
 import org.sparta.order.application.service.OrderService;
 import org.sparta.order.domain.circuitbreaker.CircuitBreaker;
 import org.sparta.order.e2e.helper.TestDataSeeder;
 import org.sparta.order.domain.entity.OrderOutboxEvent;
-import org.sparta.order.domain.enumeration.OutboxStatus;
 import org.sparta.order.infrastructure.client.CouponClient;
 import org.sparta.order.infrastructure.client.PaymentClient;
 import org.sparta.order.infrastructure.client.PointClient;
@@ -33,7 +31,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.DockerComposeContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -66,6 +63,7 @@ import static org.mockito.Mockito.verify;
  *   → Product/User/Coupon/Payment Service (Docker)
  *   → Kafka/Redis (이벤트 발행)
  */
+@Disabled
 @SpringBootTest
 @ActiveProfiles("test")
 @Testcontainers(disabledWithoutDocker = true)

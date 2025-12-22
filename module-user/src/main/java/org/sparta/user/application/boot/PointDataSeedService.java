@@ -1,3 +1,4 @@
+/*
 package org.sparta.user.application.boot;
 
 import lombok.RequiredArgsConstructor;
@@ -146,3 +147,4 @@ public class PointDataSeedService {
         log.info("예약3 (CONFIRMED): point2(5000) 전체 예약 및 결제완료 - orderId: {}", orderId3);
     }
 }
+*/

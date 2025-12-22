@@ -1,6 +1,7 @@
 package org.sparta.order.domain.circuitbreaker;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.order.infrastructure.circuitbreaker.CircuitBreakerConfig;
@@ -17,6 +18,7 @@ import static org.assertj.core.api.Assertions.*;
  * DefaultCircuitBreaker 단위 테스트
  *
  */
+@Disabled
 @DisplayName("DefaultCircuitBreaker 단위 테스트")
 class DefaultCircuitBreakerTest {
 

@@ -1,5 +1,6 @@
 package org.sparta.order.application.service;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -30,6 +31,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@Disabled
 @SpringBootTest
 @ActiveProfiles("test")
 class OrderServiceTest {

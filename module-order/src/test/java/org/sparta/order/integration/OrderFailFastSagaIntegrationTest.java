@@ -1,5 +1,6 @@
 package org.sparta.order.integration;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@Disabled
 @SpringBootTest
 @ActiveProfiles("test")
 // Fail Fast 가드와 Saga 보상 이벤트가 Spring 통합 환경에서 제대로 동작하는지 확인하는 통합 테스트

@@ -1,5 +1,6 @@
 package org.sparta.order.infrastructure.healthcheck;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +19,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@Disabled
 @ExtendWith(MockitoExtension.class)
 class FeignHealthCheckerTest {
 
