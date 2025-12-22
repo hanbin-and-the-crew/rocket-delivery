@@ -36,6 +36,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -138,11 +139,11 @@ public class DeliveryServiceImpl implements DeliveryService {
                     cancelRequestRepository.findWithLockByOrderId(orderEvent.orderId());
 
             if (cancelRequest.isPresent() && cancelRequest.get().getStatus() == CancelRequestStatus.REQUESTED) {
-                log.warn("Cancel intent detected! Skip delivery creation: orderId={}, cancelEventId={}",
+                log.warn("Cancel request detected! Skip delivery creation: orderId={}, cancelEventId={}",
                         orderEvent.orderId(), cancelRequest.get().getCancelEventId());
 
-                // Cancel Intent APPLIED 처리
-                cancelRequest.get().markApplied();
+                // Cancel request APPLIED 처리
+//                cancelRequest.get().markApplied(); // 롤백 문제
 
                 // 배송 생성 중단 예외 발생
                 throw new DeliveryCancelledException(orderEvent.orderId());
@@ -640,4 +641,18 @@ public class DeliveryServiceImpl implements DeliveryService {
             // 담당자 해제 실패해도 진행 (실패 -> 스케줄러가 처리 예정)
         }
     }
+
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
+    public void markCancelRequestApplied(UUID orderId) {
+        cancelRequestRepository.findByOrderIdAndDeletedAtIsNull(orderId)
+                .ifPresent(req -> {
+                    if (req.getStatus() == CancelRequestStatus.REQUESTED) {
+                        req.markApplied();
+                        cancelRequestRepository.save(req);
+                        log.info("CancelRequest marked APPLIED: orderId={}", orderId);
+                    }
+                });
+    }
+
 }

@@ -212,4 +212,6 @@ public interface DeliveryService {
      * @return 취소 성공 여부 (true: 취소 완료, false: 배송 없음 또는 취소 불가)
      */
     boolean cancelIfExists(UUID orderId);
+
+    void markCancelRequestApplied(UUID uuid);
 }
