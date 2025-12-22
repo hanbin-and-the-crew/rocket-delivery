@@ -1,6 +1,7 @@
 package org.sparta.delivery.application.event;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zaxxer.hikari.pool.HikariProxyCallableStatement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.delivery.application.service.DeliveryService;
@@ -13,12 +14,13 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * [OrderApprovedEvent 수신]
  * => 주문 승인 시 배송 생성
  * => 허브 경로 계산 및 DeliveryLog 생성
- *
+ * <p>
  * 멱등성 보장:
  * - eventId 기반 중복 이벤트 체크
  * - 동일 주문으로 배송 중복 생성 방지
@@ -31,6 +33,7 @@ public class OrderApprovedListener {
     private final DeliveryService deliveryService;
     private final DeliveryProcessedEventRepository deliveryProcessedEventRepository;
     private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * 주문 승인 이벤트 처리
@@ -67,22 +70,30 @@ public class OrderApprovedListener {
 
             // 정상 케이스의 processedEvent(멱등성)저장은 try 밖으로 뻄
 
-        }  catch (DeliveryCancelledException e) {
+        } catch (DeliveryCancelledException e) {
             // Cancel Request로 인한 생성 중단 (정상 케이스)
             log.warn("Delivery creation cancelled due to cancel request: orderId={}, message={}",
                     event.orderId(), e.getMessage());
             deliveryCreated = false;    // delivery 생성 안 됨
 
+//            deliveryService.markCancelRequestApplied(event.orderId());
+
+            deliveryService.markCancelRequestApplied(event.orderId());
+
+            // TXO 롤백 방지 : TXㅇ로 ProcessedEvent 저장
+            transactionTemplate.execute(status -> {
             // delivery가 Cancel된 경우에도 이벤트는 처리된 것으로 간주하고 기록
             deliveryProcessedEventRepository.save(
                     DeliveryProcessedEvent.of(event.eventId(), "ORDER_APPROVED")
             );
+                return null;
+            });
 
             log.info("OrderApprovedEvent processing completed: orderId={}, eventId={}, status=CANCELLED",
                     event.orderId(), event.eventId());
 
-        }
-        catch (DataIntegrityViolationException e) {
+            return;
+        } catch (DataIntegrityViolationException e) {
             // 중복 키 에러 처리: 다른 트랜잭션이 이미 처리 완료했을 경우 에러가 발생하지 않게 처리
             if (e.getMessage() != null && e.getMessage().contains("idx_event_id")) {
                 log.warn("Event already processed by another transaction: eventId={}, orderId={}. " +
