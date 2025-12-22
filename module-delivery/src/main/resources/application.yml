@@ -26,7 +26,8 @@ spring:
     consumer:
       group-id: delivery-service
       auto-offset-reset: latest
-#      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       task:
         scheduling:
           pool:
