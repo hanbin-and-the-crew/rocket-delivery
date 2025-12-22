@@ -32,7 +32,9 @@ public enum OrderErrorType implements ErrorType {
     INVALID_PAYMENT_TYPE(HttpStatus.BAD_REQUEST, "유효하지 않은 결제 타입입니다."),
     INVALID_Pg_Provider(HttpStatus.BAD_REQUEST, "유효하지 않은 결제사입니다."),
 
-
+    // 삭제
+    CANNOT_DELETE_NON_CANCELED_ORDER(HttpStatus.CONFLICT, "취소된 주문만 삭제 가능합니다"),
+    
     // 예약
     STOCK_RESERVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "재고 예약 실패"),
     POINT_RESERVATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "포인트 예약 실패"),
@@ -44,15 +46,18 @@ public enum OrderErrorType implements ErrorType {
     ORDER_ALREADY_SHIPPED(HttpStatus.CONFLICT, "이미 출고된 주문입니다"),
     CANNOT_SHIPPED_CANCELED_ORDER(HttpStatus.CONFLICT, "취소된 주문은 출고할 수 없습니다"),
     CANNOT_SHIPPED_DELIVERED_ORDER(HttpStatus.CONFLICT, "이미 배송 완료된 주문입니다"),
+    CANNOT_SHIP_NOT_PREPARING_ORDER(HttpStatus.CONFLICT, "'배송 준비중'인 주문만 출고 가능합니다"),
 
     // 상태 충돌 - 취소 관련
     ORDER_ALREADY_CANCELED(HttpStatus.CONFLICT, "이미 취소된 주문입니다"),
     CANNOT_CANCEL_SHIPPED_ORDER(HttpStatus.CONFLICT, "출고된 주문은 취소할 수 없습니다"),
+    CANNOT_CANCEL_PREPARING_ORDER_ORDER(HttpStatus.CONFLICT, "배송 준비중인 주문은 취소할 수 없습니다"),
     CANNOT_CANCEL_DELIVERED_ORDER(HttpStatus.CONFLICT, "배송 완료된 주문은 취소할 수 없습니다"),
+    CANNOT_PREPARE_NOT_PREPARING_ORDER(HttpStatus.CONFLICT, "주문 상태가 배송 준비중일 때만 배송 준비중으로 변경할 수 있습니다"),
 
     // 상태 충돌 - 수정 관련
     CANNOT_CHANGE_NOT_CREATED_ORDER(HttpStatus.CONFLICT, "주문 상태가 CREATED일 때만 수정할 수 있습니다"),
-    CANNOT_CHANGE_DUE_AT_AFTER_SHIPPED(HttpStatus.CONFLICT, "출고 후에는 납기일을 변경할 수 없습니다"),
+    CANNOT_CHANGE_DUE_AT_AFTER_PREPARING_ORDER(HttpStatus.CONFLICT, "배송 준비중일 때는 납기일을 변경할 수 없습니다"),
     CANNOT_CHANGE_MEMO_AFTER_SHIPPED(HttpStatus.CONFLICT, "출고 후에는 요청사항을 변경할 수 없습니다"),
     CANNOT_CHANGE_ADDRESS_AFTER_SHIPPED(HttpStatus.CONFLICT, "출고 후에는 주소를 변경할 수 없습니다."),
 
@@ -71,7 +76,8 @@ public enum OrderErrorType implements ErrorType {
     CANNOT_SHIP_NOT_APPROVED_ORDER(HttpStatus.CONFLICT, "APPROVED 상태에서만 출고할 수 있습니다"),
     CANNOT_DELIVER_NOT_SHIPPED_ORDER(HttpStatus.CONFLICT, "SHIPPED 상태에서만 배송 완료로 변경할 수 있습니다"),
     ORDER_ALREADY_DELIVERED(HttpStatus.CONFLICT, "이미 배송 완료된 주문입니다"),
-    CANNOT_DELETE_SHIPPED_OR_DELIVERED_ORDER(HttpStatus.CONFLICT, "출고되었거나 배송 완료된 주문은 삭제할 수 없습니다"),
+    CANNOT_DELETE_PREPARING_ORDER_OR_DELIVERED_ORDER(HttpStatus.CONFLICT, "출고되었거나 배송 완료된 주문은 삭제할 수 없습니다"),
+    CANNOT_PREPARE_NOT_APPROVED(HttpStatus.CONFLICT, "APPROVED상태가 아닌 주문은 '배송 준비중'으로 변경할 수 없습니다"),
 
     // 멱등성
     REQUEST_IN_PROGRESS(HttpStatus.CONFLICT, "동일한 요청이 처리 중입니다. 잠시 후 다시 시도해주세요");

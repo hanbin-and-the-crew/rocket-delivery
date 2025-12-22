@@ -10,11 +10,13 @@ import org.sparta.common.event.order.OrderCancelledEvent;
 import org.sparta.common.event.order.OrderCreatedEvent;
 
 
+import org.sparta.common.event.payment.PaymentFailedEvent;
 import org.sparta.payment.application.command.payment.PaymentCreateCommand;
 import org.sparta.payment.application.command.payment.PaymentCancelCommand;
 import org.sparta.payment.application.command.payment.PaymentGetByOrderIdCommand;
 import org.sparta.payment.application.dto.PaymentDetailResult;
 import org.sparta.payment.application.service.PaymentService;
+import org.sparta.payment.domain.enumeration.PaymentStatus;
 import org.sparta.payment.domain.error.PaymentErrorType;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -44,9 +46,10 @@ public class PaymentOrderEventConsumer {
             topics = {
                     "order.orderCreate"
             },
-            groupId = "payment-order-consumer"
+            groupId = "payment-order-consumer",
+            containerFactory = "paymentKafkaListenerContainerFactory"
     )
-    public void orderCreateConsum(OrderCreatedEvent event) {
+    public void orderCreateConsume(OrderCreatedEvent event) {
         log.info("[PaymentOrderEventConsumer] ORDER_CREATE 이벤트 수신 orderId={}, paymentKey={}",
                 event.orderId(), event.paymentKey());
 
@@ -88,7 +91,6 @@ public class PaymentOrderEventConsumer {
             log.info("[PaymentOrderEventConsumer] 결제 생성 성공! orderId={}", event.orderId());
 
         } catch (BusinessException e) {
-            // 비즈니스 예외는 재시도하면 안되므로 처리 성공으로 보고 종료
             log.warn("[PaymentOrderEventConsumer] 결제 생성 실패(비즈니스 예외). orderId={}, reason={}",
                     event.orderId(), e.getMessage());
 
@@ -96,7 +98,8 @@ public class PaymentOrderEventConsumer {
             // 시스템 예외는 DLQ 또는 재시도가 필요함
             log.error("[PaymentOrderEventConsumer] 결제 생성 중 시스템 예외 발생! orderId={}", event.orderId(), e);
 
-            // TODO: DLQ or Retry 적용 가능
+            // PaymentKafkaConfig에서 DLQ로 처리함
+
             throw e; // 재처리 되도록 예외 재발생
         }
     }
@@ -105,9 +108,10 @@ public class PaymentOrderEventConsumer {
             topics = {
                     "order.orderCancel"
             },
-            groupId = "payment-order-consumer"
+            groupId = "payment-order-consumer",
+            containerFactory = "paymentKafkaListenerContainerFactory"
     )
-    public void orderCancelConsum(OrderCancelledEvent event) {
+    public void orderCancelConsume(OrderCancelledEvent event) {
         log.info("[PaymentOrderEventConsumer] ORDER_CANCEL 이벤트 수신 orderId={}", event.orderId());
 
         try {
@@ -139,16 +143,43 @@ public class PaymentOrderEventConsumer {
         }
     }
 
-    // TODO:
     @KafkaListener(
             topics = {
                     "order.orderCreateFail",
                     "product.orderCreateFail",
             },
-            groupId = "payment-order-consumer"
+            groupId = "payment-order-consumer",
+            containerFactory = "paymentKafkaListenerContainerFactory"
     )
-    public void orderCreateFailSagaConsum(OrderCreatedEvent event) {
+    public void orderCreateFailSagaConsume(OrderCreatedEvent event) {
 
+        log.info("[PaymentOrderSAGAEventConsumer] CREATE FAIL 수신 → 보상 트랜잭션 시작 orderId={}", event.orderId());
+
+        try {
+            PaymentDetailResult payment = paymentService.getPaymentByOrderId(
+                            new PaymentGetByOrderIdCommand(event.orderId())
+            );
+
+            // 2) 결제 취소 커맨드 생성 (전체 취소 가정)
+            PaymentCancelCommand command = new PaymentCancelCommand(
+                    payment.paymentId(),
+                    "SAGA_ROLLBACK" // SAGA ROLLBACK으로 인한 결제 취소
+            );
+
+            // 이미 취소된 경우는 무시 (멱등)
+            paymentService.cancelPayment(command);
+
+            log.info("[PaymentOrderSAGAEventConsumer] 결제 보상 완료 orderId={}", event.orderId());
+
+        } catch (BusinessException e) {
+            // 결제가 없으면 이미 Payment 이전 단계에서 실패한 것
+            log.warn("[PaymentOrderSAGAEventConsumer] 보상 불필요 orderId={}, reason={}",
+                    event.orderId(), e.getMessage());
+        } catch (Exception e) {
+            // 시스템 예외는 DLQ 또는 재시도 대상
+            log.error("[PaymentOrderSAGAEventConsumer] SAGA 중 시스템 예외 발생! orderId={}", event.orderId(), e);
+            throw e;
+        }
     }
 
     @KafkaListener(
@@ -156,10 +187,40 @@ public class PaymentOrderEventConsumer {
                     "order.orderCancelFail",
                     "product.orderCancelFail"
             },
-            groupId = "payment-order-consumer"
+            groupId = "payment-order-consumer",
+            containerFactory = "paymentKafkaListenerContainerFactory"
     )
-    public void orderCancelFailSagaConsum(OrderCreatedEvent event) {
+    public void orderCancelFailSagaConsume(OrderCancelledEvent event) {
+        log.info("[PaymentOrderSAGAEventConsumer] Cancel FAIL 수신 → 보상 트랜잭션 시작 orderId={}", event.orderId());
 
+        try {
+            // 1) 주문 기준으로 결제 조회
+            PaymentDetailResult payment = paymentService.getPaymentByOrderId(
+                    new PaymentGetByOrderIdCommand(event.orderId())
+            );
+
+            // 2) 취소된 결제를 다시 승인 상태로 복구해야 함 (환불 취소)
+            if (payment.status() != PaymentStatus.CANCELED &&
+                    payment.status() != PaymentStatus.REFUNDED) {
+                log.warn("[PaymentOrderSAGAEventConsumer] 취소되지 않은 결제는 복구할 수 없습니다. orderId={}, status={}",
+                        event.orderId(), payment.status());
+                return;
+            }
+
+            // 3) 환불 취소 처리 (CANCELED → COMPLETED)
+            paymentService.refundCancelPayment(payment.paymentId());
+
+            log.info("[PaymentOrderSAGAEventConsumer] 환불 취소 완료! orderId={}, paymentId={}",
+                    event.orderId(), payment.paymentId());
+
+        } catch (BusinessException e) {
+            // 결제가 없거나 이미 처리된 경우
+            log.warn("[PaymentOrderSAGAEventConsumer] 환불 취소 불가능. orderId={}, reason={}",
+                    event.orderId(), e.getMessage());
+        } catch (Exception e) {
+            // 시스템 예외는 DLQ로 처리 (수동 개입 필요)
+            log.error("[PaymentOrderSAGAEventConsumer] 환불 취소 중 시스템 예외 발생! orderId={}", event.orderId(), e);
+            throw e;
+        }
     }
-
 }

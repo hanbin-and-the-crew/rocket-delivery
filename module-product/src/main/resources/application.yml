@@ -31,6 +31,12 @@ spring:
         format_sql: true
         show_sql: true
 
+  data:
+    redis:
+      host: localhost
+      port: 6378
+      password:
+
   jackson:
     time-zone: Asia/Seoul
 

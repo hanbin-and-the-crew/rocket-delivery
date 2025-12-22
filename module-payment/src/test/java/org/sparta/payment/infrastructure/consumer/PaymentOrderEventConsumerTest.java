@@ -83,7 +83,7 @@ class PaymentOrderEventConsumerTest {
         when(event.pointUsageId()).thenReturn(pointUsageId);
 
         // when
-        consumer.orderCreateConsum(event);
+        consumer.orderCreateConsume(event);
 
         // then
         verify(paymentService, times(1))
@@ -105,8 +105,8 @@ class PaymentOrderEventConsumerTest {
     }
 
     @Test
-    @DisplayName("orderCreateConsum - BusinessException 발생 시 예외를 전파하지 않는다")
-    void orderCreateConsum_businessException() {
+    @DisplayName("orderCreateConsume - BusinessException 발생 시 예외를 전파하지 않는다")
+    void orderCreateConsume_businessException() {
         // given
         OrderCreatedEvent event = mock(OrderCreatedEvent.class);
         when(event.orderId()).thenReturn(UUID.randomUUID());
@@ -125,7 +125,7 @@ class PaymentOrderEventConsumerTest {
         doThrow(ex).when(paymentService).storeCompletedPayment(any(PaymentCreateCommand.class), anyString());
 
         // when
-        consumer.orderCreateConsum(event);
+        consumer.orderCreateConsume(event);
 
         // then
         verify(paymentService, times(1))
@@ -154,7 +154,7 @@ class PaymentOrderEventConsumerTest {
         doThrow(ex).when(paymentService).storeCompletedPayment(any(PaymentCreateCommand.class), anyString());
 
         // then
-        assertThatThrownBy(() -> consumer.orderCreateConsum(event))
+        assertThatThrownBy(() -> consumer.orderCreateConsume(event))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("DB error");
     }
@@ -176,7 +176,7 @@ class PaymentOrderEventConsumerTest {
                 .thenReturn(detailResult);
 
         // when
-        consumer.orderCancelConsum(event);
+        consumer.orderCancelConsume(event);
 
         // then
         verify(paymentService, times(1))
@@ -212,7 +212,7 @@ class PaymentOrderEventConsumerTest {
         doThrow(ex).when(paymentService).cancelPayment(any(PaymentCancelCommand.class));
 
         // when
-        consumer.orderCancelConsum(event);
+        consumer.orderCancelConsume(event);
 
         // then
         verify(paymentService, times(1))
@@ -239,7 +239,7 @@ class PaymentOrderEventConsumerTest {
         doThrow(ex).when(paymentService).cancelPayment(any(PaymentCancelCommand.class));
 
         // then
-        assertThatThrownBy(() -> consumer.orderCancelConsum(event))
+        assertThatThrownBy(() -> consumer.orderCancelConsume(event))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("DB error");
     }
