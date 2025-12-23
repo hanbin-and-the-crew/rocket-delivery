@@ -68,6 +68,12 @@ public class OrderApprovedListener {
             // Empty 응답도 안전하게 처리
             if (delivery.id() == null) {
                 log.info("Delivery creation intentionally skipped (cancelled order): orderId={}", event.orderId());
+                // 취소 요청 상태 업데이트
+                deliveryService.markCancelRequestApplied(event.orderId());
+                // 멱등성 저장
+                deliveryProcessedEventRepository.save(
+                        DeliveryProcessedEvent.of(event.eventId(), "CANCELED_ORDER_APPROVED")
+                );
                 return;  // 성공 처리 / DLT X
             }
 

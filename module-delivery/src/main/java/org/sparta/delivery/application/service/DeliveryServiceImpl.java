@@ -151,8 +151,24 @@ public class DeliveryServiceImpl implements DeliveryService {
 //                throw new DeliveryCancelledException(orderEvent.orderId());
 
                 // DLT 방지(안그러면 무한루프 됨) 바로 상태 변경 + 정상 return
-                markCancelRequestApplied(orderEvent.orderId());
+//                markCancelRequestApplied(orderEvent.orderId());   // 여기 트랜잭션 설정에 의해 정합성 꺠질 수 있음 (취소 주문건 배송 생성)
 //                return null;  // null로 반환하면 ApprovedLifstener에서 npe 발생함
+
+                // 커밋 후에만 상태 변경 (동일 TX)
+//                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+//                    @Override
+//                    public void afterCommit() {
+//                        cancelRequestRepository.findByOrderIdAndDeletedAtIsNull(orderEvent.orderId())
+//                                .ifPresent(req -> {
+//                                    if (req.getStatus() == CancelRequestStatus.REQUESTED) {
+//                                        req.markApplied();
+//                                        cancelRequestRepository.saveAndFlush(req);
+//                                        log.info("CancelRequest marked APPLIED after commit");
+//                                    }
+//                                });
+//                    }
+//                });
+
                 return DeliveryResponse.Detail.empty();
             }
 
@@ -657,7 +673,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     // 헬퍼 메소드
     // ============
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)  // ← REQUIRES_NEW로 변경!
+//    @Transactional(propagation = Propagation.REQUIRES_NEW)  // ← REQUIRES_NEW로 변경! // 정합성 꺠짐 문제 발견
     public void markCancelRequestApplied(UUID orderId) {
         log.info("Marking CancelRequest as APPLIED: orderId={}", orderId);
         cancelRequestRepository.findByOrderIdAndDeletedAtIsNull(orderId)
