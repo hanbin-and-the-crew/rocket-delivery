@@ -64,6 +64,13 @@ public class OrderApprovedListener {
             // 2. 배송 생성 시도 (허브 경로 계산 + DeliveryLog 생성)
             //  (내부에서 Cancel Request 가드 수행)
             DeliveryResponse.Detail delivery = deliveryService.createWithRoute(event);
+
+            // Empty 응답도 안전하게 처리
+            if (delivery.id() == null) {
+                log.info("Delivery creation intentionally skipped (cancelled order): orderId={}", event.orderId());
+                return;  // 성공 처리 / DLT X
+            }
+
             deliveryCreated = true;
             log.info("Delivery created successfully: orderId={}, eventId={}, deliveryId={}",
                     event.orderId(), event.eventId(), delivery.id());
@@ -77,8 +84,6 @@ public class OrderApprovedListener {
             deliveryCreated = false;    // delivery 생성 안 됨
 
 //            deliveryService.markCancelRequestApplied(event.orderId());
-
-            deliveryService.markCancelRequestApplied(event.orderId());
 
             // TXO 롤백 방지 : TXㅇ로 ProcessedEvent 저장
             transactionTemplate.execute(status -> {

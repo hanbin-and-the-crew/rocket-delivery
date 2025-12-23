@@ -38,6 +38,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -146,7 +148,12 @@ public class DeliveryServiceImpl implements DeliveryService {
 //                cancelRequest.get().markApplied(); // 롤백 문제
 
                 // 배송 생성 중단 예외 발생
-                throw new DeliveryCancelledException(orderEvent.orderId());
+//                throw new DeliveryCancelledException(orderEvent.orderId());
+
+                // DLT 방지(안그러면 무한루프 됨) 바로 상태 변경 + 정상 return
+                markCancelRequestApplied(orderEvent.orderId());
+//                return null;  // null로 반환하면 ApprovedLifstener에서 npe 발생함
+                return DeliveryResponse.Detail.empty();
             }
 
             // 1차 방어: eventId 기반 멱등성 체크
@@ -308,6 +315,10 @@ public class DeliveryServiceImpl implements DeliveryService {
                     savedDelivery.getId(), savedDelivery.getOrderId(), orderEvent.eventId());
 
             return DeliveryResponse.Detail.from(savedDelivery);
+
+        } catch (DeliveryCancelledException e) {  // 취소된 주문건 별도 catch 추가
+            log.info("Delivery creation intentionally cancelled: orderId={}", e.getOrderId());
+            throw e;  // 롤백 트리거 위해 그대로 throw
 
         } catch (BusinessException e) {
             // 비즈니스 예외: 로그만 남기고 재던지기
@@ -642,17 +653,32 @@ public class DeliveryServiceImpl implements DeliveryService {
         }
     }
 
-//    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @Transactional
+    // ===========
+    // 헬퍼 메소드
+    // ============
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)  // ← REQUIRES_NEW로 변경!
     public void markCancelRequestApplied(UUID orderId) {
+        log.info("Marking CancelRequest as APPLIED: orderId={}", orderId);
         cancelRequestRepository.findByOrderIdAndDeletedAtIsNull(orderId)
                 .ifPresent(req -> {
                     if (req.getStatus() == CancelRequestStatus.REQUESTED) {
                         req.markApplied();
-                        cancelRequestRepository.save(req);
-                        log.info("CancelRequest marked APPLIED: orderId={}", orderId);
+                        cancelRequestRepository.saveAndFlush(req);  // flush 추가
+                        log.info("CancelRequest marked APPLIED: orderId={}, reqId={}",
+                                orderId, req.getId());
+                    } else {
+                        log.info("CancelRequest already processed: orderId={}, status={}",
+                                orderId, req.getStatus());
                     }
                 });
     }
+
+//    @TransactionalEventListener(phase = TransactionPhase.AFTER_ROLLBACK)
+//    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+//    public void handleDeliveryCancelledException(DeliveryCancelledException ex) {
+//        log.info("AFTER_ROLLBACK: Updating cancel request status to APPLIED for orderId={}", ex.getOrderId());
+//        markCancelRequestApplied(ex.getOrderId());  // 기존 메서드 재사용!
+//    }
 
 }
