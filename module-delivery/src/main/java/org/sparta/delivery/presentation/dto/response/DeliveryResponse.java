@@ -97,7 +97,86 @@ public class DeliveryResponse {
                     d.getUpdatedAt()
             );
         }
+
+            // 정적 팩토리 메서드로 빈 인스턴스 생성
+            public static Detail empty() {
+            return new Detail(
+                    null, null, null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null, null
+            );
+        }
+
     }
+//    @Schema(description = "취소 된 주문 건 배송 생성 빈 응답")
+//    public record Empty(
+//            @Schema(description = "배송 ID")
+//            UUID id,
+//
+//            @Schema(description = "주문 ID")
+//            UUID orderId,
+//
+//            @Schema(description = "고객 ID")
+//            UUID customerId,
+//
+//            @Schema(description = "공급 업체 ID")
+//            UUID supplierCompanyId,
+//
+//            @Schema(description = "공급 허브 ID")
+//            UUID supplierHubId,
+//
+//            @Schema(description = "수령 업체 ID")
+//            UUID receiveCompanyId,
+//
+//            @Schema(description = "수령 허브 ID")
+//            UUID receiveHubId,
+//
+//            @Schema(description = "배송지 주소")
+//            String address,
+//
+//            @Schema(description = "수령인 이름")
+//            String receiverName,
+//
+//            @Schema(description = "수령인 슬랙 ID")
+//            String receiverSlackId,
+//
+//            @Schema(description = "수령인 전화번호")
+//            String receiverPhone,
+//
+//            @Schema(description = "납품 기한")
+//            LocalDateTime dueAt,
+//
+//            @Schema(description = "요청 사항")
+//            String requestedMemo,
+//
+//            @Schema(description = "배송 상태")
+//            DeliveryStatus status,
+//
+//            @Schema(description = "현재 허브 로그 시퀀스")
+//            Integer currentLogSeq,
+//
+//            @Schema(description = "전체 허브 로그 시퀀스 개수")
+//            Integer totalLogSeq,
+//
+//            @Schema(description = "허브 배송 담당자 ID")
+//            UUID hubDeliveryManId,
+//
+//            @Schema(description = "업체 배송 담당자 ID")
+//            UUID companyDeliveryManId,
+//
+//            @Schema(description = "생성 일시")
+//            LocalDateTime createdAt,
+//
+//            @Schema(description = "수정 일시")
+//            LocalDateTime updatedAt
+//    )  {
+//        // 정적 팩토리 메서드로 빈 인스턴스 생성
+//        public static Empty empty() {
+//            return new Empty(
+//                    null, null, null, null, null, null, null, null, null, null,
+//                    null, null, null, null, null, null, null, null, null
+//            );
+//        }
+//    }
 
     @Schema(description = "배송 목록 요약 응답")
     public record Summary(
