@@ -6,6 +6,7 @@ import org.sparta.delivery.domain.enumeration.CancelRequestStatus;
 import org.sparta.delivery.domain.repository.DeliveryCancelRequestRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,4 +48,8 @@ public class DeliveryCancelRequestRepositoryImpl implements DeliveryCancelReques
         return jpaRepository.saveAndFlush(entity);
     }
 
+    @Override
+    public long countPendingPaymentCancelDlt(CancelRequestStatus status, LocalDateTime cutoffTime) {
+        return jpaRepository.countPendingPaymentCancelDlt(status, cutoffTime);
+    }
 }

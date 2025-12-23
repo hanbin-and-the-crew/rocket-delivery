@@ -3,6 +3,7 @@ package org.sparta.delivery.domain.repository;
 import org.sparta.delivery.domain.entity.DeliveryCancelRequest;
 import org.sparta.delivery.domain.enumeration.CancelRequestStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,4 +25,6 @@ public interface DeliveryCancelRequestRepository {
 //    void flush();
 
     DeliveryCancelRequest saveAndFlush(DeliveryCancelRequest entity);
+
+    long countPendingPaymentCancelDlt(CancelRequestStatus status, LocalDateTime cutoffTime);
 }

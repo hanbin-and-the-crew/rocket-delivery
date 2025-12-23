@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,5 +42,14 @@ public interface DeliveryCancelRequestJpaRepository extends JpaRepository<Delive
     @Query("SELECT c FROM DeliveryCancelRequest c " +
             "WHERE c.status = :status AND c.deletedAt IS NULL")
     List<DeliveryCancelRequest> findAllByStatusAndDeletedAtIsNull(@Param("status") CancelRequestStatus status);
+
+    @Query("SELECT COUNT(cr) FROM DeliveryCancelRequest cr " +
+            "LEFT JOIN DeliveryProcessedEvent pe ON pe.eventId = cr.cancelEventId " +
+            "WHERE cr.status = :status " +
+            "AND pe.id IS NULL " +
+            "AND cr.deletedAt IS NULL " +
+            "AND cr.createdAt > :cutoffTime")
+    long countPendingPaymentCancelDlt(@Param("status") CancelRequestStatus status,
+                                      @Param("cutoffTime") LocalDateTime cutoffTime);
 
 }
