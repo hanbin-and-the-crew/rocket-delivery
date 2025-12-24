@@ -15,8 +15,6 @@ import java.util.UUID;
 
 public interface DeliveryCancelRequestJpaRepository extends JpaRepository<DeliveryCancelRequest, UUID> {
 
-
-
     /**
      * eventId로 존재 여부 확인 (멱등성 체크용)
      */
@@ -52,4 +50,6 @@ public interface DeliveryCancelRequestJpaRepository extends JpaRepository<Delive
     long countPendingPaymentCancelDlt(@Param("status") CancelRequestStatus status,
                                       @Param("cutoffTime") LocalDateTime cutoffTime);
 
+    // 수정: 반환 타입을 boolean으로 변경
+    boolean existsByOrderIdAndDeletedAtIsNull(UUID orderId);
 }

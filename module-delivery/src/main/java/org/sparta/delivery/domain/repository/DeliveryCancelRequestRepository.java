@@ -20,11 +20,10 @@ public interface DeliveryCancelRequestRepository {
 
     List<DeliveryCancelRequest> findAllByStatusAndDeletedAtIsNull(CancelRequestStatus status);
 
-//    DeliveryCancelRequest saveAndFlush(DeliveryCancelRequest entity);
-//    <S extends DeliveryCancelRequest> List<S> saveAndFlush(Iterable<S> entities);
-//    void flush();
-
     DeliveryCancelRequest saveAndFlush(DeliveryCancelRequest entity);
 
     long countPendingPaymentCancelDlt(CancelRequestStatus status, LocalDateTime cutoffTime);
+
+    // 수정: boolean 반환 타입에서 boolean 반환으로 변경
+    boolean existsByOrderIdAndDeletedAtIsNull(UUID orderId);
 }
