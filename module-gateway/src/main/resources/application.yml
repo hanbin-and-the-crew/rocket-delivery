@@ -1,12 +1,20 @@
 server:
   port: 19500
 
+
 eureka:
   client:
     register-with-eureka: true
     fetch-registry: true
     service-url:
       defaultZone: http://localhost:9090/eureka/
+
+
+rate-limit:
+  replenish-rate: 5
+  burst-capacity: 10
+  requested-tokens: 1
+
 
 spring:
   application:
@@ -22,60 +30,158 @@ spring:
           uri: lb://COMMON-SERVICE
           predicates:
             - Path=/common/**, /commons/**
+        - id: company-service-swagger   # Company Swagger용
+          uri: lb://COMPANY-SERVICE
+          predicates:
+            - Path=/company/api-docs
+          filters:
+            - RewritePath=/company/api-docs, /api-docs
         - id: company-service
           uri: lb://COMPANY-SERVICE
           predicates:
-            - Path=/company/**, /companies/**
+            - Path=/admin/companies/**, /companies/**, /company/**
           filters:
-            - RewritePath=/company/(?<segment>.*), /$\{segment}
+            - RewritePath=/company/(?<segment>.*), /api/company/${segment}
+            - RewritePath=/companies/(?<segment>.*), /api/companies/${segment}
+            - RewritePath=/admin/companies/(?<segment>.*), /api/admin/companies/${segment}
+        - id: delivery-log-service-swagger  # Delivery Log Swagger용
+          uri: lb://DELIVERY-LOG-SERVICE
+          predicates:
+            - Path=/delivery-logs/api-docs, /delivery-log/api-docs
+          filters:
+            - RewritePath=/(?:delivery-logs|delivery-log)/api-docs, /api-docs
         - id: delivery-log-service
           uri: lb://DELIVERY-LOG-SERVICE
           predicates:
             - Path=/delivery-logs/**, /delivery-log/**
           filters:
             - RewritePath=/delivery-logs/(?<segment>.*), /$\{segment}
+        - id: delivery-service-swagger      # Delivery Swagger용
+          uri: lb://DELIVERY-SERVICE
+          predicates:
+            - Path=/delivery/api-docs
+          filters:
+            - RewritePath=/delivery/api-docs, /api-docs
         - id: delivery-service
           uri: lb://DELIVERY-SERVICE
           predicates:
-            - Path=/delivery/**, /deliveries/**, /deliveries/**
+            - Path=/deliveries/**, /delivery/**
           filters:
-            - RewritePath=/delivery/(?<segment>.*), /$\{segment}
+            - RewritePath=/delivery/(?<segment>.*), /api/delivery/${segment}
+            - RewritePath=/deliveries/(?<segment>.*), /api/deliveries/${segment}
+        - id: hub-service-swagger           # Hub Swagger용
+          uri: lb://HUB-SERVICE
+          predicates:
+            - Path=/hub/api-docs
+          filters:
+            - RewritePath=/hub/api-docs, /api-docs
         - id: hub-service
           uri: lb://HUB-SERVICE
           predicates:
-            - Path=/hub/**, /hubs/**
+            - Path=/hubs/**, /admin/hubs/**, /hub-routes/**, /hub/**
           filters:
-            - RewritePath=/hub/(?<segment>.*), /$\{segment}
+            - RewritePath=/hub/(?<segment>.*), /api/hub/${segment}
+            - RewritePath=/hubs/(?<segment>.*), /api/hubs/${segment}
+            - RewritePath=/admin/hubs/(?<segment>.*), /api/admin/hubs/${segment}
+            - RewritePath=/hub-routes/(?<segment>.*), /api/hub-routes/${segment}
+        - id: order-service-swagger         # Order Swagger용
+          uri: lb://ORDER-SERVICE
+          predicates:
+            - Path=/order/api-docs
+          filters:
+            - RewritePath=/order/api-docs, /api-docs
         - id: order-service
           uri: lb://ORDER-SERVICE
           predicates:
-            - Path=/order/**, /orders/**
+            - Path=/orders/**, /order/**
           filters:
-            - RewritePath=/order/(?<segment>.*), /$\{segment}
+            - RewritePath=/order/(?<segment>.*), /api/order/${segment}
+            - RewritePath=/orders/(?<segment>.*), /api/orders/${segment}
+        - id: payment-service-swagger         # Payment Swagger용
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/payment/api-docs
+          filters:
+            - RewritePath=/payment/api-docs, /api-docs
+        - id: payment-service
+          uri: lb://PAYMENT-SERVICE
+          predicates:
+            - Path=/payments/**, /payment/**
+          filters:
+            - RewritePath=/payment/(?<segment>.*), /api/payment/${segment}
+            - RewritePath=/payments/(?<segment>.*), /api/payments/${segment}
+        - id: product-service-swagger       # Product Swagger용
+          uri: lb://PRODUCT-SERVICE
+          predicates:
+            - Path=/product/api-docs
+          filters:
+            - RewritePath=/product/api-docs, /api-docs
+        - id: coupon-service-swagger        # Coupon Swagger용
+          uri: lb://COUPON-SERVICE
+          predicates:
+            - Path=/coupon/api-docs
+          filters:
+            - RewritePath=/coupon/api-docs, /api-docs
         - id: product-service
           uri: lb://PRODUCT-SERVICE
           predicates:
-            - Path=/product/**, /products/**
+            - Path=/products/**, /product/**
           filters:
-            - RewritePath=/product/(?<segment>.*), /$\{segment}
+            - RewritePath=/product/(?<segment>.*), /api/product/${segment}
+            - RewritePath=/products/(?<segment>.*), /api/products/${segment}
+        - id: coupon-service                # Coupon 서비스 라우트
+          uri: lb://COUPON-SERVICE
+          predicates:
+            - Path=/coupons/**, /coupon/**
+          filters:
+            - RewritePath=/coupon/(?<segment>.*), /api/coupons/${segment}
+            - RewritePath=/coupons/(?<segment>.*), /api/coupons/${segment}
+        - id: slack-service-swagger         # Slack Swagger용
+          uri: lb://SLACK-SERVICE
+          predicates:
+            - Path=/slack/api-docs
+          filters:
+            - RewritePath=/slack/api-docs, /api-docs
         - id: slack-service
           uri: lb://SLACK-SERVICE
           predicates:
             - Path=/slack/**, /slacks/**
           filters:
-            - RewritePath=/slack/(?<segment>.*), /$\{segment}
-        - id: user-service
+            - RewritePath=/slack/(?<segment>.*), /api/slack/${segment}
+            - RewritePath=/slacks/(?<segment>.*), /api/slacks/${segment}
+        - id: user-service-swagger      # User Swagger용 주석
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/user/**, /users/**, /auth/**
+            - Path=/user/api-docs
           filters:
-            - RewritePath=/user/(?<segment>.*), /$\{segment}
-            - RewritePath=/users/(?<segment>.*), /$\{segment}
-            - RewritePath=/auth/(?<segment>.*), /$\{segment}
+            - RewritePath=/user/api-docs, /api-docs
+        - id: user-service              # User용
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/users/**, /user/**
+          filters:
+            - RewritePath=/user/(?<segment>.*), /api/user/${segment}
+            - RewritePath=/users/(?<segment>.*), /api/users/${segment}
+        - id: auth-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/auth/**
+          filters:
+            - RewritePath=/auth/(?<segment>.*), /api/auth/${segment}
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@userKeyResolver}"
+                redis-rate-limiter.replenishRate: 1
+                redis-rate-limiter.burstCapacity: 2
+                redis-rate-limiter.requestedTokens: 1
         - id: jpa-service
           uri: lb://JPA-SERVICE
           predicates:
             - Path=/jpa/**
+  data:
+    redis:
+      host: localhost
+      port: 6378
 
 
 springdoc:
@@ -84,6 +190,8 @@ springdoc:
     urls:
       - name: Product Service
         url: /product/api-docs
+      - name: Coupon Service
+        url: /coupon/api-docs
       - name: User Service
         url: /user/api-docs
       - name: Order Service
@@ -100,10 +208,24 @@ springdoc:
         url: /slack/api-docs
       - name: DeliveryLog Service
         url: /deliveryLog/api-docs
-      - name: DelvieryMan Service
+      - name: DeliveryMan Service
         url: /deliveryMan/api-docs
+      - name: Payment Service
+        url: /payment/api-docs
+
 
 logging:
   level:
     org.springframework.cloud.gateway: DEBUG
     org.springframework.web: DEBUG
+    org.springframework.data.redis: DEBUG
+    org.sparta.gateway: DEBUG
+    org.springframework.cloud.gateway.filter: DEBUG
+    org.springframework.security: DEBUG
+
+
+# JWT
+jwt:
+  access:
+    secret:
+      key: ${JWT_ACCESS_SECRET_KEY}

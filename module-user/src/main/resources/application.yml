@@ -17,10 +17,15 @@ spring:
     redis:
       host: localhost
       port: 6378
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: user-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
 
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
@@ -80,3 +85,8 @@ jwt:
     token:
       expire: ${JWT_REFRESH_TOKEN_EXPIRE} # 2주 (ms)
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health" # HealthChecker 연동을 위해 health endpoint 노출

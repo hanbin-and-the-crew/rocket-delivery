@@ -5,21 +5,28 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.sparta.common.error.BusinessException;
 import org.sparta.product.domain.entity.Stock;
+import org.sparta.product.domain.entity.StockReservation;
 import org.sparta.product.domain.error.ProductErrorType;
 import org.sparta.product.domain.repository.StockRepository;
+import org.sparta.product.domain.repository.StockReservationRepository;
+import org.sparta.product.domain.util.ReservationKeyUtil;
+import org.sparta.redis.util.DistributedLockExecutor;
+import org.sparta.redis.util.LockAcquisitionException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 /**
- * Stock 서비스
- * - Product와 독립적으로 재고를 관리
- * - Product 더티체킹을 방지하기 위해 Stock만 조회/수정
- * - 낙관적 락 충돌 시 @Retryable로 자동 재시도
+ * 재고 예약/확정/취소 서비스
+ *
  */
 @Slf4j
 @Service
@@ -28,97 +35,273 @@ import java.util.UUID;
 public class StockService {
 
     private final StockRepository stockRepository;
+    private final StockReservationRepository stockReservationRepository;
+    private final DistributedLockExecutor lockExecutor;
 
     /**
-     * 재고 조회
+     * 재고 예약
+     *
+     * externalReservationKey(예: orderId.toString())는 외부 계약 그대로 받고,
+     * 내부 저장/멱등용 키(internalReservationKey)를 파생해 저장한다.
      */
-    public Stock getStock(UUID productId) {
-        return stockRepository.findById(productId)
-                .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
-    }
-
-    /**
-     * 재고 차감
-     * - Stock만 독립적으로 조회
-     * - Stock 애그리거트 내에서 차감 처리
-     * - 낙관적 락 충돌 시 최대 3회 재시도 (50ms, 100ms, 150ms 간격)
-     */
-    @Retryable(
-            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 50, multiplier = 2)
-    )
     @Transactional
-    public void decreaseStock(UUID productId, int quantity) {
-        Stock stock = getStock(productId);
-        stock.decrease(quantity);
-    }
-
-    /**
-     * 재고 복원
-     * - Stock만 독립적으로 조회
-     * - Stock 애그리거트 내에서 복원 처리
-     * - 낙관적 락 충돌 시 최대 3회 재시도 (50ms, 100ms, 150ms 간격)
-     */
     @Retryable(
-            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
-            maxAttempts = 3,
-            backoff = @Backoff(delay = 50, multiplier = 2)
-    )
-    @Transactional
-    public void increaseStock(UUID productId, int quantity) {
-        Stock stock = getStock(productId);
-        stock.increase(quantity);
-    }
-
-    /**
-     * 재고 예약 (주문 생성 시)
-     * - 가용 재고 확인 후 예약
-     * - Stock 애그리거트 내에서 예약 처리
-     * - 낙관적 락 충돌 시 최대 5회 재시도 (랜덤 백오프로 경합 감소)
-     */
-    @Retryable(
-            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
+            retryFor = {
+                    OptimisticLockException.class,
+                    ObjectOptimisticLockingFailureException.class
+            },
             maxAttempts = 5,
-            backoff = @Backoff(delay = 100, maxDelay = 1000, multiplier = 2, random = true)
+            backoff = @Backoff(delay = 30, multiplier = 2)
     )
-    @Transactional
-    public void reserveStock(UUID productId, int quantity) {
-        Stock stock = getStock(productId);
-        stock.reserve(quantity);
+    public StockReservation reserveStock(UUID productId, String externalReservationKey, int quantity) {
+
+        if (productId == null) {
+            throw new BusinessException(ProductErrorType.PRODUCT_REQUIRED);
+        }
+        if (externalReservationKey == null || externalReservationKey.isBlank()) {
+            throw new BusinessException(ProductErrorType.STOCK_RESERVATION_KEY_REQUIRED);
+        }
+        if (quantity < 1) {
+            throw new BusinessException(ProductErrorType.RESERVE_QUANTITY_INVALID);
+        }
+
+        final String internalReservationKey = ReservationKeyUtil.internalKey(externalReservationKey, productId);
+
+        return executeWithLock("product:stock:lock:" + productId, () -> {
+            // 1) internalReservationKey 멱등 처리
+            StockReservation existing = stockReservationRepository.findByReservationKey(internalReservationKey).orElse(null);
+            if (existing != null) {
+                Stock existingStock = stockRepository.findById(existing.getStockId())
+                        .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
+
+                if (!existingStock.getProductId().equals(productId)) {
+                    throw new BusinessException(ProductErrorType.STOCK_RESERVATION_CONFLICT);
+                }
+
+                // 수량이 다르면 같은 키로 서로 다른 예약을 걸려는 시도 => 충돌
+                if (existing.getReservedQuantity() != quantity) {
+                    throw new BusinessException(ProductErrorType.STOCK_RESERVATION_ALREADY_EXISTS);
+                }
+
+                // 외부키가 다르면 데이터 이상 => 충돌
+                if (!Objects.equals(existing.getExternalReservationKey(), externalReservationKey)) {
+                    throw new BusinessException(ProductErrorType.STOCK_RESERVATION_CONFLICT);
+                }
+
+                return existing;
+            }
+
+            // 2) 신규 예약
+            Stock stock = stockRepository.findByProductId(productId)
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
+
+            stock.reserve(quantity);
+            StockReservation reservation = StockReservation.reserve(
+                    stock.getId(),
+                    externalReservationKey,
+                    internalReservationKey,
+                    quantity
+            );
+
+            stockRepository.save(stock);
+            stockReservationRepository.save(reservation);
+
+            return reservation;
+        });
     }
 
     /**
-     * 예약 확정 (결제 완료 시)
-     * - 예약된 재고를 실제 차감
-     * - Stock 애그리거트 내에서 확정 처리
-     * - 낙관적 락 충돌 시 최대 5회 재시도 (랜덤 백오프로 경합 감소)
+     * 예약 확정(실차감)
+     *
+     * - inputKey가 internalReservationKey면 단건 처리
+     * - inputKey가 externalReservationKey(orderId 기반)면 해당 주문의 모든 예약을 일괄 처리
      */
-    @Retryable(
-            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
-            maxAttempts = 5,
-            backoff = @Backoff(delay = 100, maxDelay = 1000, multiplier = 2, random = true)
-    )
     @Transactional
-    public void confirmReservation(UUID productId, int quantity) {
-        Stock stock = getStock(productId);
-        stock.confirmReservation(quantity);
+    @Retryable(
+            retryFor = {
+                    OptimisticLockException.class,
+                    ObjectOptimisticLockingFailureException.class
+            },
+            maxAttempts = 5,
+            backoff = @Backoff(delay = 30, multiplier = 2)
+    )
+    public void confirmReservation(String inputKey) {
+        if (inputKey == null || inputKey.isBlank()) {
+            throw new BusinessException(ProductErrorType.STOCK_RESERVATION_KEY_REQUIRED);
+        }
+
+        // 1) externalReservationKey로 전체 조회(운영 편의)
+        List<StockReservation> byExternal = stockReservationRepository.findAllByExternalReservationKey(inputKey);
+        if (!byExternal.isEmpty()) {
+            for (StockReservation r : byExternal) {
+                confirmOne(r.getReservationKey());
+            }
+            return;
+        }
+
+        // 2) 없으면 internalReservationKey 단건 처리(호환)
+        confirmOne(inputKey);
+    }
+
+    private void confirmOne(String internalReservationKey) {
+
+        StockReservation reservation = stockReservationRepository.findByReservationKey(internalReservationKey)
+                .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+        executeWithLock("product:stock:lock:" + reservation.getStockId(), () -> {
+            StockReservation fresh = stockReservationRepository.findByReservationKey(internalReservationKey)
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+            if (fresh.isConfirmed()) {
+                return null; // 멱등
+            }
+            if (fresh.isCancelled()) {
+                throw new BusinessException(ProductErrorType.STOCK_RESERVATION_ALREADY_CANCELLED);
+            }
+
+            Stock stock = stockRepository.findById(fresh.getStockId())
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
+
+            stock.confirmReservation(fresh.getReservedQuantity());
+            fresh.confirm();
+
+            stockRepository.save(stock);
+            stockReservationRepository.save(fresh);
+
+            return null;
+        });
     }
 
     /**
-     * 예약 취소 (주문 취소 시)
-     * - 예약된 재고만 감소
-     * - Stock 애그리거트 내에서 취소 처리
-     * - 낙관적 락 충돌 시 최대 3회 재시도 (50ms, 100ms, 150ms 간격)
+     * 예약 취소(복구)
+     *
+     * - inputKey가 internalReservationKey면 단건 처리
+     * - inputKey가 externalReservationKey(orderId 기반)면 해당 주문의 모든 예약을 일괄 처리
      */
-    @Retryable(
-            retryFor = {OptimisticLockException.class, ObjectOptimisticLockingFailureException.class},
-            maxAttempts = 5,
-            backoff = @Backoff(delay = 100, multiplier = 1000)
-    )
     @Transactional
-    public void cancelReservation(UUID productId, int quantity) {
-        Stock stock = getStock(productId);
-        stock.cancelReservation(quantity);
+    @Retryable(
+            retryFor = {
+                    OptimisticLockException.class,
+                    ObjectOptimisticLockingFailureException.class
+            },
+            maxAttempts = 5,
+            backoff = @Backoff(delay = 30, multiplier = 2)
+    )
+    public void cancelReservation(String inputKey) {
+        if (inputKey == null || inputKey.isBlank()) {
+            throw new BusinessException(ProductErrorType.STOCK_RESERVATION_KEY_REQUIRED);
+        }
+
+        List<StockReservation> byExternal = stockReservationRepository.findAllByExternalReservationKey(inputKey);
+        if (!byExternal.isEmpty()) {
+            for (StockReservation r : byExternal) {
+                cancelOne(r.getReservationKey());
+            }
+            return;
+        }
+
+        cancelOne(inputKey);
+    }
+
+    private void cancelOne(String internalReservationKey) {
+
+        StockReservation reservation = stockReservationRepository.findByReservationKey(internalReservationKey)
+                .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+        executeWithLock("product:stock:lock:" + reservation.getStockId(), () -> {
+            StockReservation fresh = stockReservationRepository.findByReservationKey(internalReservationKey)
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+            if (fresh.isCancelled()) {
+                return null; // 멱등
+            }
+            if (fresh.isConfirmed()) {
+                throw new BusinessException(ProductErrorType.STOCK_RESERVATION_ALREADY_CONFIRMED);
+            }
+
+            Stock stock = stockRepository.findById(fresh.getStockId())
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
+
+            stock.cancelReservation(fresh.getReservedQuantity());
+            fresh.cancel();
+
+            stockRepository.save(stock);
+            stockReservationRepository.save(fresh);
+
+            return null;
+        });
+    }
+
+    @Transactional
+    public void compensateOrderCancellation(String externalReservationKey) {
+        if (externalReservationKey == null || externalReservationKey.isBlank()) {
+            throw new BusinessException(ProductErrorType.STOCK_RESERVATION_KEY_REQUIRED);
+        }
+
+        List<StockReservation> reservations =
+                stockReservationRepository.findAllByExternalReservationKey(externalReservationKey);
+
+        if (reservations.isEmpty()) {
+            return;
+        }
+
+        for (StockReservation reservation : reservations) {
+
+            if (reservation.isCancelled()) {
+                continue; // 멱등
+            }
+
+            // RESERVED 판단: confirmed도 아니고 cancelled도 아닌 상태
+            if (!reservation.isConfirmed()) {
+                // 기존 cancel 흐름 재사용(= 재고 복구 + reservation.cancel + 저장까지 포함)
+                cancelOne(reservation.getReservationKey());
+                continue;
+            }
+
+            // CONFIRMED 보상
+            compensateConfirmedOne(reservation.getReservationKey());
+        }
+    }
+
+    private void compensateConfirmedOne(String internalReservationKey) {
+
+        StockReservation reservation = stockReservationRepository.findByReservationKey(internalReservationKey)
+                .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+        executeWithLock("product:stock:lock:" + reservation.getStockId(), () -> {
+
+            StockReservation fresh = stockReservationRepository.findByReservationKey(internalReservationKey)
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_RESERVATION_NOT_FOUND));
+
+            if (fresh.isCancelled()) {
+                return null; // 멱등
+            }
+
+            // CONFIRMED만 보상 대상으로 처리
+            if (!fresh.isConfirmed()) {
+                return null;
+            }
+
+            Stock stock = stockRepository.findById(fresh.getStockId())
+                    .orElseThrow(() -> new BusinessException(ProductErrorType.STOCK_NOT_FOUND));
+
+            stock.restoreConfirmedReservation(fresh.getReservedQuantity());
+            fresh.compensateCancel();
+
+            stockRepository.save(stock);
+            stockReservationRepository.save(fresh);
+
+            return null;
+        });
+    }
+
+
+
+    private <T> T executeWithLock(String lockKey, Supplier<T> action) {
+        try {
+            return lockExecutor.executeWithLock(lockKey, 0, 8, TimeUnit.SECONDS, action);
+        } catch (LockAcquisitionException ex) {
+            throw new BusinessException(ProductErrorType.STOCK_LOCK_BUSY);
+        }
     }
 }

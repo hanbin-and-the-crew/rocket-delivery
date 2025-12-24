@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.UUID;
 
 /**
- * ProcessedEvent JPA Repository
+ * JPA 기반 Product 이벤트 처리 이력 저장소
  */
 public interface ProcessedEventJpaRepository extends JpaRepository<ProcessedEvent, UUID> {
 

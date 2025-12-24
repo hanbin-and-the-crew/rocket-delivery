@@ -12,6 +12,34 @@ spring:
   application:
     name: delivery-service
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000   # ms, 연결 타임아웃
+            read-timeout: 10000     # ms, 읽기 타임아웃
+            logger-level: BASIC     # (선택) 로깅 레벨
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: delivery-service
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      task:
+        scheduling:
+          pool:
+            size: 2
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  task:
+    scheduling:
+      pool:
+        size: 2
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
@@ -25,6 +53,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        jdbc.lob.non_contextual_creation: true
 
   jackson:
     time-zone: Asia/Seoul
@@ -53,5 +82,7 @@ springdoc:
 # 공통 로깅(상세 SQL 로깅은 프로파일에서 분리)
 logging:
   level:
-    org.hibernate.SQL: info
+#    org.hibernate.SQL: info
     org.hibernate.orm.jdbc.bind: info
+    org.hibernate.SQL: debug
+    org.hibernate.type.descriptor.sql.BasicBinder: trace

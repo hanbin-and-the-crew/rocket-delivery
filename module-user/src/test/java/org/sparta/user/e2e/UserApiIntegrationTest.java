@@ -8,9 +8,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sparta.common.event.EventPublisher;
 import org.sparta.user.UserApplication;
+import org.sparta.user.domain.enums.DeliveryManagerRoleEnum;
 import org.sparta.user.domain.enums.UserRoleEnum;
 import org.sparta.user.infrastructure.SecurityDisabledConfig;
-import org.sparta.user.presentation.UserRequest;
+import org.sparta.user.presentation.dto.request.UserRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -55,14 +56,14 @@ class UserApiIntegrationTest {
         // 1. 회원가입
         UserRequest.SignUpUser signupRequest = new UserRequest.SignUpUser(
                 "e2eUser", "pw123!", "slack01", "홍길동",
-                "01011112222", "e2e@test.com", UserRoleEnum.MASTER, hubId
+                "01011112222", "e2e@test.com", UserRoleEnum.MASTER, DeliveryManagerRoleEnum.COMPANY, hubId
         );
 
         String userId = given()
                 .contentType(ContentType.JSON)
                 .body(signupRequest)
             .when()
-                .post("/users/signup")
+                .post("/api/users/signup")
             .then()
                 .statusCode(200)
                 .extract()
@@ -73,7 +74,7 @@ class UserApiIntegrationTest {
         // 2. 회원 승인
         given()
                 .when()
-                .patch("/users/bos/{userId}/approve", uuid)
+                .patch("/api/users/bos/{userId}/approve", uuid)
                 .then()
                 .statusCode(200)
                 .extract()
@@ -83,7 +84,7 @@ class UserApiIntegrationTest {
         Response response = given()
                 .contentType(ContentType.JSON)
                 .when()
-                .get("/users/bos")
+                .get("/api/users/bos")
                 .then()
                 .statusCode(200)
                 .extract()

@@ -2,6 +2,14 @@ spring:
   application:
     name: product-service-test
 
+  task:
+    scheduling:
+      enabled: false
+
+  spring:
+    profiles:
+      active: test
+
   datasource:
     url: jdbc:h2:mem:testdb
     driver-class-name: org.h2.Driver
@@ -20,6 +28,8 @@ spring:
   h2:
     console:
       enabled: true
+
+
 
 # Eureka 클라이언트 비활성화
 eureka:

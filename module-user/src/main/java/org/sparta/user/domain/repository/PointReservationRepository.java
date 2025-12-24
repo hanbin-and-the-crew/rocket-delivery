@@ -1,0 +1,17 @@
+package org.sparta.user.domain.repository;
+
+import org.sparta.user.domain.entity.PointReservation;
+import org.sparta.user.domain.enums.ReservationStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+public interface PointReservationRepository extends JpaRepository<PointReservation, UUID> {
+    List<PointReservation> findByOrderIdAndStatus(UUID orderId, ReservationStatus status);
+    List<PointReservation> findByOrderId(UUID orderId);
+    boolean existsByOrderId(UUID orderId);
+    long count();
+    List<PointReservation> findByStatusAndReservedAtBefore(ReservationStatus status, LocalDateTime before);
+}

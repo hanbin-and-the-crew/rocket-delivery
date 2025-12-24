@@ -33,9 +33,22 @@ public enum ProductErrorType implements ErrorType {
     INVALID_RESERVATION_CONFIRM(HttpStatus.BAD_REQUEST, "예약된 재고보다 많은 수량을 확정할 수 없습니다"),
     INVALID_RESERVATION_CANCEL(HttpStatus.BAD_REQUEST, "예약된 재고보다 많은 수량을 취소할 수 없습니다"),
 
+    // Stock 예약 관련 에러
+    STOCK_RESERVATION_NOT_FOUND(HttpStatus.NOT_FOUND, "재고 예약 정보를 찾을 수 없습니다"),
+    STOCK_RESERVATION_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "이미 존재하는 재고 예약입니다"),
+    STOCK_RESERVATION_ALREADY_CONFIRMED(HttpStatus.BAD_REQUEST, "이미 확정된 재고 예약입니다"),
+    STOCK_RESERVATION_ALREADY_CANCELLED(HttpStatus.BAD_REQUEST, "이미 취소된 재고 예약입니다"),
+    STOCK_RESERVATION_CONFLICT(HttpStatus.CONFLICT, "재고 예약 정보와 재고 상태가 일치하지 않습니다"),
+    STOCK_RESERVATION_KEY_REQUIRED(HttpStatus.BAD_REQUEST, "reservationKey는 필수입니다"),
+    STOCK_LOCK_BUSY(HttpStatus.TOO_MANY_REQUESTS, "동일 상품의 재고 요청이 동시에 처리 중입니다. 잠시 후 다시 시도해주세요."),
+
     // Product 조회 에러
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다"),
-    STOCK_NOT_FOUND(HttpStatus.NOT_FOUND, "재고 정보를 찾을 수 없습니다");
+    STOCK_NOT_FOUND(HttpStatus.NOT_FOUND, "재고 정보를 찾을 수 없습니다"),
+
+
+    // Stock 생성 에러
+    STOCK_CREATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "재고 생성에 실패했습니다");
 
     private final HttpStatus status;
     private final String code;

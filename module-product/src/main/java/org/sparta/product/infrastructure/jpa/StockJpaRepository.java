@@ -13,5 +13,8 @@ import java.util.UUID;
  */
 public interface StockJpaRepository extends JpaRepository<Stock, UUID> {
 
-
+    /**
+     * Product ID로 Stock 조회
+     */
+    java.util.Optional<Stock> findByProductId(UUID productId);
 }

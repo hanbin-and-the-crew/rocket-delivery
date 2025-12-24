@@ -1,23 +1,24 @@
 package org.sparta.order.infrastructure.repository;
 
 import org.sparta.order.domain.entity.Order;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Order JPA Repository
+ * 순수 Spring Data JPA Repository
+ * - 도메인 포트(OrderRepository)와는 분리
+ * - 구현체(OrderRepositoryImpl)가 이 인터페이스를 사용해 실제 DB 접근
  */
-@Repository
 public interface OrderJpaRepository extends JpaRepository<Order, UUID> {
 
-    /**
-     * Soft Delete 고려한 조회
-     */
-    @Query("SELECT o FROM Order o WHERE o.id = :id AND o.deletedAt IS NULL")
-    Optional<Order> findByIdAndDeletedAtIsNull(@Param("id") UUID id);
+    Optional<Order> findByIdAndDeletedAtIsNull(UUID id);
+
+    Page<Order> findByCustomerIdAndDeletedAtIsNull(UUID customerId, Pageable pageable);
+
+    List<Order> findAllByDeletedAtIsNull();
 }

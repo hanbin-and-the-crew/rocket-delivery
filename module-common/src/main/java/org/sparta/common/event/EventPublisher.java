@@ -1,6 +1,13 @@
 package org.sparta.common.event;
 
 import lombok.extern.slf4j.Slf4j;
+import org.sparta.common.event.delivery.DeliveryCompletedEvent;
+import org.sparta.common.event.delivery.DeliveryCreatedEvent;
+import org.sparta.common.event.delivery.DeliveryStartedEvent;
+import org.sparta.common.event.order.OrderApprovedEvent;
+import org.sparta.common.event.order.OrderCancelledEvent;
+import org.sparta.common.event.order.OrderCreatedEvent;
+import org.sparta.common.event.order.OrderDeletedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
@@ -96,7 +103,75 @@ public class EventPublisher {
             return "hub-events";
         }
 
+        // Order 도메인: 주문 생성 이벤트
+        if (event instanceof OrderCreatedEvent) {
+            return "order.orderCreate";
+        }
 
+        // Order 도메인: 주문 승인 이벤트
+        if (event instanceof OrderApprovedEvent) {
+            return "order.orderApprove";
+        }
+
+        // Order 도메인: 주문 취소 이벤트
+        if (event instanceof OrderCancelledEvent) {
+            return "order.orderCancel";
+        }
+
+        // Order 도메인: 주문 삭제 이벤트
+        if (event instanceof OrderDeletedEvent) {
+            return "order.orderDelete";
+        }
+
+        // Order 관련 나머지 이벤트
+        if (eventType.startsWith("Order")) {
+            return "order-events";
+        }
+
+        // Product 도메인: 재고 차감 성공
+        if (event instanceof org.sparta.common.event.product.StockConfirmedEvent) {
+            return "product.orderCreate";
+        }
+
+        // Product 도메인: 재고 차감 실패
+        if (event instanceof org.sparta.common.event.product.StockReservationFailedEvent) {
+            return "product.orderCreateFail";
+        }
+
+        // Delivery 도메인: 배송 생성 이벤트
+        if (event instanceof DeliveryCreatedEvent) {
+            return "delivery.deliveryCreate";
+        }
+
+        // Delivery 도메인: 배송 시작 이벤트
+        if (event instanceof DeliveryStartedEvent) {
+            return "delivery.deliveryStart";
+        }
+
+        // Delivery 도메인: 배송 완료 이벤트
+        if (event instanceof DeliveryCompletedEvent) {
+            return "delivery.deliveryComplete";
+        }
+
+        // Delivery 토픽 추가
+        if (eventType.startsWith("Delivery")) {
+            return "delivery-events";
+        }
+          
+        // Payment 관련 이벤트
+        if (eventType.startsWith("Payment")) {
+            return "payment-events";
+        }
+
+        // Coupon 관련 이벤트 (CouponConfirmedEvent, CouponReservationCancelledEvent)
+        if (eventType.startsWith("Coupon")) {
+            return "coupon-events";
+        }
+
+        // DeliveryMan 토픽 추가
+        if (eventType.startsWith("Deliveryman")) {
+            return "deliveryman-events";
+        }
 
         // 기본 토픽
         return "domain-events";

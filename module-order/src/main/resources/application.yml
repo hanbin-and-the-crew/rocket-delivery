@@ -12,6 +12,27 @@ spring:
   application:
     name: order-service
 
+  cloud:
+    openfeign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000   # ms, 연결 타임아웃
+            read-timeout: 10000     # ms, 읽기 타임아웃
+            logger-level: BASIC     # (선택) 로깅 레벨
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: order-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+          spring.json.trusted.packages: "*"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
   datasource:
     url: jdbc:postgresql://localhost:5433/rocket_delivery_db
     driver-class-name: org.postgresql.Driver
@@ -38,6 +59,12 @@ spring:
 security:
   bcrypt:
     cost: 10
+
+# Circuit Breaker 설정
+circuit-breaker:
+  failure-threshold: 5      # 연속 실패 5회 시 OPEN
+  success-threshold: 3      # HALF_OPEN에서 성공 3회 시 CLOSED
+  timeout-seconds: 60       # OPEN 상태 60초 유지 후 HALF_OPEN
 
 # Swagger
 springdoc:
